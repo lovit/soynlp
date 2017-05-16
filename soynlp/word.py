@@ -122,8 +122,6 @@ class WordExtractor:
             for from_word, extension_words in extensions.items():
                 be_r[from_word] = self._entropy({ext:self.R[ext] for ext in extension_words})
         
-        print(len(be_r), len(be_l))
-
         # merging be_l, be_r
         be = {word:(v, be_r.get(word, 0)) for word, v in be_l.items()}
         for word, v in be_r.items():
@@ -134,6 +132,7 @@ class WordExtractor:
         return be
             
     def get_branching_entropy(self, word):
+        # TODO: check direction of entropy
         word_len = len(word)
         be_l = 0 if (word in self.L) == False else self._entropy({ w:f for w,f in self.L.items() if (len(w) - 1 == word_len) and (w[:-1] == word) })
         be_r = 0 if (word in self.R) == False else self._entropy({ w:f for w,f in self.R.items() if (len(w) - 1 == word_len) and (w[1:] == word) })
