@@ -89,9 +89,10 @@ class WordExtractor:
             sorted_by_length[len(l)].append(l)
         num_sum = sum((len(words) for length, words in sorted_by_length.items() if length <= self.left_max_length))
         num = 0
-        for word_len, words in sorted_by_length.items():
-            if word_len == 1: 
-                break
+        for word_len in range(2, self.left_max_length+1):
+            words = sorted_by_length.get(word_len, [])
+            if not words:
+                continue
             extensions = defaultdict(lambda: [])
             for word in words:
                 extensions[word[:-1]].append(word)
@@ -108,9 +109,10 @@ class WordExtractor:
             sorted_by_length[len(r)].append(r)
         num_sum = sum((len(words) for length, words in sorted_by_length.items() if length <= self.right_max_length))
         num = 0
-        for word_len, words in sorted_by_length.items():
-            if word_len == 1: 
-                break
+        for word_len in range(2, self.right_max_length+1):
+            words = sorted_by_length.get(word_len, [])
+            if not words:
+                continue
             extensions = defaultdict(lambda: [])
             for word in words:
                 extensions[word[1:]].append(word)
@@ -120,6 +122,8 @@ class WordExtractor:
             for from_word, extension_words in extensions.items():
                 be_r[from_word] = self._entropy({ext:self.R[ext] for ext in extension_words})
         
+        print(len(be_r), len(be_l))
+
         # merging be_l, be_r
         be = {word:(v, be_r.get(word, 0)) for word, v in be_l.items()}
         for word, v in be_r.items():
