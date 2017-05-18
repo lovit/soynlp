@@ -58,6 +58,33 @@ class WordExtractor:
             print('\rtraining was done. used memory %.3f Gb' % (get_process_memory()))
         self.L = dict(self.L)
         self.R = dict(self.R)
+
+    def extract(self, min_cohesion_forward=0.0, min_cohesion_backward=0.0, 
+                min_droprate_cohesion_forward=0.0, min_droprate_cohesion_backward=0.0,
+                min_left_branching_entropy=0.0, min_right_branching_entropy=0.0,
+                min_left_accessor_variety=0, min_right_accessor_variety=0,
+                min_count=5, scores=None):
+        if not scores:
+            scores = self.word_scores()
+        scores_ = {}
+        for word, score in scores.items():
+            if len(word) <= 2:
+                scores_[word] = score
+                continue
+            droprate_cohesion_forward = 0 if not (word[:-1] in self.L) else score.cohesion_forward / self.cohesion_score(word[:-1])[0]
+            droprate_cohesion_backward = 0 if not (word[1:] in self.R) else score.cohesion_backward / self.cohesion_score(word[1:])[1]
+            if (score.cohesion_forward < min_cohesion_forward) or \
+                (score.cohesion_backward < min_cohesion_backward) or \
+                (score.left_branching_entropy < min_left_branching_entropy) or \
+                (score.right_branching_entropy < min_right_branching_entropy) or \
+                (score.left_accessor_variety < min_left_accessor_variety) or \
+                (score.right_accessor_variety < min_right_accessor_variety) or \
+                (droprate_cohesion_forward < min_droprate_cohesion_forward) or \
+                (droprate_cohesion_backward < min_droprate_cohesion_backward) or \
+                (max(score.leftside_frequency, score.rightside_frequency) < min_count):
+                continue
+            scores_[word] = score
+        return scores_
     
     def word_scores(self):
         cps = self.all_cohesion_scores()
