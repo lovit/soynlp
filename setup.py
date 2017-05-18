@@ -21,6 +21,7 @@ setup(
      - LTokenizer
      - MaxScoreTokenizer
    - Noun extractor
+     - LRNounExtractor
      
 
    Following packages are helpful
