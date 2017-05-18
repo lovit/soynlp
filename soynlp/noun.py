@@ -13,8 +13,7 @@ class LRNounExtractor:
         self.lrgraph = None
         
         if not predictor_fnames:
-#             predictor_fnames = [__file__[:-9] + 'trained_models/noun_predictor_sejong']
-            predictor_fnames = ['/Users/hyunjoongkim/git/soynlp/soynlp/trained_models/noun_predictor_sejong']
+            predictor_fnames = [__file__[:-9] + 'trained_models/noun_predictor_sejong']
             print('used default noun predictor; Sejong corpus predictor')
             
         for fname in predictor_fnames:
