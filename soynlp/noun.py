@@ -1,19 +1,22 @@
 from collections import defaultdict
 import sys
+from soynlp.word import WordExtractor
 
 class LRNounExtractor:
 
     def __init__(self, predictor_fnames=None, verbose=True, 
-                 max_l_length=10, max_r_length=6, min_count=5):
+                 max_l_length=10, max_r_length=6, min_count=5, word_extractor=None):
         self.coefficient = {}
         self.verbose = verbose
         self.max_l_length = max_l_length
         self.max_r_length = max_r_length
         self.min_count = min_count
         self.lrgraph = None
+        self.words = None
+        self.word_extractor = WordExtractor() if word_extractor == None else word_extractor
         
         if not predictor_fnames:
-            predictor_fnames = [__file__[:-9] + 'trained_models/noun_predictor_sejong']
+            predictor_fnames = ['trained_models/noun_predictor_sejong']
             print('used default noun predictor; Sejong corpus predictor')
             
         for fname in predictor_fnames:
@@ -33,14 +36,16 @@ class LRNounExtractor:
         except Exception as e:
             print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
     
-    def train_extract(self, sents, wordset_l=None, wordset_r=None):
+    def train_extract(self, sents, minimum_noun_score=0.1, wordset_l=None, wordset_r=None):
         self.train(sents, wordset_l, wordset_r)
-        return self.extract()
+        return self.extract(minimum_noun_score=minimum_noun_score)
     
     def train(self, sents, wordset_l=None, wordset_r=None):
         if (not wordset_l) or (not wordset_r):
             wordset_l, wordset_r = self._scan_vocabulary(sents)
         self.lrgraph = self._build_lrgraph(sents, wordset_l, wordset_r)
+        self.word_extractor.train(sents)
+        self.words = set(self.word_extractor.extract().keys())
     
     def _scan_vocabulary(self, sents):
         """
@@ -104,16 +109,17 @@ class LRNounExtractor:
     
     def extract(self, noun_candidates=None, minimum_noun_score=0.1):
         if not noun_candidates:
-            noun_candidates = sorted(self.lrgraph.keys(), key=lambda x:len(x))
-            
+            #noun_candidates = self.words
+            noun_candidates = set(self.lrgraph.keys())
+
         nouns = {}
         for word in noun_candidates:
             features = self._get_r_features(word)
-            score = self.predict(features) if features else (self._get_subword_score(nouns, word), 0)
+            score = self.predict(features) if features else self._get_subword_score(nouns, word, minimum_noun_score)
             if score[0] < minimum_noun_score:
                 continue
             nouns[word] = score
-        
+            
         nouns = self._postprocess(nouns, minimum_noun_score)
         return nouns
     
@@ -123,7 +129,7 @@ class LRNounExtractor:
             del features['']
         return features
     
-    def _get_subword_score(self, nouns, word):
+    def _get_subword_score(self, nouns, word, minimum_noun_score):
         subword_scores = {}
         for e in range(1, len(word)):
             subword = word[:e]
@@ -135,9 +141,9 @@ class LRNounExtractor:
                 score = score1 if score1[0] > score2[0] else score2
                 subword_scores[subword] = score
             elif (subword in nouns) and (self.coefficient.get(suffix,0.0) > minimum_noun_score):
-                subword_scores[subword] = self.coefficient.get(suffix,0.0)
+                subword_scores[subword] = (self.coefficient.get(suffix,0.0), 0)
         if not subword_scores:
-            return None
+            return (-1.0, 0)
         return sorted(subword_scores.items(), key=lambda x:x[1][0], reverse=True)[0][1]
 
     def predict(self, features):

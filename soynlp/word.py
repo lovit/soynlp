@@ -59,8 +59,8 @@ class WordExtractor:
         self.L = dict(self.L)
         self.R = dict(self.R)
 
-    def extract(self, min_cohesion_forward=0.0, min_cohesion_backward=0.0, 
-                max_droprate_cohesion=0.0, max_droprate_leftside_frequency=0.0,
+    def extract(self, min_cohesion_forward=0.1, min_cohesion_backward=0.0, 
+                max_droprate_cohesion=0.95, max_droprate_leftside_frequency=0.95,
                 min_left_branching_entropy=0.0, min_right_branching_entropy=0.0,
                 min_left_accessor_variety=0, min_right_accessor_variety=0,
                 min_count=5, remove_subwords=True, scores=None):
@@ -86,7 +86,7 @@ class WordExtractor:
             droprate_cohesion_forward = 0 if not (subword in self.L) else score.cohesion_forward / self.cohesion_score(subword)[0]
             if (droprate_cohesion_forward > max_droprate_cohesion) and (subword in scores_):
                 del scores_[subword]
-            droprate_leftside_frequency = score.leftside_frequency / self.L[subword]
+            droprate_leftside_frequency = 0 if not (subword in self.L) else score.leftside_frequency / self.L[subword]
             if (droprate_leftside_frequency > max_droprate_leftside_frequency) and (subword in scores_):
                 del scores_[subword]
         return scores_
@@ -171,7 +171,6 @@ class WordExtractor:
         return be
 
     def branching_entropy(self, word):
-        # TODO: check direction of entropy
         word_len = len(word)
         lsb = { w:f for w,f in self.R.items() if ((len(w) - 1) == word_len) and (w[1:] == word) }
         rsb = { w:f for w,f in self.L.items() if ((len(w) - 1) == word_len) and (w[:-1] == word) }
