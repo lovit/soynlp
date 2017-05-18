@@ -1,8 +1,21 @@
 from collections import defaultdict
+from collections import namedtuple
 import math
 import numpy as np
 import sys
 from soynlp.utils import get_process_memory
+
+Scores = namedtuple('Scores', 'cohesion_forward cohesion_backward  left_branching_entropy right_branching_entropy left_accessor_variety right_accessor_variety leftside_frequency rightside_frequency')
+
+def _entropy(dic):
+    if not dic: 
+        return 0.0
+    sum_ = sum(dic.values())
+    entropy = 0
+    for freq in dic.values():
+        prob = freq / sum_
+        entropy += prob * math.log(prob)
+    return -1 * entropy
 
 
 class WordExtractor:
@@ -46,22 +59,24 @@ class WordExtractor:
         self.L = dict(self.L)
         self.R = dict(self.R)
     
-    def get_word_scores(self):
-        cps = self.get_all_cohesion_probabilities()
-        bes = self.get_all_branching_entropy()
-        cpbe = {}
+    def word_scores(self):
+        cps = self.all_cohesion_scores()
+        bes = self.all_branching_entropy()
+        avs = self.all_accessor_variety()
+        scores = {}
         for word, cp in cps.items():
             be = bes.get(word, (0, 0))
-            cpbe[word] = (cp[0], cp[1], be[0], be[1], self.L.get(word, 0), self.R.get(word, 0))
-        return cpbe
+            av = avs.get(word, (0, 0))
+            scores[word] = Scores(cp[0], cp[1], be[0], be[1], av[0], av[1], self.L.get(word, 0), self.R.get(word, 0))
+        return scores
     
-    def get_all_cohesion_probabilities(self):
+    def all_cohesion_scores(self):
         cps = {}
         words = self.words()
         for i, word in enumerate(words):
             if (self.verbose > 0) and (i % self.verbose == 0):
                 sys.stdout.write('\r cohesion probabilities ... (%d in %d)' % (i+1, len(words)))
-            cp = self.get_cohesion_probability(word)
+            cp = self.cohesion_score(word)
             if (cp[0] == 0) and (cp[1] == 0):
                 continue
             cps[word] = cp
@@ -69,92 +84,79 @@ class WordExtractor:
             print('\rall cohesion probabilities was computed. # words = %d' % len(cps))
         return cps
 
-    def get_cohesion_probability(self, word):
+    def cohesion_score(self, word):
         word_len = len(word)        
         if (not word) or (word_len <= 1):
             return (0, 0)
-        l_freq, r_freq = self.get_frequency(word)
+        l_freq, r_freq = self.frequency(word)
         l_cohesion = 0 if l_freq == 0 else np.power( (l_freq / self.L[word[0]]), (1 / (word_len - 1)) )
         r_cohesion = 0 if r_freq == 0 else np.power( (r_freq / self.R[word[-1]]), (1 / (word_len - 1)) )        
         return (l_cohesion, r_cohesion)
     
-    def get_frequency(self, word):
+    def frequency(self, word):
         return (self.L.get(word, 0), self.R.get(word, 0))
     
-    def get_all_branching_entropy(self):
-        # left -> right extension
-        be_l = {}
-        sorted_by_length = defaultdict(lambda: [])
-        for l in self.L.keys():
-            sorted_by_length[len(l)].append(l)
-        num_sum = sum((len(words) for length, words in sorted_by_length.items() if length <= self.left_max_length))
-        num = 0
-        for word_len in range(2, self.left_max_length+1):
-            words = sorted_by_length.get(word_len, [])
-            if not words:
-                continue
-            extensions = defaultdict(lambda: [])
-            for word in words:
-                extensions[word[:-1]].append(word)
-                num += 1
-                if (self.verbose > 0) and (num % self.verbose == 0):
-                    sys.stdout.write('\rleft to right branching entropy ... (len = %d, %d in %d)' % (word_len - 1, num, num_sum))
-            for from_word, extension_words in extensions.items():
-                be_l[from_word] = self._entropy({ext:self.L[ext] for ext in extension_words})
-        
-        # left <- right extension
-        be_r = {}
-        sorted_by_length = defaultdict(lambda: [])
-        for r in self.R.keys():
-            sorted_by_length[len(r)].append(r)
-        num_sum = sum((len(words) for length, words in sorted_by_length.items() if length <= self.right_max_length))
-        num = 0
-        for word_len in range(2, self.right_max_length+1):
-            words = sorted_by_length.get(word_len, [])
-            if not words:
-                continue
-            extensions = defaultdict(lambda: [])
-            for word in words:
-                extensions[word[1:]].append(word)
-                num += 1
-                if (self.verbose > 0) and (num % self.verbose == 0):
-                    sys.stdout.write('\rright to left branching entropy ... (len = %d, %d in %d)' % (word_len - 1, num, num_sum))
-            for from_word, extension_words in extensions.items():
-                be_r[from_word] = self._entropy({ext:self.R[ext] for ext in extension_words})
-        
-        # merging be_l, be_r
-        be = {word:(v, be_r.get(word, 0)) for word, v in be_l.items()}
-        for word, v in be_r.items():
-            if word in be_l: continue
-            be[word] = (0, v)
+    def all_branching_entropy(self, get_score=_entropy):
+        def parse_left(extension):
+            return extension[:-1]
+        def parse_right(extension):
+            return extension[1:]
+        def sort_by_length(counter):
+            sorted_by_length = defaultdict(lambda: [])
+            for w in counter.keys():
+                sorted_by_length[len(w)].append(w)
+            return sorted_by_length
+        def get_entropy_table(parse, sorted_by_length, max_length, print_head, counter):
+            num_sum = sum((len(words) for length, words in sorted_by_length.items()))
+            num = 0
+            be = {}
+            for word_len in range(2, max_length):
+                words = sorted_by_length.get(word_len, [])
+                extensions = defaultdict(lambda: [])
+                for word in words:
+                    extensions[parse(word)].append(word)
+                    num += 1
+                    if (self.verbose > 0) and (num % self.verbose == 0):
+                        args = (print_head, word_len - 1, num, num_sum)
+                        sys.stdout.write('\r%s ... (len = %d, %d in %d)' % args)
+                for root_word, extension_words in extensions.items():
+                    extension_frequency = {ext:counter.get(ext) for ext in extension_words}
+                    be[root_word] = get_score(extension_frequency)
+            return be
+        def merge(be_l, be_r):
+            be = {word:(v, be_r.get(word, 0)) for word, v in be_l.items()}
+            for word, v in be_r.items():
+                if word in be_l: continue
+                be[word] = (0, v)
+            return be
+
+        be_l = get_entropy_table(parse_right, sort_by_length(self.R), self.right_max_length+1, 'right to left branching entropy', self.R)
+        be_r = get_entropy_table(parse_left, sort_by_length(self.L), self.left_max_length+1, 'left to right branching entropy', self.L)
+        be = merge(be_l, be_r)
         if self.verbose > 0:
-            print('\rall branching entropies was computed # words = %d' % len(be))
+            print_head = 'branching entropies' if get_score == _entropy else 'accessor variety'
+            print('\rall %s was computed # words = %d' % (print_head, len(be)))
         return be
-            
-    def get_branching_entropy(self, word):
+
+    def branching_entropy(self, word):
         # TODO: check direction of entropy
         word_len = len(word)
-        be_l = 0 if (word in self.L) == False else self._entropy({ w:f for w,f in self.L.items() if (len(w) - 1 == word_len) and (w[:-1] == word) })
-        be_r = 0 if (word in self.R) == False else self._entropy({ w:f for w,f in self.R.items() if (len(w) - 1 == word_len) and (w[1:] == word) })
+        lsb = { w:f for w,f in self.R.items() if ((len(w) - 1) == word_len) and (w[1:] == word) }
+        rsb = { w:f for w,f in self.L.items() if ((len(w) - 1) == word_len) and (w[:-1] == word) }
+        be_l = 0 if (word in self.R) == False else _entropy(lsb)
+        be_r = 0 if (word in self.L) == False else _entropy(rsb)
         return (be_l, be_r)
-        
-    def _entropy(self, dic):
-        if not dic: 
-            return 0.0
-        sum_ = sum(dic.values())
-        entropy = 0
-        for freq in dic.values():
-            prob = freq / sum_
-            entropy += prob * math.log(prob)
-        return -1 * entropy
 
-    def get_all_accessor_variety(self):
-        raise NotImplemented
+    def all_accessor_variety(self):
+        return self.all_branching_entropy(get_score=len)
 
-    def get_accessor_variety(self, word):
+    def accessor_variety(self, word):
         word_len = len(word)
-        av_l = 0 if (word in self.L) == False else len({ w:f for w,f in self.L.items() if (len(w) - 1 == word_len) and (w[:-1] == word) })
-        av_r = 0 if (word in self.R) == False else len({ w:f for w,f in self.R.items() if (len(w) - 1 == word_len) and (w[1:] == word) })
+        lsb = { w:f for w,f in self.R.items() if ((len(w) - 1) == word_len) and (w[1:] == word) }
+        rsb = { w:f for w,f in self.L.items() if ((len(w) - 1) == word_len) and (w[:-1] == word) }
+        print(lsb, rsb)
+        av_l = 0 if (word in self.R) == False else len(lsb)
+        av_r = 0 if (word in self.L) == False else len(rsb)
         return (av_l, av_r)
 
     def words(self):
