@@ -151,6 +151,10 @@ class LRNounExtractor:
             return (-1.0, 0)
         return sorted(subword_scores.items(), key=lambda x:x[1][0], reverse=True)[0][1]
 
+    def is_noun(self, word):
+        features = self._get_r_features(word)
+        return predict(features)
+        
     def predict(self, features):
         """Parameters
         ----------
