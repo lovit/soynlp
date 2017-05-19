@@ -40,9 +40,9 @@ class LRNounExtractor:
         except Exception as e:
             print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
     
-    def train_extract(self, sents, minimum_noun_score=0.1, wordset_l=None, wordset_r=None):
+    def train_extract(self, sents, minimum_noun_score=0.5, min_count=5, wordset_l=None, wordset_r=None):
         self.train(sents, wordset_l, wordset_r)
-        return self.extract(minimum_noun_score=minimum_noun_score)
+        return self.extract(minimum_noun_score=minimum_noun_score, min_count=min_count)
     
     def train(self, sents, wordset_l=None, wordset_r=None):
         if (not wordset_l) or (not wordset_r):
