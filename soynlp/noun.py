@@ -5,24 +5,29 @@ from soynlp.word import WordExtractor
 class LRNounExtractor:
 
     def __init__(self, predictor_fnames=None, verbose=True, 
-                 max_l_length=10, max_r_length=6, min_count=5, word_extractor=None):
+                 left_max_length=10, right_max_length=6, min_count=5, word_extractor=None):
         self.coefficient = {}
         self.verbose = verbose
-        self.max_l_length = max_l_length
-        self.max_r_length = max_r_length
+        self.left_max_length = left_max_length
+        self.right_max_length = right_max_length
         self.min_count = min_count
         self.lrgraph = None
         self.words = None
         self.word_extractor = WordExtractor() if word_extractor == None else word_extractor
         
         if not predictor_fnames:
-            predictor_fnames = ['trained_models/noun_predictor_sejong']
-            print('used default noun predictor; Sejong corpus predictor')
+            import os
+            directory = os.path.dirname(__file__)
+            predictor_fnames = ['soynlp/trained_models/noun_predictor_sejong' % directory]
+            print(predictor_fnames)
+            if verbose:
+                print('used default noun predictor; Sejong corpus predictor')
             
         for fname in predictor_fnames:
             print('used %s' % fname.split('/')[-1])
             self._load_predictor(fname)
-        print('%d r features was loaded' % len(self.coefficient))
+        if verbose:
+            print('%d r features was loaded' % len(self.coefficient))
         
     def _load_predictor(self, fname):
         try:
@@ -67,9 +72,9 @@ class LRNounExtractor:
                 if not token:
                     continue
                 token_len = len(token)
-                for i in range(1, min(self.max_l_length, token_len)+1):
+                for i in range(1, min(self.left_max_length, token_len)+1):
                     wordset_l[token[:i]] += 1
-                for i in range(1, min(self.max_r_length, token_len)):
+                for i in range(1, min(self.right_max_length, token_len)):
                     wordset_r[token[-i:]] += 1
             if self.verbose and (i % _ckpt == 0):
                 args = ('#' * int(i/_ckpt), '-' * (40 - int(i/_ckpt)), 100.0 * i / len(sent), '%')
@@ -92,7 +97,7 @@ class LRNounExtractor:
                 if not token:
                     continue
                 token_len = len(token)
-                for i in range(1, min(self.max_l_length, token_len)+1):
+                for i in range(1, min(self.left_max_length, token_len)+1):
                     l = token[:i]
                     r = token[i:]
                     if (not l in wordset_l) or (not r in wordset_r):
