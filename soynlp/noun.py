@@ -17,8 +17,8 @@ class LRNounExtractor:
         
         if not predictor_fnames:
             import os
-            directory = os.path.dirname(__file__)
-            predictor_fnames = ['soynlp/trained_models/noun_predictor_sejong' % directory]
+            directory = os.getcwd()
+            predictor_fnames = ['%s/trained_models/noun_predictor_sejong' % directory]
             print(predictor_fnames)
             if verbose:
                 print('used default noun predictor; Sejong corpus predictor')
