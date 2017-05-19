@@ -153,7 +153,7 @@ class LRNounExtractor:
 
     def is_noun(self, word, minimum_noun_score=0.5):
         features = self._get_r_features(word)
-        return predict(features) >= minimum_noun_score
+        return self.predict(features)[0] >= minimum_noun_score
 
     def predict(self, features):
         """Parameters
