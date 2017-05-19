@@ -5,7 +5,7 @@ from soynlp.word import WordExtractor
 class LRNounExtractor:
 
     def __init__(self, predictor_fnames=None, verbose=True, 
-                 left_max_length=10, right_max_length=6, min_count=5, word_extractor=None):
+                 left_max_length=10, right_max_length=6, min_count=10, word_extractor=None):
         self.coefficient = {}
         self.verbose = verbose
         self.left_max_length = left_max_length
@@ -111,20 +111,21 @@ class LRNounExtractor:
         lrgraph = {l:{r:f for r,f in rdict.items()} for l,rdict in lrgraph.items()}
         return lrgraph
     
-    def extract(self, noun_candidates=None, minimum_noun_score=0.1):
+    def extract(self, noun_candidates=None, minimum_noun_score=0.5, min_count=5):
         if not noun_candidates:
-            #noun_candidates = self.words
-            noun_candidates = set(self.lrgraph.keys())
+            noun_candidates = self.words
 
         nouns = {}
         for word in noun_candidates:
+            if len(word) <= 1:
+                continue
             features = self._get_r_features(word)
             score = self.predict(features) if features else self._get_subword_score(nouns, word, minimum_noun_score)
             if score[0] < minimum_noun_score:
                 continue
             nouns[word] = score
             
-        nouns = self._postprocess(nouns, minimum_noun_score)
+        nouns = self._postprocess(nouns, minimum_noun_score, min_count)
         return nouns
     
     def _get_r_features(self, word):
@@ -171,13 +172,17 @@ class LRNounExtractor:
         return (0 if norm == 0 else score / norm, 
                 0 if (norm + unknown == 0) else norm / (norm + unknown))
     
-    def _postprocess(self, nouns, minimum_noun_score):
+    def _postprocess(self, nouns, minimum_noun_score, min_count):
         removals = set()
         for word in sorted(nouns.keys(), key=lambda x:len(x)):
-            if len(word) <= 2:
+            if len(word) <= 2 :
+                continue
+            if self.word_extractor.frequency(word)[0] < min_count:
+                removals.add(word)
                 continue
             if word[-1] == '.':
                 removals.add(word)
+                continue
             for e in range(2, len(word)):
                 if (word[:e] in nouns) and (self.coefficient.get(word[e:], 0.0) > minimum_noun_score):
                     removals.add(word)
