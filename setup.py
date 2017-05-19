@@ -32,7 +32,8 @@ setup(
      - https://github.com/lovit/soyspacing
      - pip install soyspacing
    """,
-   install_requires=["numpy", "psutil"],
+   install_requires=["numpy>=1.12.1", "psutil>=5.0.1"],
    keywords = ['korean natural language processing'],
-   packages=['soynlp']
+   packages=['soynlp'],
+   package_data={'soynlp':['trained_models/*']}
 )
