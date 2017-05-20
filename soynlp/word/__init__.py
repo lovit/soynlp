@@ -1,0 +1,1 @@
+from ._word import WordExtractor
