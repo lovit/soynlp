@@ -9,3 +9,4 @@ from . import tokenizer
 from . import noun
 from .utils import get_available_memory
 from .utils import get_process_memory
+from .utils import DoublespaceLineCorpus
