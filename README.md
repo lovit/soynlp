@@ -8,24 +8,29 @@ It contains unsupervised word extraction, tokenizers and noun extractors. These 
 Current version has follows
 
 - Word extraction
-	- Cohesion score
-	- Branching Entropy
-	- Accessor Variety
+----- Cohesion score
+----- Branching Entropy
+----- Accessor Variety
 - Tokenizers
-	- RegexTokenizer
-	- LTokenizer
-	- MaxScoreTokenizer	
+----- RegexTokenizer
+----- LTokenizer
+----- MaxScoreTokenizer	
 - Noun extractor
- 
+----- LRNounExtractor 
 
 Following packages are helpful
 
-- krwordrank: Unsupervised Korean word/keyword extractor
-	- https://github.com/lovit/KR-WordRank
-	- pip install krwordrank
-- soyspacing: Korean spacing error corrector
-	- https://github.com/lovit/soyspacing
-	- pip install soyspacing
+krwordrank: Unsupervised Korean word/keyword extractor
+- https://github.com/lovit/KR-WordRank
+- pip install krwordrank
+
+soyspacing: Korean spacing error corrector
+- https://github.com/lovit/soyspacing
+- pip install soyspacing
+
+## Setup
+
+	pip install soynlp
 
 ## Requires
 
