@@ -9,9 +9,9 @@ Current version has follows
 
 - Word extraction
 	- WordExtractor: It contains three word scoring methods; 
-		(1) Cohesion score
-		(2) Branching Entropy
-		(3) Accessor Variety
+		1. Cohesion score
+		1. Branching Entropy
+		1. Accessor Variety
 - Tokenizers
 	- RegexTokenizer
 	- LTokenizer
