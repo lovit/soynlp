@@ -8,7 +8,10 @@ It contains unsupervised word extraction, tokenizers and noun extractors. These 
 Current version has follows
 
 - Word extraction
-	- WordExtractor: It contains three word scoring methods; (1) Cohesion score, (2) Branching Entropy, (3) Accessor Variety
+	- WordExtractor: It contains three word scoring methods; 
+		(1) Cohesion score
+		(2) Branching Entropy
+		(3) Accessor Variety
 - Tokenizers
 	- RegexTokenizer
 	- LTokenizer
