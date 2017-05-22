@@ -78,8 +78,8 @@ class RegexTokenizer:
 
 class LTokenizer:
     
-    def __init__(self, scores={}, default_score=0.0):
-        self.scores = scores
+    def __init__(self, scores=None, default_score=0.0):
+        self.scores = scores if scores else {}
         self.ds = default_score
         
     def tokenize(self, sentence, tolerance=0.0, flatten=True, remove_r=False):
@@ -110,9 +110,9 @@ class LTokenizer:
 
 class MaxScoreTokenizer:
     
-    def __init__(self, max_length=10, scores={}, default_score=0.0):
-        self.max_length = max_length
-        self.scores = scores
+    def __init__(self, scores=None, max_length=10, default_score=0.0):
+        self.scores = scores if scores else {}
+        self.max_length = max_length        
         self.ds = default_score
         
     def tokenize(self, sentence, flatten=True):
