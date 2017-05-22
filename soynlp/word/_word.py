@@ -32,6 +32,8 @@ class WordExtractor:
         self.min_count = min_count
         self.L = {}
         self.R = {}
+        self._aL = {}
+        self._aR = {}
         self.verbose = verbose_points
 
         self.min_cohesion_forward = min_cohesion_forward
@@ -51,29 +53,38 @@ class WordExtractor:
             
         self.L = defaultdict(lambda: 0)
         self.R = defaultdict(lambda: 0)
+        self._aL = defaultdict(lambda: 0)
+        self._aR = defaultdict(lambda: 0)
         
-        for num_sent, sent in enumerate(sents):            
-            for word in sent.split():
-                
+        for num_sent, sent in enumerate(sents):
+            words = sent.strip().split()
+            for word in words:
                 if (not word) or (len(word) <= 1):
                     continue
-                    
                 word_len = len(word)
                 for i in range(1, min(self.left_max_length + 1, word_len)+1):                    
                     self.L[word[:i]] += 1                
                 for i in range(1, min(self.right_max_length + 1, word_len)):
                     self.R[word[-i:]] += 1
 
-            if (num_for_pruning > 0) and ( (num_sent + 1) % num_for_pruning == 0):
+            if len(words) <= 1:
+                continue
+            for left_word, word, right_word in zip([words[-1]]+words[:-1], words, words[1:]+[words[0]]):
+                self._aL['%s %s' % (word, right_word[0])] += 1
+                self._aR['%s %s' % (left_word[-1], word)] += 1
+
+            if (num_for_pruning > 0) and ( num_sent % num_for_pruning == 0):
                 prune_extreme_case()
-            if (self.verbose > 0) and (num_sent % self.verbose == 0):
-                sys.stdout.write('\rtraining ... (%d in %d sents) use memory %.3f Gb' % (num_sent + 1, len(sents), get_process_memory()))
+            if (self.verbose > 0) and ( num_sent % self.verbose == 0):
+                sys.stdout.write('\rtraining ... (%d in %d sents) use memory %.3f Gb' % (num_sent, len(sents), get_process_memory()))
                 
         prune_extreme_case()
         if (self.verbose > 0):
             print('\rtraining was done. used memory %.3f Gb' % (get_process_memory()))
         self.L = dict(self.L)
         self.R = dict(self.R)
+        self._aL = dict(self._aL)
+        self._aR = dict(self._aR)
 
     def extract(self, scores=None):
         if not scores:
@@ -150,21 +161,19 @@ class WordExtractor:
             for w in counter.keys():
                 sorted_by_length[len(w)].append(w)
             return sorted_by_length
-        def get_entropy_table(parse, sorted_by_length, max_length, print_head, counter):
+        def get_entropy_table(parse, sorted_by_length, sorted_by_length_a, max_length, counter, counter_a):
             num_sum = sum((len(words) for length, words in sorted_by_length.items()))
-            num = 0
             be = {}
             for word_len in range(2, max_length):
                 words = sorted_by_length.get(word_len, [])
                 extensions = defaultdict(lambda: [])
                 for word in words:
                     extensions[parse(word)].append(word)
-                    num += 1
-                    if (self.verbose > 0) and (num % self.verbose == 0):
-                        args = (print_head, word_len - 1, num, num_sum)
-                        sys.stdout.write('\r%s ... (len = %d, %d in %d)' % args)
+                words_ = sorted_by_length_a.get(word_len+1, [])
+                for word in words_:
+                    extensions[parse(word.replace(' ',''))].append(word)
                 for root_word, extension_words in extensions.items():
-                    extension_frequency = {ext:counter.get(ext) for ext in extension_words}
+                    extension_frequency = {ext:counter_a.get(ext) if ' ' in ext else counter.get(ext) for ext in extension_words}
                     be[root_word] = get_score(extension_frequency)
             return be
         def merge(be_l, be_r):
@@ -174,8 +183,8 @@ class WordExtractor:
                 be[word] = (0, v)
             return be
 
-        be_l = get_entropy_table(parse_right, sort_by_length(self.R), self.right_max_length+1, 'right to left branching entropy', self.R)
-        be_r = get_entropy_table(parse_left, sort_by_length(self.L), self.left_max_length+1, 'left to right branching entropy', self.L)
+        be_l = get_entropy_table(parse_right, sort_by_length(self.R), sort_by_length(self._aR), self.right_max_length+1, self.R, self._aR)
+        be_r = get_entropy_table(parse_left, sort_by_length(self.L), sort_by_length(self._aL), self.left_max_length+1, self.L, self._aL)
         be = merge(be_l, be_r)
         if self.verbose > 0:
             print_head = 'branching entropies' if get_score == _entropy else 'accessor variety'
@@ -185,9 +194,11 @@ class WordExtractor:
     def branching_entropy(self, word):
         word_len = len(word)
         lsb = { w:f for w,f in self.R.items() if ((len(w) - 1) == word_len) and (w[1:] == word) }
+        lsb.update({ w:f for w,f in self._aR.items() if ((len(w) - 2) == word_len) and (w[2:] == word) })
         rsb = { w:f for w,f in self.L.items() if ((len(w) - 1) == word_len) and (w[:-1] == word) }
-        be_l = 0 if (word in self.R) == False else _entropy(lsb)
-        be_r = 0 if (word in self.L) == False else _entropy(rsb)
+        rsb.update({ w:f for w,f in self._aL.items() if ((len(w) - 2) == word_len) and (w[:-2] == word) })
+        be_l = 0 if not lsb else _entropy(lsb)
+        be_r = 0 if not rsb else _entropy(rsb)
         return (be_l, be_r)
 
     def all_accessor_variety(self):
@@ -196,10 +207,11 @@ class WordExtractor:
     def accessor_variety(self, word):
         word_len = len(word)
         lsb = { w:f for w,f in self.R.items() if ((len(w) - 1) == word_len) and (w[1:] == word) }
+        lsb.update({ w:f for w,f in self._aR.items() if ((len(w) - 2) == word_len) and (w[2:] == word) })
         rsb = { w:f for w,f in self.L.items() if ((len(w) - 1) == word_len) and (w[:-1] == word) }
-        print(lsb, rsb)
-        av_l = 0 if (word in self.R) == False else len(lsb)
-        av_r = 0 if (word in self.L) == False else len(rsb)
+        rsb.update({ w:f for w,f in self._aL.items() if ((len(w) - 2) == word_len) and (w[:-2] == word) })
+        av_l = 0 if lsb == False else len(lsb)
+        av_r = 0 if rsb == False else len(rsb)
         return (av_l, av_r)
 
     def words(self):
