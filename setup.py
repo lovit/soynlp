@@ -1,5 +1,5 @@
 from description import __version__, __author__
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
    name="soynlp",
@@ -34,6 +34,6 @@ setup(
    """,
    install_requires=["numpy>=1.12.1", "psutil>=5.0.1"],
    keywords = ['korean natural language processing'],
-   packages=['soynlp'],
+   packages=find_packages(),
    package_data={'soynlp':['trained_models/*']}
 )
