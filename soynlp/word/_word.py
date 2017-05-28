@@ -2,6 +2,7 @@ from collections import defaultdict
 from collections import namedtuple
 import math
 import numpy as np
+import pickle
 import sys
 from soynlp.utils import get_process_memory
 
@@ -228,3 +229,62 @@ class WordExtractor:
         words = {word for word in self.L.keys() if len(word) <= self.left_max_length}
         words.update({word for word in self.R.keys() if len(word) <= self.right_max_length})
         return words
+
+    def save(self, fname):
+        configuration = {
+            'left_max_length': self.left_max_length,
+            'right_max_length': self.right_max_length,
+            'min_count': self.min_count,
+            'verbose_points': self.verbose,
+            'min_cohesion_forward': self.min_cohesion_forward,
+            'min_cohesion_backward': self.min_cohesion_backward,
+            'max_droprate_cohesion': self.max_droprate_cohesion,
+            'max_droprate_leftside_frequency': self.max_droprate_leftside_frequency,
+            'min_left_branching_entropy': self.min_left_branching_entropy,
+            'min_right_branching_entropy': self.min_right_branching_entropy,
+            'min_left_accessor_variety': self.min_left_accessor_variety,
+            'min_right_accessor_variety': self.min_right_accessor_variety,
+            'remove_subwords': self.remove_subwords
+        }
+        data = {
+            'L': self.L,
+            'R': self.R,
+            'aL': self._aL,
+            'aR': self._aR
+        }
+        params = {
+            'configuration': configuration,
+            'data': data
+            }
+        with open(fname, 'wb') as f:
+            pickle.dump(params, f)
+
+    def load(self, fname):
+        with open(fname, 'rb') as f:
+            params = pickle.load(f)
+
+        configuration = params['configuration']
+        self.left_max_length = configuration['left_max_length']
+        self.right_max_length = configuration['right_max_length']
+        self.min_count = configuration['min_count']
+        self.verbose = configuration['verbose_points']
+
+        self.min_cohesion_forward = configuration['min_cohesion_forward']
+        self.min_cohesion_backward = configuration['min_cohesion_backward']
+        self.max_droprate_cohesion = configuration['max_droprate_cohesion']
+        self.max_droprate_leftside_frequency = configuration['max_droprate_leftside_frequency']
+        self.min_left_branching_entropy = configuration['min_left_branching_entropy']
+        self.min_right_branching_entropy = configuration['min_right_branching_entropy']
+        self.min_left_accessor_variety = configuration['min_left_accessor_variety']
+        self.min_right_accessor_variety = configuration['min_right_accessor_variety']
+        self.remove_subwords = configuration['remove_subwords']
+
+        data = params['data']
+        self.L = data['L']
+        self.R = data['R']
+        self._aL = data['aL']
+        self._aR = data['aR']
+
+        del params
+        del configuration
+        del data
