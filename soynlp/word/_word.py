@@ -130,7 +130,7 @@ class WordExtractor:
         bes = self.all_branching_entropy()
         avs = self.all_accessor_variety()
         scores = {}
-        for word in words:
+        for word in self.words():
             co = cps.get(word, (0, 0))
             be = bes.get(word, (0, 0))
             av = avs.get(word, (0, 0))
