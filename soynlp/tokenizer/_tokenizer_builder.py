@@ -156,3 +156,48 @@ class EojeolPatternTrainer:
             self.lrgraph = lrgraph
             self.rlgraph = rlgraph
             
+    def train_hits(lrgraph=None, rlgraph=None, sum_of_rank=10000, decaying_factor=0.9, max_iter=10, tolerance=0.0001):
+        def normalize(g, sum_of_rank, df):
+            factor = df * sum_of_rank / sum(g.values())
+            restart = (1 - df) * sum_of_rank / len(g)
+            g_ = {word:(factor*rank + restart) for word, rank in g.items() if word != ''}
+            return g_
+
+        if lrgraph == None:
+            (lrgraph, rlgraph) = (self.lrgraph, self.rlgraph)
+        
+        rank = sum_of_rank / len(lrgraph)
+        rank_l = {l:rank for l in lrgraph.keys()}
+        rank = sum_of_rank / len(rlgraph)
+        rank_r = {r:rank for r in rlgraph.keys() if r != ''}
+
+        for n_iter in range(max_iter):
+            next_rank_l = {}
+            for l, rdict in lrgraph.items():
+                sum_rrank = sum({freq*rank_r[r] for r, freq in rdict.items() if r != ''})
+                next_rank_l[l] = sum_rrank
+            next_rank_l = normalize(next_rank_l, sum_of_rank, decaying_factor)
+
+            next_rank_r = {}
+            for r, ldict in rlgraph.items():
+                if r == '': continue
+                sum_lrank = sum({freq*rank_l[l] for l, freq in ldict.items()})
+                next_rank_r[r] = sum_lrank
+            next_rank_r = normalize(next_rank_r, sum_of_rank, decaying_factor)
+
+            if self.verbose:
+                sys.stdout.write('\rtrain hits ... %d in %d' % (n_iter+1, max_iter))
+
+            diff = sum([abs(rank - next_rank_l[w]) for w, rank in rank_l.items()])
+            diff += sum([abs(rank - next_rank_r[w]) for w, rank in rank_r.items()])
+            rank_l = next_rank_l
+            rank_r = next_rank_r
+            if diff < (sum_of_rank * tolerance):
+                if self.verbose:
+                    print('\rgraph was converged at %d iteration' % (n_iter+1))
+                break
+
+        if self.verbose:
+            print('\rcomputation was done at %d iteration' % (n_iter+1))
+
+        return rank_l, rank_r
