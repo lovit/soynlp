@@ -131,7 +131,7 @@ class WordExtractor:
         avs = self.all_accessor_variety()
         scores = {}
         for word in self.words():
-            co = cps.get(word, (0, 0))
+            cp = cps.get(word, (0, 0))
             be = bes.get(word, (0, 0))
             av = avs.get(word, (0, 0))
             scores[word] = Scores(cp[0], cp[1], be[0], be[1], av[0], av[1], self.L.get(word, 0), self.R.get(word, 0))
