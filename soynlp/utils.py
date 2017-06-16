@@ -53,13 +53,13 @@ class DoublespaceLineCorpus:
                         stop = True
                     continue
                 for sent in doc.split('  '):
-                    num_sent += 1
-                    if (self.num_sent > 0) and (num_sent > self.num_sent):
+                    if (self.num_sent > 0) and (num_sent >= self.num_sent):
                         stop = True
                         break
                     sent = sent.strip()
                     if not sent: continue
                     yield sent
+                    num_sent += 1
                     
     def __len__(self):
         if self.num_doc == 0:
