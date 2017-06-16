@@ -1,6 +1,8 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import sys
 from soynlp.word import WordExtractor
+
+NounScore = namedtuple('NounScore', 'frequency score known_r_ratio')
 
 class LRNounExtractor:
 
@@ -13,7 +15,7 @@ class LRNounExtractor:
         self.min_count = min_count
         self.lrgraph = None
         self.words = None
-        self.word_extractor = WordExtractor() if word_extractor == None else word_extractor
+        self._wordset_l_counter = {}
         
         if not predictor_fnames:
             import os
@@ -48,8 +50,7 @@ class LRNounExtractor:
         if (not wordset_l) or (not wordset_r):
             wordset_l, wordset_r = self._scan_vocabulary(sents)
         self.lrgraph = self._build_lrgraph(sents, wordset_l, wordset_r)
-        self.word_extractor.train(sents)
-        self.words = set(self.word_extractor.extract().keys())
+        self.words = wordset_l
     
     def _scan_vocabulary(self, sents):
         """
@@ -78,9 +79,11 @@ class LRNounExtractor:
             if self.verbose and (i % _ckpt == 0):
                 args = ('#' * int(i/_ckpt), '-' * (40 - int(i/_ckpt)), 100.0 * i / len(sent), '%')
                 sys.stdout.write('\rscanning: %s%s (%.3f %s)' % args)
-            
-        wordset_l = {w for w,f in wordset_l.items() if f >= self.min_count}
+        
+        self._wordset_l_counter = {w:f for w,f in wordset_l.items() if f >= self.min_count}
+        wordset_l = set(self._wordset_l_counter.keys())
         wordset_r = {w for w,f in wordset_r.items() if f >= self.min_count}
+        
         if self.verbose:
             print('\rscanning completed')
             print('(L,R) has (%d, %d) tokens' % (len(wordset_l), len(wordset_r)))
@@ -126,6 +129,7 @@ class LRNounExtractor:
             nouns[word] = score
             
         nouns = self._postprocess(nouns, minimum_noun_score, min_count)
+        nouns = {word:NounScore(self._wordset_l_counter.get(word, 0), score[0], score[1]) for word, score in nouns.items()}
         return nouns
     
     def _get_r_features(self, word):
@@ -180,9 +184,6 @@ class LRNounExtractor:
         removals = set()
         for word in sorted(nouns.keys(), key=lambda x:len(x)):
             if len(word) <= 2 :
-                continue
-            if self.word_extractor.frequency(word)[0] < min_count:
-                removals.add(word)
                 continue
             if word[-1] == '.':
                 removals.add(word)
