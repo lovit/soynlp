@@ -1,6 +1,6 @@
 from collections import Counter
 import numpy as np
-from ._hangle import split_jamo as _jamo
+from ._hangle import decompose
 
 def levenshtein(s1, s2, cost={}):
     # based on Wikipedia/Levenshtein_distance#Python
@@ -33,7 +33,7 @@ def jamo_levenshtein(s1, s2):
         return len(s1)
     
     def get_jamo_cost(c1, c2):
-        return 0 if (c1 == c2) else levenshtein(_jamo(c1), _jamo(c2))/3
+        return 0 if (c1 == c2) else levenshtein(decompose(c1), decompose(c2))/3
 
     previous_row = range(len(s2) + 1)
     for i, c1 in enumerate(s1):
