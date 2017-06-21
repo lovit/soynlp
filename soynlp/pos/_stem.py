@@ -83,7 +83,10 @@ def conjugate(v, e):
             return (canonicalv, compose('ㅇ', 'ㅓ', v_[2]) + ('' if not e else e[1:]))
     
     # 1.6. ㅡ 탈락 불규칙 활용
-    
+    if (v_[1] == 'ㅓ' or v_[1] == 'ㅏ'):
+        canonicalv = v[:-1] + compose(v_[0], 'ㅡ', ' ')
+        if is_verb(canonicalv) and ((not e) or is_eomi(e)):
+            return (canonicalv, compose('ㅇ', 'ㅓ', v_[2]) + e)
     
     ## 2. 어미가 바뀌는 불규칙 활용
     # 2.1. 거라 불규칙 활용
