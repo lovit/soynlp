@@ -28,10 +28,11 @@ def conjugate(v, e):
     def is_eomi(w): return w in eomis
     
     vl = v[-1]
-    ef = e[0]
+    ef = e[0] if e else ' '
     v_ = decompose(vl)
-    e_ = decompose(ef)
-    e_2 = compose(e_[0], e_[1], ' ')
+    v_2 = compose(v_[0], v_[1], ' ')
+    e_ = decompose(ef) if e else (' ', ' ', ' ')
+    e_2 = compose(e_[0], e_[1], ' ') if e else ' '
     
     # https://namu.wiki/w/한국어/불규칙%20활용
     ## 1. 어간이 바뀌는 불규칙 활용
@@ -72,6 +73,7 @@ def conjugate(v, e):
         return (v, e)
     
     # 1.5. 우 불규칙 활용
+    
     
     
     # 1.6. ㅡ 탈락 불규칙 활용
