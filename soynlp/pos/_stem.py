@@ -27,6 +27,7 @@ def conjugate(v, e):
     
     v_ = decompose(v[-1])
     e_ = decompose(e[0])
+    e_2 = compose(e_[0], e_[1], ' ')
     
     # https://namu.wiki/w/한국어/불규칙%20활용
     ## 1. 어간이 바뀌는 불규칙 활용
@@ -40,7 +41,7 @@ def conjugate(v, e):
             return (canonicalv, e)
     
     # 1.2. 르 불규칙 활용
-    if (v_[2] == 'ㄹ') and (e[0] == '러' or (e[0] == '라') and v_[1] == 'ㅏ'):
+    if (v_[2] == 'ㄹ') and (e_2 == '러' or (e_2 == '라') and v_[1] == 'ㅏ'):
         canonicalv = v[:-1] + compose(v_[0], v_[1], ' ') + '르'
         canonicale = '어' + e[1:]
         if is_verb(canonicalv) and is_eomi(canonicale):
