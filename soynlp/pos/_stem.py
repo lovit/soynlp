@@ -26,8 +26,10 @@ def conjugate(v, e):
     def is_verb(w): return w in verbs
     def is_eomi(w): return w in eomis
     
-    v_ = decompose(v[-1])
-    e_ = decompose(e[0])
+    vl = v[-1]
+    ef = e[0]
+    v_ = decompose(vl)
+    e_ = decompose(ef)
     e_2 = compose(e_[0], e_[1], ' ')
     
     # https://namu.wiki/w/한국어/불규칙%20활용
