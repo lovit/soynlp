@@ -17,7 +17,7 @@ def conjugate(v, e):
         '깨닫', '불', '묻', '눋', '겯', '믿', '묻', '뜯', # ㄷ 불규칙
         '구르', '무르', '마르', '누르', '나르', '모르', '이르', # 르 불규칙
         '아니꼽', '우습', '더럽', '아름답', '잡', '뽑', '곱', '돕', # ㅂ 불규칙
-        '낫', '긋', '붓', '뭇', '벗', '솟', '치솟', '씼', '손씼', '뺏' # ㅅ 불규칙
+        '낫', '긋', '붓', '뭇', '벗', '솟', '치솟', '씻', '손씻', '뺏' # ㅅ 불규칙
     }
 
     eomis = {
@@ -27,20 +27,21 @@ def conjugate(v, e):
     def is_verb(w): return w in verbs
     def is_eomi(w): return w in eomis
     
+    # https://namu.wiki/w/한국어/불규칙%20활용
+    
+    if (v and e) and (is_verb(v) and is_eomi(e)):
+        return (v, e)
+    
     vl = v[-1]
     ef = e[0] if e else ' '
     v_ = decompose(vl)
     v_2 = compose(v_[0], v_[1], ' ')
     e_ = decompose(ef) if e else (' ', ' ', ' ')
     e_2 = compose(e_[0], e_[1], ' ') if e else ' '
-    
-    # https://namu.wiki/w/한국어/불규칙%20활용
+        
     ## 1. 어간이 바뀌는 불규칙 활용
     # 1.1. ㄷ 불규칙 활용: 깨닫 + 아 -> 꺠달아
     if (v_[2] == 'ㄹ') and (e_[0] == 'ㅇ'):
-        # 규칙 활용
-        if (v == '믿') or (v == '묻') or (v == '뜯'):
-            return (v, e)
         canonicalv = v[:-1] + compose(v_[0], v_[1], 'ㄷ')
         if is_verb(canonicalv) and is_eomi(e):
             return (canonicalv, e)
@@ -58,19 +59,16 @@ def conjugate(v, e):
         if is_verb(canonicalv) and is_eomi(e):
             return (canonicalv, e)
     
-    if ((v == '도' or v == '고') and (e_2 == '와')) or ((v == '잡' or v == '뽑') and (e_2 == '아')):
+    if (v == '도' or v == '고') and (e_2 == '와'):
         canonicalv = compose(v_[0], v_[1], 'ㅂ')
         if is_verb(canonicalv) and is_eomi(e):
             return (canonicalv, e)
-
+    
     # 1.4. ㅅ 불규칙 활용
     if (v_[2] == ' ') and (e_[0] == 'ㅇ'):
         canonicalv = v[:-1] + compose(v_[0], v_[1], 'ㅅ')
         if is_verb(canonicalv) and is_eomi(e):
             return (canonicalv, e)
-    
-    if (vl == '벗' or vl == '솟' or vl == '씻' or vl == '뺏') and (e_[0] == 'ㅇ'):
-        return (v, e)
     
     # 1.5. 우 불규칙 활용
     
