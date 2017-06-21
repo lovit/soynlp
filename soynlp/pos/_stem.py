@@ -16,11 +16,12 @@ def conjugate(v, e):
     verbs = {
         '깨닫', '불', '묻', '눋', '겯', '믿', '묻', '뜯', # ㄷ 불규칙
         '구르', '무르', '마르', '누르', '나르', '모르', '이르', # 르 불규칙
-        '아니꼽', '우습', '더럽', '아름답' # ㅂ 불규칙
+        '아니꼽', '우습', '더럽', '아름답', # ㅂ 불규칙
+        '낫', '긋', '붓', '뭇' # ㅅ 불규칙
     }
 
     eomis = {
-        '아', '어나다', '어', '워', '웠다', '워서'
+        '아', '어나다', '어', '워', '웠다', '워서', '었다'
     }
 
     def is_verb(w): return w in verbs
@@ -60,8 +61,12 @@ def conjugate(v, e):
         canonicalv = compose(v_[0], v_[1], 'ㅂ')
         if is_verb(canonicalv) and is_eomi(e):
             return (canonicalv, e)
+
     # 1.4. ㅅ 불규칙 활용
-    
+    if (v_[2] == ' ') and (e_[0] == 'ㅇ'):
+        canonicalv = v[:-1] + compose(v_[0], v_[1], 'ㅅ')
+        if is_verb(canonicalv) and is_eomi(e):
+            return (canonicalv, e)
     
     # 1.5. 우 불규칙 활용
     
