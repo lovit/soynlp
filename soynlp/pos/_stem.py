@@ -56,6 +56,10 @@ def conjugate(v, e):
         if is_verb(canonicalv) and is_eomi(e):
             return (canonicalv, e)
     
+    if ((v == '도' or v == '고') and (e_2 == '와')) or ((v == '잡' or v == '뽑') and (e_2 == '아')):
+        canonicalv = compose(v_[0], v_[1], 'ㅂ')
+        if is_verb(canonicalv) and is_eomi(e):
+            return (canonicalv, e)
     # 1.4. ㅅ 불규칙 활용
     
     
