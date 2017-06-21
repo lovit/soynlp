@@ -41,14 +41,17 @@ def conjugate(v, e):
             return (canonicalv, e)
     
     # 1.2. 르 불규칙 활용
-    if (v_[2] == 'ㄹ') and (e_2 == '러' or (e_2 == '라') and v_[1] == 'ㅏ'):
+    if (v_[2] == 'ㄹ') and (e_2 == '러' or (e_2 == '라')):
         canonicalv = v[:-1] + compose(v_[0], v_[1], ' ') + '르'
         canonicale = '어' + e[1:]
         if is_verb(canonicalv) and is_eomi(canonicale):
-            return (canonicalv, canonicale)    
-    
+            return (canonicalv, canonicale)
+
     # 1.3. ㅂ 불규칙 활용
-    
+    if (v_[2] == ' ') and (e_2 == '워'):
+        canonicalv = v[:-1] + compose(v_[0], v_[1], 'ㅂ')
+        if is_verb(canonicalv) and is_eomi(e):
+            return (canonicalv, e)
     
     # 1.4. ㅅ 불규칙 활용
     
