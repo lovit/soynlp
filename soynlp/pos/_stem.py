@@ -1,3 +1,16 @@
+def conjugate_exception(v, e):
+    v_ = decompose(v[-1])
+    e_ = decompose(e[0])
+    e_2 = compose(e_[0], e_[1], ' ')
+    
+    # 르 불규칙 활용 예외
+    if (v[-1] == '치' and e_2 == '러'):
+        return (v, e)
+    if (v[-1] == '들' and e_2 == '러'):
+        return (v, e)
+    if v[-2:] == '다다' and e_2 == '라':
+        return (v, e)
+
 def conjugate(v, e):
     # Develop code
     verbs = {
