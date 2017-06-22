@@ -20,7 +20,8 @@ def conjugate(v, e):
         '낫', '긋', '붓', '뭇', '벗', '솟', '치솟', '씻', '손씻', '뺏', # ㅅ 불규칙
         '똥푸', '주',  # 우 불규칙
         '끄', '크', '트', # ㅡ 탈락 불규칙
-        '삼가', '가', '들어가' # 거라 불규칙
+        '삼가', '가', '들어가', # 거라 불규칙
+        '돌아오', '오' # 너라 불규칙
     }
 
     eomis = {
@@ -98,7 +99,13 @@ def conjugate(v, e):
             return (vl, canonicale)
     
     # 2.2. 너라 불규칙 활용
-    
+    # 돌아오 + -너라 = 돌아오너라, 돌아오 + 라고 = 돌아오라고: 규칙임
+    # 2.2-2: 돌아오다 + 았다 -> 돌아왔다
+    if (v_[1] == 'ㅘ'):
+        canonicalv = v[:-1] + compose(v_[0], 'ㅗ', ' ')
+        canonicale = compose('ㅇ', 'ㅏ', v_[2]) + e
+        if is_verb(canonicalv) and is_eomi(canonicale):
+            return (canonicalv, canonicale)
     
     # 2.3. 러 불규칙 활용
     
