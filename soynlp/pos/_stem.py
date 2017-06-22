@@ -23,7 +23,7 @@ def conjugate(v, e):
         '삼가', '가', '들어가', # 거라 불규칙
         '돌아오', '오', # 너라 불규칙
         '이르', '푸르', '누르', # 러 불규칙
-        '하' # 여 불규칙
+        '하', '노랗', '퍼렇' # 여 불규칙
     }
 
     eomis = {
@@ -131,7 +131,11 @@ def conjugate(v, e):
         canonicalv = v[:-1] + compose(v_[0], v_[1], ' ')
         if is_verb(canonicalv):
             return (canonicalv, 'ㄴ')
-    
+        # 노랗 + ㄴ -> 노란
+        canonicalv = v[:-1] + compose(v_[0], v_[1], 'ㅎ')
+        if is_verb(canonicalv):
+            return (canonicalv, 'ㄴ')
+        
     # 4. 활용이 불완전한 동사
     
     
