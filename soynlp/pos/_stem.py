@@ -23,7 +23,7 @@ def conjugate(v, e):
         '삼가', '가', '들어가', # 거라 불규칙
         '돌아오', '오', # 너라 불규칙
         '이르', '푸르', '누르', # 러 불규칙
-        '하', '노랗', '퍼렇' # 여 불규칙
+        '하', '노랗', '퍼렇', '놀라' # 여 불규칙
     }
 
     eomis = {
@@ -126,15 +126,15 @@ def conjugate(v, e):
     ## 3. 어간과 어미가 모두 바뀌는 불규칙 활용
     # 3.1. ㅎ 불규칙 활용
     
-    # (추가) 3.2 어미가 ㄴ인 경우: 조사가 ㄴ인 경우 역시 명사 추출 단에서 해야 함
-    if (not e) and (v_[2] == 'ㄴ'):
+    # (추가) 3.2 어미가 ㄴ인 경우: 조사가 ㄴ / ㄹ인 경우 역시 명사 추출 단에서 해야 함
+    if (not e) and (v_[2] == 'ㄴ' or v_[2] == 'ㄹ'):
         canonicalv = v[:-1] + compose(v_[0], v_[1], ' ')
         if is_verb(canonicalv):
-            return (canonicalv, 'ㄴ')
+            return (canonicalv, v_[2])
         # 노랗 + ㄴ -> 노란
         canonicalv = v[:-1] + compose(v_[0], v_[1], 'ㅎ')
         if is_verb(canonicalv):
-            return (canonicalv, 'ㄴ')
+            return (canonicalv, v_[2])
         
     # 4. 활용이 불완전한 동사
     
