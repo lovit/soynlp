@@ -46,7 +46,7 @@ def normalize(doc, english=False, number=False, punctuation=False, remove_repeat
         if (kor_begin <= i <= kor_end) or (jaum_begin <= i <= jaum_end) or (moum_begin <= i <= moum_end):
             f.append(c)
             continue
-        if (english) and (i >= 97 and i <= 122) or (i >= 65 and i <= 90):
+        if (english) and ((i >= 97 and i <= 122) or (i >= 65 and i <= 90)):
             f.append(c)
             continue
         if (number) and (i >= 48 and i <= 57):
