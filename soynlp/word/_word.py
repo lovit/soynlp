@@ -21,10 +21,10 @@ def _entropy(dic):
 
 class WordExtractor:
     
-    def __init__(self, left_max_length=10, right_max_length=6, 
+    def __init__(self, sents=None, left_max_length=10, right_max_length=6, 
                 min_count=5, verbose_points=100000, 
-                min_cohesion_forward=0.1, min_cohesion_backward=0.0, 
-                max_droprate_cohesion=0.95, max_droprate_leftside_frequency=0.95,
+                min_cohesion_forward=0.05, min_cohesion_backward=0.0, 
+                max_droprate_cohesion=0.98, max_droprate_leftside_frequency=0.98,
                 min_left_branching_entropy=0.0, min_right_branching_entropy=0.0,
                 min_left_accessor_variety=0, min_right_accessor_variety=0,
                 remove_subwords=True):
@@ -39,13 +39,16 @@ class WordExtractor:
 
         self.min_cohesion_forward = min_cohesion_forward
         self.min_cohesion_backward = min_cohesion_backward
-        self.max_droprate_cohesion = max_droprate_cohesion
+        #self.max_droprate_cohesion = max_droprate_cohesion
         self.max_droprate_leftside_frequency = max_droprate_leftside_frequency
         self.min_left_branching_entropy = min_left_branching_entropy
         self.min_right_branching_entropy = min_right_branching_entropy
         self.min_left_accessor_variety = min_left_accessor_variety
         self.min_right_accessor_variety = min_right_accessor_variety
         self.remove_subwords = remove_subwords
+        
+        if sents:
+            self.train(sents)
         
     def train(self, sents, num_for_pruning = 0):
         def prune_extreme_case():
@@ -116,10 +119,7 @@ class WordExtractor:
             scores_[word] = score
             if not self.remove_subwords:
                 continue
-            subword = word[:-1]
-            droprate_cohesion_forward = 0 if not (subword in self.L) else score.cohesion_forward / self.cohesion_score(subword)[0]
-            if (droprate_cohesion_forward > self.max_droprate_cohesion) and (subword in scores_):
-                del scores_[subword]
+            subword = word[:-1]            
             droprate_leftside_frequency = 0 if not (subword in self.L) else score.leftside_frequency / self.L[subword]
             if (droprate_leftside_frequency > self.max_droprate_leftside_frequency) and (subword in scores_):
                 del scores_[subword]
