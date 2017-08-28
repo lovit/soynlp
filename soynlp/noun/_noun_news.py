@@ -228,6 +228,8 @@ class NewsNounExtractor:
                        '처럼', '하다', '한', '할', '했던', '했고', '했다'}        
             return (r in passset)
 
+        if not (l in self._noun_scores_):
+            return True
         if self._noun_scores_[l][1] < min_count and self._noun_scores_[l][4] <= 2:
             rdict = self.lrgraph.get(l, {})
             if not rdict:
