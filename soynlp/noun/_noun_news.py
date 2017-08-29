@@ -5,8 +5,7 @@ class NewsNounExtractor:
         self.r_max_length = r_max_length
         self.verbose = verbose
         self.r_scores = {}
-        self.base_noun_dictionary = base_noun_dictionary if base_noun_dictionary else {}
-        self.noun_dictionary = {}
+        self.noun_dictionary = noun_dictionary if base_noun_dictionary else {}
         
         if not predictor_fnames:
             import os
@@ -18,6 +17,10 @@ class NewsNounExtractor:
             self._load_predictor(fname)
         self.josa_dictionary = {r for r, s in self.r_scores.items() if s > 0.1}
         self.josa_dictionary.update({'는'})
+        
+        self._vdictionary = set()
+        self._vdictionary.update(self._load_dictionary('/mnt/lovit/git/sejong/data/processed/tagger/dictionary/pos/Verb.txt'))
+        self._vdictionary.update(self._load_dictionary('/mnt/lovit/git/sejong/data/processed/tagger/dictionary/pos/Adjective.txt'))
 
     def _load_predictor(self, fname):
         try:
@@ -30,7 +33,16 @@ class NewsNounExtractor:
             print('predictor file was not found')
         except Exception as e:
             print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
-            
+    
+    def _load_dictionary(self, fname):
+        try:
+            with open(fname, encoding='utf-8') as f:
+                words = {word.strip().split('\t')[0] for word in f}
+            return words
+        except Exception as e:
+            print(e)
+            return set()
+        
     def train_extract(self, sents, min_count=3, minimum_noun_score=0.4, minimum_feature_proportion=0.6, wordset=None):
         self.train(sents)        
         return self.extract(wordset, min_count, minimum_noun_score, minimum_feature_proportion)
@@ -66,9 +78,11 @@ class NewsNounExtractor:
         return dictdictize(lrgraph), dictdictize(rlgraph), eojeols
 
     def extract(self, wordset=None, min_count=3, minimum_noun_score=0.4, minimum_feature_proportion=0.6):
+        self._pre_eojeol_analysis(min_count)
+        
         if not wordset:
             wordset = {l:c for l, c in self.lcount.items() if len(l) >= 2}
-        wordset = {l for l,c in wordset.items() if c > min_count and not (l in self.r_scores)}
+        wordset = {l for l,c in wordset.items() if c >= min_count and not (l in self.r_scores)}
         
         noun_scores = {}
         for i, l in enumerate(wordset):
@@ -79,7 +93,60 @@ class NewsNounExtractor:
             print('\rpredicting noun score ... done', flush=True)
         
         noun_scores = self._postprocessing(noun_scores, minimum_noun_score, minimum_feature_proportion)
-        return noun_scores
+        
+        self._post_eojeol_analysis(min_count)
+        
+        for noun in self.noun_dictionary:
+            if not (noun in self._noun_scores_postprocessed):
+                self.noun_dictionary[noun] = self.predict(noun)
+        for noun, score in self._noun_scores_postprocessed.items():
+            self.noun_dictionary[noun] = score        
+        del self._noun_scores_
+        del self._noun_scores_postprocessed
+        
+        return self.noun_dictionary
+    
+    def _pre_eojeol_analysis(self, min_count=3, minimum_eojeol_proportion=0.99):
+        def eojeol_to_NV(l, maximum_eojeol_proportion=0.5, minimum_noun_score=0.4):
+            n = len(l)
+            if n < 4: return None
+            for e in range(2, n-1):
+                (l, r) = (l[:e], l[e:])
+                if (self.predict(l)[0] >= minimum_noun_score) and (r in self._vdictionary):
+                    return (l, r)
+            return None
+        
+        candidates = {l:c for l,c in self.lcount.items() if c >= min_count and (self.eojeols.get(l, 0) / c) >= minimum_eojeol_proportion}
+        for i, (l, c) in enumerate(candidates.items()):
+            if self.verbose and (i+1) % 1000 == 0:
+                args = (len(self.noun_dictionary), i+1, len(candidates))
+                print('\rextracting {} nouns using verb/adjective dictionary ... {} / {}'.format(*args), end='', flush=True)
+            nv = eojeol_to_NV(l)
+            if not nv:
+                continue
+            self.noun_dictionary[nv[0]] = self.lcount.get(nv[0], 0)
+        if self.verbose:
+            print('\rextracted {} nouns using verb/adjective dictionary'.format(len(self.noun_dictionary)), flush=True)
+    
+    def _post_eojeol_analysis(self, min_count=3, minimum_eojeol_proportion=0.99, minimum_noun_score=0.4):
+        candidates = {l:c for l,c in self.lcount.items() if c >= min_count and (self.eojeols.get(l, 0) / c) >= minimum_eojeol_proportion}
+        begin = len(self.noun_dictionary)
+        for i, (l, c) in enumerate(candidates.items()):
+            if self.verbose and (i+1) % 1000 == 0:
+                args = (len(self.noun_dictionary) - begin, i+1, len(candidates))
+                print('\rextracting {} compounds from eojeols ... {} / {}'.format(*args), end='', flush=True)
+            if l in self._noun_scores_postprocessed:        
+                continue
+            if self._is_NJsubJ(l):
+                continue
+            if self._is_NJ(l):
+                continue
+            if self._is_NV(l):
+                continue
+            if self._hardrule_suffix_filter(l) and self._is_compound(l):
+                self.noun_dictionary[l] = c
+        if self.verbose:
+            print('\rextracted {} compounds from eojeols'.format(len(self.noun_dictionary) - begin), flush=True)
         
     def predict(self, l):
         from collections import namedtuple
@@ -144,7 +211,7 @@ class NewsNounExtractor:
             return False
 
         l0_candidates = {l[:e] for e in range(2, len(l))}
-        l0_candidates = {len(l0) for l0 in l0_candidates if l0 in self.base_noun_dictionary or self.predict(l0)[0] > candidate_noun_threshold}
+        l0_candidates = {len(l0) for l0 in l0_candidates if l0 in self.noun_dictionary or self.predict(l0)[0] > candidate_noun_threshold}
         if not l0_candidates:
             return False
         base = self.l_frequency(l[:max(l0_candidates)])
@@ -160,7 +227,7 @@ class NewsNounExtractor:
         """### Nsub + J: 떡볶 + 이"""
         proportion = lambda l0, l : self.l_frequency(l0) / self.l_frequency(l)
         l0_candidates = {l[:e] for e in range(2, len(l)) if l[e:] in self.josa_dictionary}
-        l0_candidates = {l0 for l0 in l0_candidates if (l0 in self.base_noun_dictionary or self.predict(l0)[0] > candidate_noun_threshold) and proportion(l0, l) > nsubj_proportion_threshold}
+        l0_candidates = {l0 for l0 in l0_candidates if (self.predict(l0)[0] > candidate_noun_threshold) and proportion(l0, l) > nsubj_proportion_threshold}
         return l0_candidates
     
     def _is_NVsubE(self, l, maximum_eojeol_proportion=0.7):
@@ -178,7 +245,7 @@ class NewsNounExtractor:
         n = len(l)
         for b in range(1, 2 if n <= 3 else 3):
             (l0, r0) = (l[:-b], l[-b:])
-            if not (l0 in self._noun_scores_):
+            if not (l0 in self._noun_scores_) or not (l0 in self.noun_dictionary):
                 continue
             r_extension_as_eojeol = sum([eojeol_proportion(r0+r)*c for r, c in r_extensions.items()]) / sum(r_extensions.values())
             if r_extension_as_eojeol > maximum_eojeol_proportion:
@@ -191,7 +258,7 @@ class NewsNounExtractor:
 
         for b in range(1, 2 if len(l) <= 3 else 3):
             (l0, r0) = (l[:-b], l[-b:])
-            if (l0 in self._noun_scores_) and (frequency_droprate(l0) < minimum_frequency_droprate):
+            if (l0 in self._noun_scores_ or l0 in self.noun_dictionary) and (frequency_droprate(l0) < minimum_frequency_droprate):
                 return True
         return False
     
@@ -201,36 +268,44 @@ class NewsNounExtractor:
         for e in range(2, n):
 #             if (e + 1 == n) and (l[:e] in self._noun_scores_):
 #                 return True
-            if (l[:e] in self._noun_scores_) and (l[e:] in self._noun_scores_):
+            (l0, l1) = (l[:e], l[e:])
+            if ((l0 in self._noun_scores_) or (l0 in self.noun_dictionary)) and ((l1 in self._noun_scores_) or (l1 in self.noun_dictionary)):
                 return True
         if n >= 6:
             for e1 in range(2, n-3):
                 for e2 in range(e1 + 2, n-1):
-                    if (l[:e1] in self._noun_scores_) and (l[e1:e2] in self._noun_scores_) and (l[e2:] in self._noun_scores_):
+                    (l0, l1, l2) = (l[:e1], l[e1:e2], l[e2:])
+                    if ((l0 in self._noun_scores_) or (l0 in self.noun_dictionary)) and ((l1 in self._noun_scores_) or (l1 in self.noun_dictionary)) and ((l2 in self._noun_scores_) or (l2 in self.noun_dictionary)):
                         return True
         return False
     
     def _is_NJ(self, w):
         for e in range(2, len(w)+1):
             (l, r) = (w[:e], w[e:])
-            if (l in self._noun_scores_) and ((not r) or (self.r_scores.get(r, 0) > 0)):
+            if ((l in self._noun_scores_) or (l in self.noun_dictionary)) and ((not r) or (self.r_scores.get(r, 0) > 0)):
                 return True
         return False
     
-    def _hardrule_unijosa_filter(self, l, min_count=10):
+    def _is_NV(self, l):
+        for e in range(2, len(l)):
+            if (l[:e] in self._noun_scores_postprocessed or l[:e] in self.noun_dictionary) and (l[e:] in self._vdictionary):
+                return True
+        return False
+    
+    def _hardrule_unijosa_filter(self, l, min_count=10, maximum_number_of_josa=1):
         def has_passset(r):
             passset = {'과', '는', '되고', '되는', '되다', '된다', 
                        '들', '들에', '들의', '들이', 
                        '로', '로는', '로도', '로서', '를', 
                        '부터', '뿐', '뿐만', '뿐이', '뿐인', 
                        '에게', '에도', '에서', '에와', '와', 
-                       '으로', '은', '의', '이', '이나', '이라', '이었', '인', '임', 
+                       '으로', '으로의', '은', '의', '이', '이나', '이라', '이었', '인', '임', 
                        '처럼', '하다', '한', '할', '했던', '했고', '했다'}        
             return (r in passset)
-
+        
         if not (l in self._noun_scores_):
             return True
-        if self._noun_scores_[l][1] < min_count and self._noun_scores_[l][4] <= 2:
+        if self._noun_scores_[l][1] <= min_count and self._noun_scores_[l][4] <= maximum_number_of_josa:
             rdict = self.lrgraph.get(l, {})
             if not rdict:
                 return False
@@ -242,7 +317,7 @@ class NewsNounExtractor:
     
     def _hardrule_dang_hada_filter(self, l, max_h_proportion=0.5):
         from soynlp.hangle import decompose # TODO check import path
-        if not (l[-1] == '당') and (l[:-1] in self._noun_scores_):
+        if not (l[-1] == '당') and (l[:-1] in self._noun_scores_ or l[:-1] in self.noun_dictionary):
             return True
         rdict = self.lrgraph.get(l, {})
         n_base = sum((c for r,c in rdict.items() if c))
@@ -254,19 +329,33 @@ class NewsNounExtractor:
                 n_h += c
         return True if n_base <= 0 else (n_h / n_base < max_h_proportion) 
     
-    def _hardrule_suffix_filter(self, l):
+    def _hardrule_suffix_filter(self, l, minimum_frequency_droprate=0.8):
         def prop_r(l, r):
             base = sum(self.lrgraph.get(l, {}).values())
             return 0 if base == 0 else self.lrgraph.get(l, {}).get(r, 0) / base
-
+        
+        if l in self._vdictionary:
+            return False
+        
         stoplsub = {'갔다', '이는', '겠지', '보는'}
         if l[-2:] in stoplsub: return False
-        if (l[-1] == '으') and ((prop_r(l, '로') + prop_r(l, '로써') + prop_r(l, '로만')) > 0.5):
+        if (l[-1] == '으') and ((prop_r(l, '로') + prop_r(l, '로써') + prop_r(l, '로만')) + prop_r(l, '로의') > 0.5):
             return False
         if (l[-1] == '지') and (prop_r(l, '만') > 0.5):
             return False
-        if (l[-1] == '없') and ((prop_r(l, '는') + prop_r(l, '이') + prop_r(l, '다')) > 0.5):
+        if (l[-1] == '없') and ((prop_r(l, '는') + prop_r(l, '이') + prop_r(l, '다')) + prop_r(l, '었다') > 0.5):
             return False
+        if (l[-1] == '인') or (l[-1] == '은') or (l[-1] == '의') or (l[-1] == '와') or (l[-1] == '과'):
+            droprate = 0 if not (l[:-1] in self.lcount) else (self.lcount.get(l, 0) / self.lcount[l[:-1]])
+            if droprate < minimum_frequency_droprate:
+                return False
+        if (l[-2:] == '들이') or (l[-2:] == '들은') or (l[-2:] == '들도') or (l[-2:] == '들을'):
+            droprate = 0 if not (l[:-1] in self.lcount) else (self.lcount.get(l, 0) / self.lcount[l[:-1]])
+            if droprate < minimum_frequency_droprate:
+                return False
+        if (l[-2:] == '으로') and (len(l) == 3 or (l[:-2] in self.noun_dictionary or l[:-2] in self._noun_scores_postprocessed)):
+            return False
+        
         return True
     
     def l_frequency(self, l):
