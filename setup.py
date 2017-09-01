@@ -35,5 +35,5 @@ setup(
    install_requires=["numpy>=1.12.1", "psutil>=5.0.1"],
    keywords = ['korean natural language processing'],
    packages=find_packages(),
-   package_data={'soynlp':['trained_models/*']}
+   package_data={'soynlp':['trained_models/*', 'pos/dictionary/*.txt', 'pos/dictionary/*/*.txt']}
 )

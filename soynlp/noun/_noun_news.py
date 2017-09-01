@@ -19,8 +19,8 @@ class NewsNounExtractor:
         self.josa_dictionary.update({'는'})
         
         self._vdictionary = set()
-        self._vdictionary.update(self._load_dictionary('/mnt/lovit/git/sejong/data/processed/tagger/dictionary/pos/Verb.txt'))
-        self._vdictionary.update(self._load_dictionary('/mnt/lovit/git/sejong/data/processed/tagger/dictionary/pos/Adjective.txt'))
+        self._vdictionary.update(self._load_dictionary('%s/pos/dictionary/sejong/Verb.txt' % directory))
+        self._vdictionary.update(self._load_dictionary('%s/pos/dictionary/sejong/Adjective.txt' % directory))
 
     def _load_predictor(self, fname):
         try:
