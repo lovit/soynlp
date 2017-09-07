@@ -8,6 +8,7 @@ from . import word
 from . import tokenizer
 from . import noun
 from . import hangle
+from . import pos
 from .utils import get_available_memory
 from .utils import get_process_memory
 from .utils import DoublespaceLineCorpus
