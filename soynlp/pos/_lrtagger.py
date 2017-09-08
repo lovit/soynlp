@@ -2,6 +2,7 @@ from collections import OrderedDict
 from collections import namedtuple
 from math import log
 
+from soynlp.tokenizer import MaxScoreTokenizer
 from ._dictionary import Dictionary
 
 default_profile= OrderedDict([
@@ -58,7 +59,9 @@ class LREvaluator:
 class LRMaxScoreTagger:
     def __init__(self, dictionary_root=None, dictionary_word_mincount=3,
                  evaluator=None, sents=None, lrgraph=None, 
-                 lrgraph_lmax=12, lrgraph_rmax=8):
+                 lrgraph_lmax=12, lrgraph_rmax=8,
+                 base_tokenizer=None
+                ):
         
         self.dictionary = Dictionary(dictionary_root, dictionary_word_mincount)
         self.evaluator = evaluator if evaluator else LREvaluator()
@@ -69,6 +72,13 @@ class LRMaxScoreTagger:
             
         self.lrgraph_norm, self.lcount, self.cohesion_l, self.droprate_l\
             = self._initialize_scores(self.lrgraph)
+
+        self.base_tokenizer = base_tokenizer if base_tokenizer else lambda x:x.split()
+        if not base_tokenizer:
+            try:
+                self.base_tokenizer = MaxScoreTokenizer(scores=self.cohesion_l)
+            except Exception as e:
+                print('MaxScoreTokenizer(cohesion) exception: {}'.format(e))
         
     def _build_lrgraph(self, sents, lmax=12, rmax=8):
         from collections import Counter
@@ -250,18 +260,31 @@ class LRMaxScoreTagger:
             b = base[3]
             e = words[i+1][2]
             subword = t[b:e]
-            (pos, prop, count) = self._infer_subword_information(subword)
-            adds.append([(subword, pos), ('', None), b, e, e-b, prop, count, 0.0])        
+            #(pos, prop, count) = self._infer_subword_information(subword)
+            #adds.append([(subword, pos), ('', None), b, e, e-b, prop, count, 0.0])
+            adds += self._base_tokenizing_subword(subword, b)
         return adds
 
     def _add_last_subword(self, t, words, n):
         b = words[-1][3]
         subword = t[b:]
-        (pos, prop, count) = self._infer_subword_information(subword)
-        return [[(subword, pos), ('', None), b, n, n-b, prop, count, 0.0]]
+        #(pos, prop, count) = self._infer_subword_information(subword)
+        #return [[(subword, pos), ('', None), b, n, n-b, prop, count, 0.0]]
+        return self._base_tokenizing_subword(subword, b)
 
     def _add_first_subword(self, t, words):    
         e = words[0][2]
         subword = t[0:e]
-        (pos, prop, count) = self._infer_subword_information(subword)        
-        return [[(subword, pos), ('', None), 0, e, e, prop, count, 0.0]]
+        #(pos, prop, count) = self._infer_subword_information(subword)
+        #return [[(subword, pos), ('', None), 0, e, e, prop, count, 0.0]]
+        return self._base_tokenizing_subword(subword, 0)
+    
+    def _base_tokenizing_subword(self, t, b):
+        subwords = []
+        _subwords = self.base_tokenizer.tokenize(t, flatten=False)
+        if not _subwords:
+            return []
+        for w in _subwords[0]:
+            (pos, prop, count) = self._infer_subword_information(w[0])
+            subwords.append([(w[0], pos), ('', None), b+w[1], b+w[2], w[2]-w[1], prop, count, 0.0])
+        return subwords
