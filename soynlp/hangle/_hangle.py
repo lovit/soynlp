@@ -1,4 +1,5 @@
 import re
+import numpy as np
 
 kor_begin     = 44032
 kor_end       = 55203
@@ -116,8 +117,17 @@ class ConvolutionHangleEncoder:
         self.jong_begin = 40 # self.jung_begin + len(jungsung_list)
         self.number_begin = 68 # self.jong_begin + len(jongsung_list)
         self.space = 78 # len(chosung_list) + len(jungsung_list) + len(jongsung_list) + 10
+        self.dim = 79
     
     def encode(self, sent):
+        onehot = self.sent_to_onehot(sent)
+        x = np.zeros((len(onehot), self.dim))
+        for i, xi in enumerate(onehot):
+            for j in xi:
+                x[i,j] = 1
+        return x
+    
+    def sent_to_onehot(self, sent):
         sent = self._normalize(sent)
         sent = [ord(c) for c in sent]
         sent_ = []
@@ -127,7 +137,7 @@ class ConvolutionHangleEncoder:
             else: sent_.append(self._decompose(i))
         return sent_
     
-    def decode(self, encoded_sent):
+    def onehot_to_sent(self, encoded_sent):
         chars = []
         for c in encoded_sent:
             if len(c) == 1:
@@ -146,7 +156,7 @@ class ConvolutionHangleEncoder:
                     chars.append(None)
             else:
                 chars.append(None)
-        return chars
+        return ''.join(chars)
         
     def _normalize(self, sent):
         import re
