@@ -7,12 +7,14 @@ class NewsNounExtractor:
         self.r_scores = {}
         self.noun_dictionary = noun_dictionary if base_noun_dictionary else {}
         
-        if not predictor_fnames:
-            import os
-            directory = '/'.join(os.path.abspath(__file__).replace('\\', '/').split('/')[:-2])
+        import os
+        directory = '/'.join(os.path.abspath(__file__).replace('\\', '/').split('/')[:-2])
+        
+        if not predictor_fnames:            
             predictor_fnames = ['%s/trained_models/noun_predictor_sejong' % directory]
             if verbose:
                 print('used default noun predictor; Sejong corpus based logistic predictor')
+
         for fname in predictor_fnames:
             self._load_predictor(fname)
         self.josa_dictionary = {r for r, s in self.r_scores.items() if s > 0.1}
