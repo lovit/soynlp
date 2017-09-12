@@ -106,3 +106,65 @@ def character_is_english(i):
 def character_is_punctuation(i):
     i = to_base(i)
     return (i == 33 or i == 34 or i == 39 or i == 44 or i == 46 or i == 63 or i == 96)
+
+class ConvolutionHangleEncoder:
+    """초/중/종성을 구성하는 자음/모음과 띄어쓰기만 인코딩
+    one hot vector [ㄱ, ㄴ, ㄷ, ... ㅎ, ㅏ, ㅐ, .. ㅢ, ㅣ,"  ", ㄱ, ㄲ, ... ㅍ, ㅎ,"  ", 0, 1, 2, .. 9]
+    """
+    def __init__(self):
+        self.jung_begin = 19 # len(chosung_list)
+        self.jong_begin = 40 # self.jung_begin + len(jungsung_list)
+        self.number_begin = 68 # self.jong_begin + len(jongsung_list)
+        self.space = 78 # len(chosung_list) + len(jungsung_list) + len(jongsung_list) + 10
+    
+    def encode(self, sent):
+        sent = self._normalize(sent)
+        sent = [ord(c) for c in sent]
+        sent_ = []
+        for i in sent:
+            if i == 32: sent_.append((self.space,))
+            elif 48 <= i <= 57: sent_.append((i - 48 + self.number_begin, ))
+            else: sent_.append(self._decompose(i))
+        return sent_
+    
+    def decode(self, encoded_sent):
+        chars = []
+        for c in encoded_sent:
+            if len(c) == 1:
+                idx = c[0] - self.number_begin
+                if idx == 10:
+                    chars.append(' ')
+                elif 0 <= idx < 10:
+                    chars.append(str(idx))
+                else:
+                    chars.append(None)
+            elif len(c) == 3:
+                cho, jung, jong = c
+                if (0 <= cho < self.jung_begin) and (self.jung_begin <= jung < self.jong_begin) and (self.jong_begin <= jong < self.number_begin):
+                    chars.append(compose(chosung_list[cho], jungsung_list[jung - self.jung_begin], jongsung_list[jong - self.jong_begin]))
+                else:
+                    chars.append(None)
+            else:
+                chars.append(None)
+        return chars
+        
+    def _normalize(self, sent):
+        import re
+        regex = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣 0-9]')
+        sent = regex.sub(' ', sent)
+        sent = doublespace_pattern.sub(' ', sent)
+        return sent
+        
+    def _compose(self, cho, jung, jong):
+        return chr(kor_begin + chosung_base * cho + jungsung_base * jung + jong)
+
+    def _decompose(self, i):
+        if (jaum_begin <= i <= jaum_end):
+            return (i - jaum_begin,)
+        if (moum_begin <= i <= moum_end):
+            return (i - moum_begin,)
+        i -= kor_begin
+        cho  = i // chosung_base
+        jung = ( i - cho * chosung_base ) // jungsung_base 
+        jong = ( i - cho * chosung_base - jung * jungsung_base )    
+        return (cho, self.jung_begin + jung, self.jong_begin + jong)
