@@ -62,14 +62,14 @@ class LREvaluator:
 
 
 class LRMaxScoreTagger:
-    def __init__(self, domain_dictionary_folder=None, use_base_dictionary=True,
+    def __init__(self, domain_dictionary_folders=None, use_base_dictionary=True,
                  dictionary_word_mincount=3,
                  evaluator=None, sents=None, lrgraph=None, 
                  lrgraph_lmax=12, lrgraph_rmax=8,
-                 base_tokenizer=None, preference=None
+                 base_tokenizer=None, preference=None, verbose=False
                 ):
         
-        self.dictionary = Dictionary(domain_dictionary_folder, use_base_dictionary, dictionary_word_mincount)
+        self.dictionary = Dictionary(domain_dictionary_folders, use_base_dictionary, dictionary_word_mincount, verbose=verbose)
         self.evaluator = evaluator if evaluator else LREvaluator()
         self.preference = preference if preference else {}
         self.lrgraph = lrgraph if lrgraph else {}

@@ -3,7 +3,7 @@ from collections import defaultdict
 from glob import glob
 
 class Dictionary:
-    def __init__(self, domain_dictionary_folder=None, use_base_dictionary=True, dictionary_word_minscore=3):
+    def __init__(self, domain_dictionary_folders=None, use_base_dictionary=True, dictionary_word_minscore=3, verbose=False):
         
         self._pos = {}
         self._pos_domain = {}
@@ -12,12 +12,21 @@ class Dictionary:
             directory = '/'.join(os.path.abspath(__file__).replace('\\', '/').split('/')[:-1])
             dictionary_root = '{}/dictionary/'.format(directory)
             self._pos = self._load(glob('{}/pos/*/*.txt'.format(dictionary_root)), dictionary_word_minscore, tag_position=-2)
-            print('use base dictionary')
+            if verbose:
+                print('use base dictionary')
         
-        if domain_dictionary_folder:
-            self._pos_domain = self._load(glob('{}/*_*.txt'.format(domain_dictionary_folder)), dictionary_word_minscore)
-            self._pos_domain = self._load(glob('{}/*/*_*.txt'.format(domain_dictionary_folder)), dictionary_word_minscore)
-            print('use domain dictionary from {}'.format(domain_dictionary_folder))
+        if domain_dictionary_folders:
+            if type(domain_dictionary_folders) == str:
+                domain_dictionary_folders = [domain_dictionary_folders]
+            fnames = []
+            for folder in domain_dictionary_folders:
+                fnames += glob('{}/*_*.txt'.format(folder))
+                fnames += glob('{}/*/*_*.txt'.format(folder))
+            if verbose:
+                print('domain dictionaries')
+                for fname in fnames:
+                    print('  - {}'.format(fname))
+            self._pos_domain = self._load(fnames, dictionary_word_minscore)
             
         for tag, words in self._pos_domain.items():
             self._pos[tag].update(words)
@@ -45,7 +54,10 @@ class Dictionary:
             with open(fname, encoding=encoding) as f:
                 words = [line.split() for line in f]
                 words = [col if len(col) == 1 else [col[0], float(col[1])] for col in words]
-                max_score = max((col[1] for col in words if len(col) == 2))
+                try:
+                    max_score = max((col[1] for col in words if len(col) == 2))
+                except:
+                    max_score = 0
                 
                 for col in words:
                     if len(col) == 1:
