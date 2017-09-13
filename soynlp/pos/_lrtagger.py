@@ -23,7 +23,7 @@ class LREvaluator:
     def __init__(self, profile=None):
         self.profile = profile if profile else default_profile
 
-    def evaluate(self, candidates):
+    def evaluate(self, candidates, preference=None):
         scores = []
         for c in candidates:
             score = self._evaluate(
@@ -38,6 +38,11 @@ class LREvaluator:
                               c.lr_count,
                               c.length
                          ))
+            if preference:
+                if c.L[1] and c.L[1] in preference:
+                    score += preference.get(c.L[1], {}).get(c.L[0], 0)
+                if c.R[1] and c.R[1] in preference:
+                    score += preference.get(c.R[1], {}).get(c.R[0], 0)
             scores.append((c, score))
         return sorted(scores, key=lambda x:-x[-1])
 
@@ -57,14 +62,16 @@ class LREvaluator:
 
 
 class LRMaxScoreTagger:
-    def __init__(self, dictionary_root=None, dictionary_word_mincount=3,
+    def __init__(self, domain_dictionary_folder=None, use_base_dictionary=True,
+                 dictionary_word_mincount=3,
                  evaluator=None, sents=None, lrgraph=None, 
                  lrgraph_lmax=12, lrgraph_rmax=8,
-                 base_tokenizer=None
+                 base_tokenizer=None, preference=None
                 ):
         
-        self.dictionary = Dictionary(dictionary_root, dictionary_word_mincount)
+        self.dictionary = Dictionary(domain_dictionary_folder, use_base_dictionary, dictionary_word_mincount)
         self.evaluator = evaluator if evaluator else LREvaluator()
+        self.preference = preference if preference else {}
         self.lrgraph = lrgraph if lrgraph else {}
         
         if (not self.lrgraph) and (sents):
@@ -211,7 +218,7 @@ class LRMaxScoreTagger:
     
     def _scoring(self, candidates):
         candidates = [self._to_table(c) for c in candidates]
-        scores = self.evaluator.evaluate(candidates)
+        scores = self.evaluator.evaluate(candidates, self.preference if self.preference else None)
         return scores
 
     def _to_table(self, c):
@@ -288,3 +295,26 @@ class LRMaxScoreTagger:
             (pos, prop, count) = self._infer_subword_information(w[0])
             subwords.append([(w[0], pos), ('', None), b+w[1], b+w[2], w[2]-w[1], prop, count, 0.0])
         return subwords
+    
+    def add_words_into_dictionary(self, words, tag):
+        if not (tag in self.dictionary._pos):
+            raise ValueError('{} does not exist base dictionary'.format(tag))
+        self.dictionary.add_words(words, tag)
+        
+    def remove_words_from_dictionary(self, words, tag):
+        if not (tag in self.dictionary._pos):
+            raise ValueError('{} does not exist base dictionary'.format(tag))
+        self.dictionary.remove_words(words, tag)
+    
+    def save_domain_dictionary(self, folder, head=None):
+        self.dictionary.save_domain_dictionary(folder, head)
+    
+    def set_word_preferance(self, words, tag, preference=10):
+        if type(words) == str:
+            words = {words}
+        preference_table = self.preference.get(tag, {})
+        preference_table.update({word:preference for word in words})
+        self.preference[tag] = preference_table
+    
+    def save_tagger(self, fname):
+        raise NotImplemented
