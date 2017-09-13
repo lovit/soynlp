@@ -239,7 +239,7 @@ class WordExtractor:
             'verbose_points': self.verbose,
             'min_cohesion_forward': self.min_cohesion_forward,
             'min_cohesion_backward': self.min_cohesion_backward,
-            'max_droprate_cohesion': self.max_droprate_cohesion,
+            #'max_droprate_cohesion': self.max_droprate_cohesion,
             'max_droprate_leftside_frequency': self.max_droprate_leftside_frequency,
             'min_left_branching_entropy': self.min_left_branching_entropy,
             'min_right_branching_entropy': self.min_right_branching_entropy,
@@ -272,7 +272,7 @@ class WordExtractor:
 
         self.min_cohesion_forward = configuration['min_cohesion_forward']
         self.min_cohesion_backward = configuration['min_cohesion_backward']
-        self.max_droprate_cohesion = configuration['max_droprate_cohesion']
+        #self.max_droprate_cohesion = configuration['max_droprate_cohesion']
         self.max_droprate_leftside_frequency = configuration['max_droprate_leftside_frequency']
         self.min_left_branching_entropy = configuration['min_left_branching_entropy']
         self.min_right_branching_entropy = configuration['min_right_branching_entropy']
