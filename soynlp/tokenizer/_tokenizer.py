@@ -139,10 +139,10 @@ class MaxScoreTokenizer:
         adds = self._add_inter_subtokens(token, result)
         
         if result[-1][2] != length:
-            adds += self._add_first_subtoken(token, result)
+            adds += self._add_last_subtoken(token, result)
             
         if result[0][1] != 0:
-            adds += self._add_last_subtoken(token, result)
+            adds += self._add_first_subtoken(token, result)
             
         return sorted(result + adds, key=lambda x:x[1])
 
@@ -197,15 +197,15 @@ class MaxScoreTokenizer:
             adds.append((subtoken, b, e, self.ds, e - b))
         
         return adds
-    
-    def _add_first_subtoken(self, token, result):
-        b = result[-1][2]
-        subtoken = token[b:]
-        score = self.scores.get(subtoken, self.ds)
-        return [(subtoken, b, len(token), score, len(subtoken))]
 
-    def _add_last_subtoken(self, token, result):
+    def _add_first_subtoken(self, token, result):
         e = result[0][1]
         subtoken = token[0:e]
         score = self.scores.get(subtoken, self.ds)
         return [(subtoken, 0, e, score, e)]
+    
+    def _add_last_subtoken(self, token, result):
+        b = result[-1][2]
+        subtoken = token[b:]
+        score = self.scores.get(subtoken, self.ds)
+        return [(subtoken, b, len(token), score, len(subtoken))]
