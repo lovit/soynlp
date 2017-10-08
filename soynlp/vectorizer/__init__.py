@@ -1,0 +1,1 @@
+from ._vectorizer import BaseVectorizer
