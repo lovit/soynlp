@@ -1,125 +1,75 @@
+import json
 import os
-from collections import defaultdict
-from glob import glob
 
 class Dictionary:
-    def __init__(self, domain_dictionary_folders=None, use_base_dictionary=True, dictionary_word_minscore=3, verbose=False):
+    def __init__(self, pos_dict):
+        if isinstance(pos_dict, dict):
+            self.pos_dict = pos_dict
+            self.max_length = self._check_max_length(self.pos_dict)
+        elif isinstance(pos_dict, str):
+            if os.path.exists(pos_dict):
+                self.load(pos_dict)
+            else:
+                raise ValueError('dictionary file does not exist')
+    
+    def _check_max_length(self, pos_dict):
+        return max((len(word) for words in pos_dict.values() for word in words))
+    
+    def get_pos(self, word):
+        tags = []
+        for pos, words in self.pos_dict.items():
+            if word in words:
+                tags.append(pos)
+        return tags
+    
+    def word_is_tag(self, word, tag):
+        return word in self.pos_dict.get(tag, {})
+    
+    def add_words(self, tag, words, force=False):
+        words = self._type_check(words)
         
-        self._pos = {}
-        self._pos_domain = {}
-        
-        if use_base_dictionary:
-            directory = '/'.join(os.path.abspath(__file__).replace('\\', '/').split('/')[:-1])
-            dictionary_root = '{}/dictionary/'.format(directory)
-            self._pos = self._load(glob('{}/pos/*/*.txt'.format(dictionary_root)), dictionary_word_minscore, tag_position=-2)
-            if verbose:
-                print('use base dictionary')
-        
-        if domain_dictionary_folders:
-            if type(domain_dictionary_folders) == str:
-                domain_dictionary_folders = [domain_dictionary_folders]
-            fnames = []
-            for folder in domain_dictionary_folders:
-                fnames += glob('{}/*_*.txt'.format(folder))
-                fnames += glob('{}/*/*_*.txt'.format(folder))
-            if verbose:
-                print('domain dictionaries')
-                for fname in fnames:
-                    print('  - {}'.format(fname))
-            self._pos_domain = self._load(fnames, dictionary_word_minscore)
+        if not force and not (tag in self.pos_dict):
+            message = 'Check your tag or use add_words(tag, words, force=True)'.format(tag)
+            raise ValueError(message)
             
-        for tag, words in self._pos_domain.items():
-            self._pos[tag].update(words)
+        max_length = max((len(word) for word in words))
+        if self.max_length < max_length:
+            self.max_length = max_length
             
-        self._maxlen = {pos:max((len(w) for w in words)) for pos, words in self._pos.items()}
-        self._maxlen_ = 0 if not self._maxlen else max(self._maxlen.values())
-        self._lmax = max([self._maxlen.get('Adjective', 0),
-                          self._maxlen.get('Adverb', 0),
-                          self._maxlen.get('Exclamation', 0),
-                          self._maxlen.get('Noun', 0),
-                          self._maxlen.get('Verb', 0)
-            ])
-        self._rmax = max([self._maxlen.get('Adjective', 0),
-                          self._maxlen.get('Josa', 0),
-                          self._maxlen.get('Verb', 0)
-            ])
-#         self.dictionary_lv = self._load(glob('{}/lv/*.txt'.format(dictionary_root)))
-#         self.dictionary_r = self._load(glob('{}/r/*.txt'.format(dictionary_root)))
+        dictionary = self.pos_dict.get(tag, {})
+        dictionary.update(words)
+        self.pos_dict[tag] = dictionary
     
-    def _load(self, fnames, min_score=1, tag_position=-1, encoding='utf-8'):
-        dictionary = defaultdict(lambda: {})        
-        for fname in fnames:
-            tag = fname.split('/')[tag_position].split('.')[0].split('_')[0]
-            
-            with open(fname, encoding=encoding) as f:
-                words = [line.split() for line in f]
-                words = [col if len(col) == 1 else [col[0], float(col[1])] for col in words]
-                try:
-                    max_score = max((col[1] for col in words if len(col) == 2))
-                except:
-                    max_score = 0
-                
-                for col in words:
-                    if len(col) == 1:
-                        dictionary[tag][col[0]] = max_score+1
-                    elif col[1] >= min_score:
-                        dictionary[tag][col[0]] = col[1]
-                        
-        return dict(dictionary)
-    
-    def add_words(self, words, tag):
-        if type(words) == str:
-            words = {words}
-        words_in_domain_dictionary = self._pos_domain.get(tag, {})
-        words_in_domain_dictionary.update({w:0 for w in words if not (w in words_in_domain_dictionary)})
-        self._pos_domain[tag] = words_in_domain_dictionary
-        words_in_dictionary = self._pos.get(tag, {})
-        words_in_dictionary.update({w:0 for w in words if not (w in words_in_dictionary)})
-        self._pos[tag] = words_in_dictionary
-    
-    def remove_words(self, words, tag):
-        if type(words) == str:
-            words = {words}
-        elif type(words) != set:
-            words = set(words)
-        words_in_domain_dictionary = self._pos_domain.get(tag, {})
-        words_in_domain_dictionary = {w:s for w,s in words_in_domain_dictionary.items() if not (w in words)}
-        self._pos_domain[tag] = words_in_domain_dictionary
-        words_in_dictionary = self._pos.get(tag, {})
-        words_in_dictionary = {w:s for w,s in words_in_dictionary.items() if not (w in words)}
-        self._pos[tag] = words_in_dictionary
+    def remove_words(self, tag, words=None):
+        if not (tag in self.pos_dict):
+            raise ValueError('tag {} does not exist'.format(tag))
         
-    def save_domain_dictionary(self, folder, head=None):
-        import os        
-        for tag, words in self._pos_domain.items():
-            if not os.path.exists(folder):
-                os.makedirs('{}/{}/'.format(folder, tag))
-            with open('{}/{}/{}_{}.txt'.format(folder, tag, tag, str(head) if head else ''), 'w', encoding='utf-8') as f:
-                for word, score in sorted(words.items(), key=lambda x:-x[1]):
-                    f.write('{}\t{}\n'.format(word, score))
+        if words == None:
+            self.pos_dict.pop(tag)
+            return
+        
+        words = self._type_check(words)
+        dictionary = self.pos_dict[tag]
+        dictionary -= words
+        return 
+        
+    def _type_check(self, words):
+        if isinstance(words, str):
+            words = set(words.split())
+        return words
     
-    def is_L(self, w):
-        return (w in self._pos.get('Adjective', {})) \
-                or (w in self._pos.get('Adverb', {})) \
-                or (w in self._pos.get('Exclamation', {})) \
-                or (w in self._pos.get('Noun', {})) \
-                or (w in self._pos.get('Verb', {}))
-    
-    def is_R(self, w):
-        return (w in self._pos.get('Adjective', {})) \
-                or (w in self._pos.get('Josa', {})) \
-                or (w in self._pos.get('Verb', {}))
-    
-    def pos_L(self, w):
-        if w in self._pos.get('Noun', {}): return 'Noun'
-        elif w in self._pos.get('Verb', {}): return 'Verb'
-        elif w in self._pos.get('Adjective', {}): return 'Adjective'
-        elif w in self._pos.get('Adverb', {}): return 'Adverb'
-        elif w in self._pos.get('Exclamation', {}): return 'Exclamation'
-        return None
-    
-    def pos_R(self, w):
-        if w in self._pos.get('Josa', {}): return 'Josa'
-        elif w in self._pos.get('Adjective', {}): return 'Adjective'
-        elif w in self._pos.get('Verb', {}): return 'Verb'
-        return None
+    def load(self, filename):
+        with open(filename, encoding='utf-8') as fp:
+            params = json.load(fp)
+            self.max_length = params['max_length']
+            self.pos_dict = {tag:set(words) 
+                for tag, words in params['pos_dict'].items()}
+
+    def save(self, filename):
+        with open(filename, 'w', encoding='utf-8') as fp:
+            params = {
+                'max_length':self.max_length,
+                'pos_dict': {pos:list(words) 
+                    for pos, words in self.pos_dict.items()}
+            }
+            json.dump(params, fp, ensure_ascii=False, indent=2)
