@@ -6,6 +6,7 @@ __copyright__ = 'Copyright 2017 Lovit'
 
 from . import word
 from . import tokenizer
+from . import vectorizer
 from . import noun
 from . import hangle
 from . import pos
