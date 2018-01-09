@@ -13,6 +13,15 @@ def get_process_memory():
     process = psutil.Process(os.getpid())
     return process.memory_info().rss / (1024 ** 3)
 
+def sort_by_alphabet(filepath):
+    with open(filepath, encoding='utf-8') as f:
+        docs = [doc.strip() for doc in f]
+        docs = [doc for doc in docs if doc]
+        
+    with open(filepath, 'w', encoding='utf-8') as f:
+        for doc in sorted(docs):
+            f.write('{}\n'.format(doc))
+
 class DoublespaceLineCorpus:    
     def __init__(self, corpus_fname, num_doc = -1, num_sent = -1, iter_sent = False, skip_header = 0):
         self.corpus_fname = corpus_fname
