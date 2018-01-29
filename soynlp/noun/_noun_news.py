@@ -1,3 +1,6 @@
+from collections import namedtuple
+NounScore = namedtuple('NounScore', 'score count feature_proportion eojeol_proportion n_positive_feature unique_positive_feature_proportion')
+
 class NewsNounExtractor:
     
     def __init__(self, l_max_length=10, r_max_length=7, predictor_fnames=None, base_noun_dictionary=None, verbose=True):
@@ -151,9 +154,6 @@ class NewsNounExtractor:
             print('\rextracted {} compounds from eojeols'.format(len(self.noun_dictionary) - begin), flush=True)
         
     def predict(self, l):
-        from collections import namedtuple
-        NounScore = namedtuple('NounScore', 'score count feature_proportion eojeol_proportion n_positive_feature unique_positive_feature_proportion')
-        
         (norm, score, _total, n_positive_feature, n_feature) = (0, 0, 0, 0, 0)
         for r, frequency in self.lrgraph.get(l, {}).items():
             _total += frequency
