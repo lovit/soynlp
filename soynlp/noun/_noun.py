@@ -25,7 +25,8 @@ class LRNounExtractor:
                 print('used default noun predictor; Sejong corpus predictor')
             
         for fname in predictor_fnames:
-            print('used %s' % fname.split('/')[-1])
+            if verbose:
+                print('used %s' % fname.split('/')[-1])
             self._load_predictor(fname)
         if verbose:
             print('%d r features was loaded' % len(self.coefficient))
