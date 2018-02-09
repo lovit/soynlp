@@ -1,4 +1,4 @@
-from _template import LR
+from ._template import LR
 
 class BaseTagger:
     def __init__(self, generator, evaluator, postprocessor=None):
