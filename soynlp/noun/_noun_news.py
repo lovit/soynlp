@@ -1,5 +1,5 @@
 from collections import namedtuple
-NounScore = namedtuple('NounScore', 'score count feature_proportion eojeol_proportion n_positive_feature unique_positive_feature_proportion')
+NewsNounScore = namedtuple('NewsNounScore', 'score count feature_proportion eojeol_proportion n_positive_feature unique_positive_feature_proportion')
 
 class NewsNounExtractor:
     
@@ -169,7 +169,7 @@ class NewsNounExtractor:
         feature_proportion = norm / (_total - n_eojeol) if (_total - n_eojeol) > 0 else 0
         eojeol_proportion = n_eojeol / _total if _total > 0 else 0
         unique_positive_feature_proportion = 0 if n_feature <= 0 else n_positive_feature / n_feature
-        return NounScore(score, _total, feature_proportion, eojeol_proportion, n_positive_feature, unique_positive_feature_proportion)
+        return NewsNounScore(score, _total, feature_proportion, eojeol_proportion, n_positive_feature, unique_positive_feature_proportion)
 #         return (score, _total, feature_proportion, eojeol_proportion, n_positive_feature, unique_positive_feature_proportion)
     
     def _postprocessing(self, noun_scores, minimum_noun_score=0.4, minimum_feature_proportion=0.6):
@@ -187,7 +187,7 @@ class NewsNounExtractor:
         #     unijosa = {}
         self._noun_scores_postprocessed = {}
         for i, (noun, score) in enumerate(self._noun_scores_.items()):
-            if (i+1) % 1000 == 0:
+            if self.verbose and (i+1) % 1000 == 0:
                 print('\rchecking hardrules ... {} / {}'.format(i+1, len(self._noun_scores_)), flush=True, end='')
             if(noun in njsunjs) or (noun in nsubs) or (noun in nvsubes):
                 continue
