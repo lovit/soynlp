@@ -1,0 +1,1 @@
+from .soy import tagset
