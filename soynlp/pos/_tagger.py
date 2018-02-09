@@ -7,13 +7,15 @@ class BaseTagger:
         self.dictionary = generator.dictionary
         self.postprocessor = postprocessor
 
-    def tag(self, sentence, flatten=True):
+    def tag(self, sentence, flatten=True, debug=False):
         raise NotImplementedError
 
 class SimpleTagger(BaseTagger):
-    def tag(self, sentence, flatten=True):
+    def tag(self, sentence, flatten=True, debug=False):
         sent_ = []
+        debug_ = []
         eojeols = sentence.split()
+        
         for eojeol in eojeols:
             candidates = self.generator.generate(eojeol)
             best = self.evaluator.select_best(candidates)
@@ -32,11 +34,20 @@ class SimpleTagger(BaseTagger):
                     postprocessed_.append((word.r, word.r_tag))
             
             sent_.append(postprocessed_)
+            
+            if debug:
+                scored_candidates = [(c, self.evaluator.evaluate(c)) for c in candidates]
+                scored_candidates = sorted(scored_candidates, key=lambda x:(x[0].b, x[1]))
+                debug_.append(scored_candidates)
         
         # Flatten in a sentence
         if flatten:
             sent_ = [word for words in sent_ for word in words]
-        return sent_
+
+        if not debug:
+            return sent_
+        else:
+            return sent_, debug_
 
 class BasePostprocessor:
     def postprocess(self, token, best_wordstream):
