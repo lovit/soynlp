@@ -35,9 +35,12 @@ class Dictionary:
         max_length = max((len(word) for word in words))
         if self.max_length < max_length:
             self.max_length = max_length
-            
-        dictionary = self.pos_dict.get(tag, {})
-        dictionary.update(words)
+        
+        if not (tag in self.pos_dict):
+            dictionary = words
+        else:
+            dictionary = self.pos_dict.get(tag, {})
+            dictionary.update(words)
         self.pos_dict[tag] = dictionary
     
     def remove_words(self, tag, words=None):
@@ -51,7 +54,6 @@ class Dictionary:
         words = self._type_check(words)
         dictionary = self.pos_dict[tag]
         dictionary -= words
-        return 
         
     def _type_check(self, words):
         if isinstance(words, str):
