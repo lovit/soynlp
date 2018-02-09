@@ -124,12 +124,16 @@ class LRMaxScoreTagger:
         if flatten:
             sent_ = [word for words in sent_ for word in words]
         return sent_
-        
+
     def _pos(self, eojeol, debug=False):
         candidates = self._initialize(eojeol)
         scores = self._scoring(candidates)
         best = self._find_best(scores)
-        post = self._postprocessing(eojeol, best)
+        if best:
+            post = self._postprocessing(eojeol, best)
+        else:
+            post = self._base_tokenizing_subword(eojeol, 0)
+            
         if not debug:
             post = [w for lr in post for w in lr[:2] if w[0]]
         return post
