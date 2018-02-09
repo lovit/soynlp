@@ -213,7 +213,9 @@ class MaxScoreTokenizer:
 class MaxLRScoreTokenizer:
     def __init__(self, Dl=None, Dr=None,
                  preference_l=None, preference_r=None,
-                 lrgraph=None, tokenizer_builder=None
+                 lrgraph=None, tokenizer_builder=None,
+                 lscore_max_difference=0.3, lscore_max_diffratio=0.5, # Expansion L
+                 ensurable_score_l=0.5, ensurable_score_lr_diff=0.3   # R overlap L
                 ):
 
         # Normalize L-R graph to prob graph
@@ -252,7 +254,11 @@ class MaxLRScoreTokenizer:
         self.lmax = max((len(w) for w in self.Dl)) if self.Dl else 0
         self.rmax = max((len(w) for w in self.Dr)) if self.Dr else 0
         self.base_tokenizer = MaxScoreTokenizer(scores=self.Dr)
-
+        
+        self.lscore_max_difference = lscore_max_difference
+        self.lscore_max_diffratio = lscore_max_diffratio
+        self.ensurable_score_l = ensurable_score_l
+        self.ensurable_score_lr_diff = ensurable_score_lr_diff
 
     def tokenize(self, sent, debug=False, flatten=True):
         sent_ = [self._tokenize(t, debug) for t in sent.split() if t]
@@ -265,7 +271,12 @@ class MaxLRScoreTokenizer:
         candidates_ = self._remove_l_subset(candidates)
         scores = self._score(candidates_)
         best = self._find_best(scores)
-        post = self._postprocessing(t, best)
+        
+        if best:
+            post = self._postprocessing(t, best)
+        else:
+            post = self._base_tokenizing_subword(t, 0)
+
         if not debug:
             post = [[(p[0], 'L'), (p[1], 'R')] for p in post]
             post = [w for p in post for w in p if w[0]]
@@ -312,10 +323,7 @@ class MaxLRScoreTokenizer:
                                 ])
         return sorted(expanded, key=lambda x:x[4])
     
-    def _remove_l_subset(self, candidates,
-                   lscore_max_difference=0.3,
-                   lscore_max_diffratio=0.5):
-    
+    def _remove_l_subset(self, candidates):    
         for c in candidates:
             c.append(self.Dl.get(c[0], 0))
             c.append(self.Dr.get(c[1], 0))
@@ -330,8 +338,9 @@ class MaxLRScoreTokenizer:
             for c in candidates:
                 if c[2] > b or c[3] < e or not (c[2] < b or c[3] > e):
                     continue
-                if ((lscore - c[-2]) < lscore_max_difference) \
-                    or ((lscore+1e-5) / (c[-2]+1e-5) < lscore_max_diffratio):
+                if ((lscore - c[-2]) < self.lscore_max_difference) or \
+                    ((self.ensurable_score_l * 0.5 < lscore) and \
+                        ((lscore+1e-5) / (c[-2]+1e-5) < self.lscore_max_diffratio)):
                     exist_longer = True
                     break
 
@@ -340,7 +349,7 @@ class MaxLRScoreTokenizer:
 
         return candidates_
 
-    def _score(self, candidates, ensurable_score_l=0.5, ensurable_score_lr_diff=0.3):
+    def _score(self, candidates):
         from collections import defaultdict
         # With checking R is overlapped next L
         begin_to_words = defaultdict(lambda: [])
@@ -363,7 +372,7 @@ class MaxLRScoreTokenizer:
                         break
                     for word in begin_to_words.get(b, []):
                         score_diff = word[-2] + self.Pl.get(word[0], 0) - score_r
-                        if (ensurable_score_l <= word[-2]) or (score_diff > ensurable_score_lr_diff):
+                        if (self.ensurable_score_l <= word[-2]) or (score_diff > self.ensurable_score_lr_diff):
                             overlappped = True
                             break
                 if overlappped:
