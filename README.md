@@ -8,8 +8,9 @@
 
 ## Requires
 
-- numpy 
-- psutil
+- Python >= 3.4 (have not been tested in Python 2)
+- numpy >= 1.12.1
+- psutil >= 5.0.1
 
 ## Word Extraction 
 
