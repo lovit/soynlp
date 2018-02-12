@@ -4,7 +4,9 @@ from soynlp.hangle import decompose
 doublespace_pattern = re.compile('\s+')
 repeatchars_pattern = re.compile('(\w)\\1{3,}')
 hangle_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣]')
-text_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z\.\?\!\"\']')
+hangle_number_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]')
+text_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\.\?\!\"\'-]')
+
 
 def repeat_normalize(sent, n_repeats=2):
     if n_repeats > 0:
@@ -45,6 +47,9 @@ def emoticon_normalize(sent, n_repeats=2):
 
 def only_hangle(sent):
     return doublespace_pattern.sub(' ',hangle_filter.sub(' ', sent)).strip()
+
+def only_hangle_number(sent):
+    return doublespace_pattern.sub(' ',hangle_number_filter.sub(' ', sent)).strip()
 
 def only_text(sent):
     return doublespace_pattern.sub(' ',text_filter.sub(' ', sent)).strip()
