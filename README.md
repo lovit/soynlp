@@ -4,7 +4,7 @@
 
 ## Setup
 
-    pip install soynlp
+    pip install soynlp==0.0.4
 
 ## Requires
 
