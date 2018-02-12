@@ -192,6 +192,27 @@ WordExtractor 는 통계를 이용하여 단어의 경계 점수를 학습하는
 
 더 자세한 사용법은 [사용법 튜토리얼][tagger_usage] 에 기술되어 있으며, [개발과정 노트][tagger_lecture]는 여기에 기술되어 있습니다. 
 
+## Normalizer
+
+대화 데이터, 댓글 데이터에 등장하는 반복되는 이모티콘의 정리 및 한글, 혹은 텍스트만 남기기 위한 함수를 제공합니다. 
+
+    from soynlp.normalizer import *
+
+    emoticon_normalize('ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜㅜ', n_repeats=3)
+    # 'ㅋㅋㅋㅜㅜㅜ'
+
+    repeat_normalize('와하하하하하하하하하핫', n_repeats=2)
+    # '와하하핫'
+
+    only_hangle('가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜabcd123!!아핫')
+    # '가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜ 아핫'
+
+    only_hangle_number('가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜabcd123!!아핫')
+    # '가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜ 123 아핫'
+
+    only_text('가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜabcd123!!아핫')
+    # '가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜabcd123!!아핫'
+
 
 ## 함께 이용하면 좋은 라이브러리들
 
