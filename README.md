@@ -230,6 +230,13 @@ WordExtractor 는 통계를 이용하여 단어의 경계 점수를 학습하는
 - https://github.com/lovit/KR-WordRank
 - pip install krwordrank
 
+### soykeyword
+
+키워드 추출기입니다. Logistic Regression 을 이용하는 모델과 통계 기반 모델, 두 종류의 키워드 추출기를 제공합니다. scipy.sparse 의 sparse matrix 형식과 텍스트 파일 형식을 지원합니다. 
+
+- https://github.com/lovit/soykeyword
+- pip install soykeyword
+
 ## notes
 
 - [slide files][unkornlp_pdf]에 알고리즘들의 원리 및 설명을 적어뒀습니다. 데이터야놀자에서 발표했던 자료입니다. 
