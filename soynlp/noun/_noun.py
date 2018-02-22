@@ -6,13 +6,13 @@ NounScore = namedtuple('NounScore', 'frequency score known_r_ratio')
 
 class LRNounExtractor:
 
-    def __init__(self, predictor_fnames=None, verbose=True, 
-                 left_max_length=10, right_max_length=6, min_count=10, word_extractor=None):
+    def __init__(self, l_max_length=10, r_max_length=7,
+            predictor_fnames=None, verbose=True):
+        
         self.coefficient = {}
         self.verbose = verbose
-        self.left_max_length = left_max_length
-        self.right_max_length = right_max_length
-        self.min_count = min_count
+        self.l_max_length = l_max_length
+        self.r_max_length = r_max_length
         self.lrgraph = None
         self.words = None
         self._wordset_l_counter = {}
@@ -43,17 +43,18 @@ class LRNounExtractor:
         except Exception as e:
             print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
     
-    def train_extract(self, sents, minimum_noun_score=0.5, min_count=5, wordset_l=None, wordset_r=None):
-        self.train(sents, wordset_l, wordset_r)
-        return self.extract(minimum_noun_score=minimum_noun_score, min_count=min_count)
-    
-    def train(self, sents, wordset_l=None, wordset_r=None):
-        if (not wordset_l) or (not wordset_r):
-            wordset_l, wordset_r = self._scan_vocabulary(sents)
+    def train_extract(self, sents, minimum_noun_score=0.5, min_count=5,
+            noun_candidates=None):
+        
+        self.train(sents, min_count)
+        return self.extract(minimum_noun_score, min_count, noun_candidates)
+
+    def train(self, sents, min_count=5):
+        wordset_l, wordset_r = self._scan_vocabulary(sents)
         self.lrgraph = self._build_lrgraph(sents, wordset_l, wordset_r)
         self.words = wordset_l
     
-    def _scan_vocabulary(self, sents):
+    def _scan_vocabulary(self, sents, min_count=5):
         """
         Parameters
         ----------
@@ -73,17 +74,17 @@ class LRNounExtractor:
                 if not token:
                     continue
                 token_len = len(token)
-                for i in range(1, min(self.left_max_length, token_len)+1):
+                for i in range(1, min(self.l_max_length, token_len)+1):
                     wordset_l[token[:i]] += 1
-                for i in range(1, min(self.right_max_length, token_len)):
+                for i in range(1, min(self.r_max_length, token_len)):
                     wordset_r[token[-i:]] += 1
             if self.verbose and (i % _ckpt == 0):
                 args = ('#' * int(i/_ckpt), '-' * (40 - int(i/_ckpt)), 100.0 * i / len(sent), '%')
                 sys.stdout.write('\rscanning: %s%s (%.3f %s)' % args)
         
-        self._wordset_l_counter = {w:f for w,f in wordset_l.items() if f >= self.min_count}
+        self._wordset_l_counter = {w:f for w,f in wordset_l.items() if f >= min_count}
         wordset_l = set(self._wordset_l_counter.keys())
-        wordset_r = {w for w,f in wordset_r.items() if f >= self.min_count}
+        wordset_r = {w for w,f in wordset_r.items() if f >= min_count}
         
         if self.verbose:
             print('\rscanning completed')
@@ -100,7 +101,7 @@ class LRNounExtractor:
                 if not token:
                     continue
                 token_len = len(token)
-                for i in range(1, min(self.left_max_length, token_len)+1):
+                for i in range(1, min(self.l_max_length, token_len)+1):
                     l = token[:i]
                     r = token[i:]
                     if (not l in wordset_l) or (not r in wordset_r):
@@ -115,7 +116,7 @@ class LRNounExtractor:
         lrgraph = {l:{r:f for r,f in rdict.items()} for l,rdict in lrgraph.items()}
         return lrgraph
     
-    def extract(self, noun_candidates=None, minimum_noun_score=0.5, min_count=5):
+    def extract(self, minimum_noun_score=0.5, min_count=5, noun_candidates=None):
         if not noun_candidates:
             noun_candidates = self.words
 

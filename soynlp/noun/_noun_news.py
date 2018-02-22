@@ -1,9 +1,11 @@
 from collections import namedtuple
-NewsNounScore = namedtuple('NewsNounScore', 'score count feature_proportion eojeol_proportion n_positive_feature unique_positive_feature_proportion')
+NewsNounScore = namedtuple('NewsNounScore', 'score frequency feature_proportion eojeol_proportion n_positive_feature unique_positive_feature_proportion')
 
 class NewsNounExtractor:
     
-    def __init__(self, l_max_length=10, r_max_length=7, predictor_fnames=None, base_noun_dictionary=None, verbose=True):
+    def __init__(self, l_max_length=10, r_max_length=7, 
+            predictor_fnames=None, verbose=True, base_noun_dictionary=None):
+        
         self.l_max_length = l_max_length
         self.r_max_length = r_max_length
         self.verbose = verbose
@@ -48,18 +50,24 @@ class NewsNounExtractor:
             print(e)
             return set()
         
-    def train_extract(self, sents, min_count=3, minimum_noun_score=0.4, minimum_feature_proportion=0.6, wordset=None):
+    def train_extract(self, sents, min_count=3, minimum_noun_score=0.4,
+            noun_candidates=None, minimum_feature_proportion=0.6):
+        
         self.train(sents)        
-        return self.extract(wordset, min_count, minimum_noun_score, minimum_feature_proportion)
+        return self.extract(minimum_noun_score, min_count, 
+            noun_candidates, minimum_feature_proportion)
     
     def train(self, sents):
         if self.verbose:
             print('scan vocabulary ... ', end='')
+
         self.lrgraph, self.rlgraph, self.eojeols = self._build_graph(sents)
         self.lcount = {k:sum(d.values()) for k,d in self.lrgraph.items()}
         self.rcount = {k:sum(d.values()) for k,d in self.rlgraph.items()}
+
         if self.verbose:
-            print('done (Lset, Rset, Eojeol) = ({}, {}, {})'.format(len(self.lcount), len(self.rcount), len(self.eojeols)))
+            print('done (Lset, Rset, Eojeol) = ({}, {}, {})'.format(
+                len(self.lcount), len(self.rcount), len(self.eojeols)))
 
     def _build_graph(self, sents):
         from collections import defaultdict
@@ -67,7 +75,10 @@ class NewsNounExtractor:
         dictdictize = lambda dd: {k:dict(d) for k,d in dd.items()}
         
         eojeol_max_length = self.l_max_length + self.r_max_length
-        eojeols = Counter((eojeol for sent in sents for eojeol in sent.split() if len(eojeol) <= eojeol_max_length))
+        eojeols = Counter(
+            (eojeol for sent in sents for eojeol in sent.split() 
+             if len(eojeol) <= eojeol_max_length)
+        )
 
         lrgraph = defaultdict(lambda: defaultdict(lambda: 0))
         rlgraph = defaultdict(lambda: defaultdict(lambda: 0))
@@ -82,18 +93,23 @@ class NewsNounExtractor:
                     rlgraph[r][l] += count
         return dictdictize(lrgraph), dictdictize(rlgraph), eojeols
 
-    def extract(self, wordset=None, min_count=3, minimum_noun_score=0.4, minimum_feature_proportion=0.6):
+    def extract(self, minimum_noun_score=0.4, min_count=3, 
+            noun_candidates=None, minimum_feature_proportion=0.6):
+        
         self._pre_eojeol_analysis(min_count)
         
-        if not wordset:
-            wordset = {l:c for l, c in self.lcount.items() if len(l) >= 2}
-        wordset = {l for l,c in wordset.items() if c >= min_count and not (l in self.r_scores)}
+        if not noun_candidates:
+            noun_candidates = [l for l, c in self.lcount.items() if len(l) >= 2]
+        noun_candidates = [l for l in noun_candidates
+            if self.lcount.get(l, 0) >= min_count and not (l in self.r_scores)]
         
         noun_scores = {}
-        for i, l in enumerate(wordset):
+        for i, l in enumerate(noun_candidates):
             noun_scores[l] = self.predict(l)
             if self.verbose and (i+1) % 1000 == 0:
-                print('\rpredicting noun score ... {} / {}'.format(i+1, len(wordset)), end='', flush=True)
+                message = '\rpredicting noun score ... {} / {}'
+                print(message.format(i+1, len(noun_candidates)), end='', flush=True)
+
         if self.verbose:
             print('\rpredicting noun score ... done', flush=True)
         
@@ -104,8 +120,10 @@ class NewsNounExtractor:
         for noun in self.noun_dictionary:
             if not (noun in self._noun_scores_postprocessed):
                 self.noun_dictionary[noun] = self.predict(noun)
+
         for noun, score in self._noun_scores_postprocessed.items():
-            self.noun_dictionary[noun] = score        
+            self.noun_dictionary[noun] = score
+
         del self._noun_scores_
         del self._noun_scores_postprocessed
         
@@ -121,25 +139,38 @@ class NewsNounExtractor:
                     return (l, r)
             return None
         
-        candidates = {l:c for l,c in self.lcount.items() if c >= min_count and (self.eojeols.get(l, 0) / c) >= minimum_eojeol_proportion}
+        candidates = {l:c for l,c in self.lcount.items() 
+            if c >= min_count and (self.eojeols.get(l, 0) / c) >= minimum_eojeol_proportion}
+
         for i, (l, c) in enumerate(candidates.items()):
             if self.verbose and (i+1) % 1000 == 0:
                 args = (len(self.noun_dictionary), i+1, len(candidates))
-                print('\rextracting {} nouns using verb/adjective dictionary ... {} / {}'.format(*args), end='', flush=True)
+                message = '\rextracting {} nouns using verb/adjective dictionary ... {} / {}'
+                print(message.format(*args), end='', flush=True)
+
             nv = eojeol_to_NV(l)
             if not nv:
                 continue
+
             self.noun_dictionary[nv[0]] = self.lcount.get(nv[0], 0)
+
         if self.verbose:
-            print('\rextracted {} nouns using verb/adjective dictionary'.format(len(self.noun_dictionary)), flush=True)
+            message = '\rextracted {} nouns using verb/adjective dictionary'
+            print(message.format(len(self.noun_dictionary)), flush=True)
     
-    def _post_eojeol_analysis(self, min_count=3, minimum_eojeol_proportion=0.99, minimum_noun_score=0.4):
-        candidates = {l:c for l,c in self.lcount.items() if c >= min_count and (self.eojeols.get(l, 0) / c) >= minimum_eojeol_proportion}
+    def _post_eojeol_analysis(self, min_count=3,
+        minimum_eojeol_proportion=0.99, minimum_noun_score=0.4):
+
+        candidates = {l:c for l,c in self.lcount.items() 
+            if c >= min_count and (self.eojeols.get(l, 0) / c) >= minimum_eojeol_proportion}
+
         begin = len(self.noun_dictionary)
         for i, (l, c) in enumerate(candidates.items()):
             if self.verbose and (i+1) % 1000 == 0:
                 args = (len(self.noun_dictionary) - begin, i+1, len(candidates))
-                print('\rextracting {} compounds from eojeols ... {} / {}'.format(*args), end='', flush=True)
+                message = '\rextracting {} compounds from eojeols ... {} / {}'
+                print(message.format(*args), end='', flush=True)
+                
             if l in self._noun_scores_postprocessed:        
                 continue
             if self._is_NJsubJ(l):
@@ -150,11 +181,14 @@ class NewsNounExtractor:
                 continue
             if self._hardrule_suffix_filter(l) and self._is_compound(l):
                 self.noun_dictionary[l] = c
+
         if self.verbose:
-            print('\rextracted {} compounds from eojeols'.format(len(self.noun_dictionary) - begin), flush=True)
-        
+            message = '\rextracted {} compounds from eojeols'
+            print(message.format(len(self.noun_dictionary) - begin), flush=True)
+
     def predict(self, l):
         (norm, score, _total, n_positive_feature, n_feature) = (0, 0, 0, 0, 0)
+
         for r, frequency in self.lrgraph.get(l, {}).items():
             _total += frequency
             if not r in self.r_scores:
@@ -169,26 +203,39 @@ class NewsNounExtractor:
         feature_proportion = norm / (_total - n_eojeol) if (_total - n_eojeol) > 0 else 0
         eojeol_proportion = n_eojeol / _total if _total > 0 else 0
         unique_positive_feature_proportion = 0 if n_feature <= 0 else n_positive_feature / n_feature
+
         return NewsNounScore(score, _total, feature_proportion, eojeol_proportion, n_positive_feature, unique_positive_feature_proportion)
 #         return (score, _total, feature_proportion, eojeol_proportion, n_positive_feature, unique_positive_feature_proportion)
     
-    def _postprocessing(self, noun_scores, minimum_noun_score=0.4, minimum_feature_proportion=0.6):
-        import sys
-        self._noun_scores_ = dict(filter(lambda x:x[1][0] > minimum_noun_score and x[1][1] > minimum_feature_proportion and len(x[0]) > 1, noun_scores.items()))
+    def _postprocessing(self, noun_scores, minimum_noun_score=0.4,
+        minimum_feature_proportion=0.6):
+
+        self._noun_scores_ = dict(
+            filter(lambda x:((x[1][0] > minimum_noun_score)
+                             and (x[1][1] > minimum_feature_proportion)
+                             and (len(x[0]) > 1)),
+                   noun_scores.items())
+        )
 
         if self.verbose:
-            print('finding NJsubJ (대학생(으)+로), NsubJ (떡볶+(이)), NVsubE (사기(당)+했다) ... ', end='')
+            message = 'finding NJsubJ (대학생(으)+로), NsubJ (떡볶+(이)), NVsubE (사기(당)+했다) ... '
+            print(message, end='')
+
         njsunjs = {l for l in self._noun_scores_ if self._is_NJsubJ(l)}
         nsubs = {l0 for l in self._noun_scores_ for l0 in self._find_NsubJ(l) if not (l in njsunjs)}
         nvsubes = {l for l in self._noun_scores_ if self._is_NVsubE(l) and self._is_NWsub(l) and not self._is_compound(l)}
+
         if self.verbose:
             print('done')
         
         #     unijosa = {}
         self._noun_scores_postprocessed = {}
+
         for i, (noun, score) in enumerate(self._noun_scores_.items()):
             if self.verbose and (i+1) % 1000 == 0:
-                print('\rchecking hardrules ... {} / {}'.format(i+1, len(self._noun_scores_)), flush=True, end='')
+                message = '\rchecking hardrules ... {} / {}'
+                print(message.format(i+1, len(self._noun_scores_)), flush=True, end='')
+
             if(noun in njsunjs) or (noun in nsubs) or (noun in nvsubes):
                 continue
             if not self._hardrule_unijosa_filter(noun) and not self._is_compound(noun):
@@ -199,7 +246,7 @@ class NewsNounExtractor:
             if not self._hardrule_dang_hada_filter(noun):
                 continue
             self._noun_scores_postprocessed[noun] = score
-            
+
         if self.verbose:
             print('\rchecking hardrules ... done')
         return self._noun_scores_postprocessed
