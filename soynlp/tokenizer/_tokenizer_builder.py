@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 from collections import defaultdict
 import sys
 from soynlp.utils import get_process_memory

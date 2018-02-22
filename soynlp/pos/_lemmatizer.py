@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 from soynlp.hangle import compose, decompose
 
 class Lemmatizer:

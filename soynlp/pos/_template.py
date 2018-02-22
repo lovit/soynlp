@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 from collections import namedtuple
 
 # b:begin, m: middle, e: end

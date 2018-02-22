@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 def conjugate_exception(v, e):
     v_ = decompose(v[-1])
     e_ = decompose(e[0])

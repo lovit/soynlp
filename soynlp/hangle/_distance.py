@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 from collections import Counter
 import numpy as np
 from ._hangle import decompose

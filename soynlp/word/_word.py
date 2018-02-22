@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 from collections import defaultdict
 from collections import namedtuple
 import math

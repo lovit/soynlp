@@ -9,6 +9,7 @@
 ## Requires
 
 - Python >= 3.4 (have not been tested in Python 2)
+- Python 2 is developing
 - numpy >= 1.12.1
 - psutil >= 5.0.1
 

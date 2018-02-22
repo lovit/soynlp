@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 from pprint import pprint
 import re
 import numpy as np

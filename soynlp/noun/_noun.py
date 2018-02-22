@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 from collections import defaultdict, namedtuple
 import sys
 from soynlp.word import WordExtractor

@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 tagset = {
   "Noun": "명사",
   "Pronoun": "대명사",
