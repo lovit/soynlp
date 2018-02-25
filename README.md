@@ -248,3 +248,7 @@ WordExtractor 는 통계를 이용하여 단어의 경계 점수를 학습하는
 [tagger_usage]: tutorials/tagger_usage.ipynb
 [tagger_lecture]: tutorials/tagger_lecture.ipynb
 [unkornlp_pdf]: notes/unskonlp.pdf
+
+
+## Notice
+- 2.7로 포팅하는 과정에서 생긴 에러인지는 몰라도 명사를 추출하는데 정확도가 아직 조금 떨어집니다. 특히 외국인 이름등이 그런 경향이 두드러집니다. 띄어쓰기가 잘못되어서 그런것일 수 있습니다.
