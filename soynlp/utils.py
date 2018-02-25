@@ -16,11 +16,11 @@ def get_process_memory():
     return process.memory_info().rss / (1024 ** 3)
 
 def sort_by_alphabet(filepath):
-    with open(filepath, encoding='utf-8') as f:
+    with open(filepath) as f:
         docs = [doc.strip() for doc in f]
         docs = [doc for doc in docs if doc]
         
-    with open(filepath, 'w', encoding='utf-8') as f:
+    with open(filepath, 'w') as f:
         for doc in sorted(docs):
             f.write('{}\n'.format(doc))
 
@@ -36,7 +36,7 @@ class DoublespaceLineCorpus:
 
     def _check_length(self, num_doc, num_sent):
         num_sent_ = 0
-        with open(self.corpus_fname, encoding='utf-8') as f:
+        with open(self.corpus_fname) as f:
             for _ in range(self.skip_header):
                 next(f)
             for doc_idx, doc in enumerate(f):
@@ -50,7 +50,7 @@ class DoublespaceLineCorpus:
         return doc_idx+1, num_sent_
             
     def __iter__(self):
-        with open(self.corpus_fname, encoding='utf-8') as f:
+        with open(self.corpus_fname) as f:
             for _ in range(self.skip_header):
                 next(f)
             num_sent = 0

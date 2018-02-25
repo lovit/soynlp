@@ -23,6 +23,7 @@ class LRNounExtractor:
             import os
             directory = '/'.join(os.path.abspath(__file__).replace('\\', '/').split('/')[:-2])
             predictor_fnames = ['%s/trained_models/noun_predictor_sejong' % directory]
+            print predictor_fnames
             if verbose:
                 print('used default noun predictor; Sejong corpus predictor')
             
@@ -35,13 +36,13 @@ class LRNounExtractor:
         
     def _load_predictor(self, fname):
         try:
-            with open(fname, encoding='utf-8') as f:
+            with open(fname) as f:
                 for num_line, line in enumerate(f):
                     r, score = line.split('\t')
                     score = float(score)
                     self.coefficient[r] = max(self.coefficient.get(r, 0), score)
-        except FileNotFoundError:
-            print('predictor file was not found')
+        # except FileNotFoundError:
+            # print('predictor file was not found')
         except Exception as e:
             print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
     

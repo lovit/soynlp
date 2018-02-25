@@ -16,7 +16,7 @@ def _entropy(dic):
     sum_ = sum(dic.values())
     entropy = 0
     for freq in dic.values():
-        prob = freq / sum_
+        prob = float(freq) / sum_
         entropy += prob * math.log(prob)
     return -1 * entropy
 
