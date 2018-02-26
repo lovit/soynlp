@@ -76,6 +76,7 @@ class LRTemplateMatcher(BaseTemplateMatcher):
         self.templates = templates
             
     def generate(self, token):
+        token = unicode(token)
         candidates = self._initialize_L(token)
         candidates = self._expand_R(token, candidates)
         return candidates

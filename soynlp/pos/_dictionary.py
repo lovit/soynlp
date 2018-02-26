@@ -1,11 +1,16 @@
 # -*- encoding:utf8 -*-
 
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 import json
 import os
 
 class Dictionary:
     def __init__(self, pos_dict):
         if isinstance(pos_dict, dict):
+            for key in pos_dict:
+                pos_dict[key] = set(map(unicode, pos_dict[key]))
             self.pos_dict = pos_dict
             self.max_length = self._check_max_length(self.pos_dict)
         elif isinstance(pos_dict, str):
@@ -63,14 +68,14 @@ class Dictionary:
         return words
     
     def load(self, filename):
-        with open(filename, encoding='utf-8') as fp:
-            params = json.load(fp)
+        with open(filename) as fp:
+            params = json.load(unicode(fp))
             self.max_length = params['max_length']
             self.pos_dict = {tag:set(words) 
                 for tag, words in params['pos_dict'].items()}
 
     def save(self, filename):
-        with open(filename, 'w', encoding='utf-8') as fp:
+        with open(filename, 'w') as fp:
             params = {
                 'max_length':self.max_length,
                 'pos_dict': {pos:list(words) 
