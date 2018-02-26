@@ -3,15 +3,14 @@ import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
-from soynlp.tokenizer import RegexTokenizer, LTokenizer, MaxScoreTokenizer
+import soynlp
+import re
+from soynlp.normalizer import *
 
-tokenizer = RegexTokenizer()
-
-sents = [
-    '이렇게연속된문장은잘리지않습니다만',
-    '숫자123이영어abc에섞여있으면ㅋㅋ잘리겠죠',
-    '띄어쓰기가 포함되어있으면 이정보는10점!꼭띄워야죠'
-]
-
-for sent in sents:
-    print('   %s\n->%s\n' % (sent, ' '.join(tokenizer.tokenize(sent))))
+print(soynlp.__version__)
+print emoticon_normalize('ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜㅜ', 2)
+print repeat_normalize('와하하하하하하하하하핫')
+print repeat_normalize('와하하하하하하하하하핫', n_repeats=3)
+print only_hangle('가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜabcd123!!아핫')
+print only_hangle_number('가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜabcd123!!아핫')
+print only_text('가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜabcd123!!아핫')

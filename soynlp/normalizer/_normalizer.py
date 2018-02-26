@@ -1,22 +1,27 @@
 # -*- encoding:utf8 -*-
 
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 import re
 from soynlp.hangle import decompose
 
-doublespace_pattern = re.compile('\s+')
-repeatchars_pattern = re.compile('(\w)\\1{3,}')
-hangle_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣]')
-hangle_number_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]')
-text_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\.\?\!\"\'-]')
+doublespace_pattern = re.compile(ur'\s+', re.UNICODE)
+repeatchars_pattern = re.compile(ur'(\w)\1{3,}', re.UNICODE)
+hangle_filter = re.compile(ur'[^ㄱ-ㅎㅏ-ㅣ가-힣]', re.UNICODE)
+hangle_number_filter = re.compile(ur'[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]', re.UNICODE)
+text_filter = re.compile(ur'[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\.\?\!\"\'-]', re.UNICODE)
 
 
 def repeat_normalize(sent, n_repeats=2):
+    sent = unicode(sent)
     if n_repeats > 0:
-        sent = repeatchars_pattern.sub('\\1' * n_repeats, sent)
+        sent = repeatchars_pattern.sub(r'\1' * n_repeats, sent)
     sent = doublespace_pattern.sub(' ', sent)
     return sent.strip()
 
 def emoticon_normalize(sent, n_repeats=2):
+    sent = unicode(sent)
     if not sent:
         return sent
     
@@ -33,6 +38,7 @@ def emoticon_normalize(sent, n_repeats=2):
             return -1
 
     idxs = [pattern(ord(c)) for c in sent]
+    print zip(idxs[:-1], sent)
     sent_ = []
     for i, (idx, c) in enumerate(zip(idxs[:-1], sent)):
         if i > 0 and (idxs[i-1] == 0 and idx == 2 and idxs[i+1] == 1):
@@ -48,10 +54,13 @@ def emoticon_normalize(sent, n_repeats=2):
     return repeat_normalize(''.join(sent_), n_repeats)
 
 def only_hangle(sent):
+    sent = unicode(sent)
     return doublespace_pattern.sub(' ',hangle_filter.sub(' ', sent)).strip()
 
 def only_hangle_number(sent):
+    sent = unicode(sent)
     return doublespace_pattern.sub(' ',hangle_number_filter.sub(' ', sent)).strip()
 
 def only_text(sent):
+    sent = unicode(sent)
     return doublespace_pattern.sub(' ',text_filter.sub(' ', sent)).strip()
