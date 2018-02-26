@@ -35,16 +35,28 @@ class LRNounExtractor:
             print('%d r features was loaded' % len(self.coefficient))
         
     def _load_predictor(self, fname):
-        try:
-            with open(fname) as f:
-                for num_line, line in enumerate(f):
-                    r, score = line.split('\t')
-                    score = float(score)
-                    self.coefficient[r] = max(self.coefficient.get(r, 0), score)
-        # except FileNotFoundError:
-            # print('predictor file was not found')
-        except Exception as e:
-            print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
+        if sys.version.split('.')[0] == '2':
+            try:
+                with open(fname) as f:
+                    for num_line, line in enumerate(f):
+                        r, score = line.split('\t')
+                        score = float(score)
+                        self.coefficient[r] = max(self.coefficient.get(r, 0), score)
+            # except FileNotFoundError:
+                # print('predictor file was not found')
+            except Exception as e:
+                print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
+        else:
+            try:
+                with open(fname, encoding='utf-8') as f:
+                    for num_line, line in enumerate(f):
+                        r, score = line.split('\t')
+                        score = float(score)
+                        self.coefficient[r] = max(self.coefficient.get(r, 0), score)
+            except FileNotFoundError:
+                print('predictor file was not found')
+            except Exception as e:
+                print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
     
     def train_extract(self, sents, minimum_noun_score=0.5, min_count=5,
             noun_candidates=None):

@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 NewsNounScore = namedtuple('NewsNounScore', 'score frequency feature_proportion eojeol_proportion n_positive_feature unique_positive_feature_proportion')
+import sys
 
 class NewsNounExtractor:
     
@@ -32,21 +33,37 @@ class NewsNounExtractor:
         self._vdictionary.update(self._load_dictionary('%s/pos/dictionary/sejong/Adjective.txt' % directory))
 
     def _load_predictor(self, fname):
-        try:
-            with open(fname) as f:
-                for num_line, line in enumerate(f):
-                    r, score = line.split('\t')
-                    score = float(score)
-                    self.r_scores[r] = max(self.r_scores.get(r, 0), score)
-        # except FileNotFoundError:
-        #     print('predictor file was not found')
-        except Exception as e:
-            print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
+        if sys.version.split('.')[0] == '2':
+            try:
+                with open(fname) as f:
+                    for num_line, line in enumerate(f):
+                        r, score = line.split('\t')
+                        score = float(score)
+                        self.coefficient[r] = max(self.coefficient.get(r, 0), score)
+            # except FileNotFoundError:
+                # print('predictor file was not found')
+            except Exception as e:
+                print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
+        else:
+            try:
+                with open(fname, encoding='utf-8') as f:
+                    for num_line, line in enumerate(f):
+                        r, score = line.split('\t')
+                        score = float(score)
+                        self.coefficient[r] = max(self.coefficient.get(r, 0), score)
+            except FileNotFoundError:
+                print('predictor file was not found')
+            except Exception as e:
+                print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
     
     def _load_dictionary(self, fname):
         try:
-            with open(fname) as f:
-                words = {word.strip().split('\t')[0] for word in f}
+            if sys.version.split('.')[0] == '2':
+                with open(fname) as f:
+                    words = {word.strip().split('\t')[0] for word in f}
+            else:
+                with open(fname, encoding='utf-8') as f:
+                    words = {word.strip().split('\t')[0] for word in f}
             return words
         except Exception as e:
             print(e)

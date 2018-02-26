@@ -261,12 +261,20 @@ class WordExtractor:
             'configuration': configuration,
             'data': data
             }
-        with open(fname, 'wb') as f:
-            pickle.dump(params, f)
+        if sys.version.split('.')[0] == '2':
+            with open(fname, 'wb') as f:
+                pickle.dump(params, f)
+        else:
+            with open(fname, 'wb', encoding= "utf-8") as f:
+                pickle.dump(params, f)
 
     def load(self, fname):
-        with open(fname, 'rb') as f:
-            params = pickle.load(f)
+        if sys.version.split('.')[0] == '2':
+            with open(fname, 'rb') as f:
+                params = pickle.load(f)
+        else:
+            with open(fname, 'rb', encoding="utf-8") as f:
+                params = pickle.load(f)
 
         configuration = params['configuration']
         self.left_max_length = configuration['left_max_length']
