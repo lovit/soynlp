@@ -46,10 +46,19 @@ class DoublespaceLineCorpus:
 
     def _check_length(self, num_doc, num_sent):
         num_sent_ = 0
-        if sys.version.split('.')[0] == '2':
-            with open(self.corpus_fname) as f:
+        try:
+            try:
+                # python version check
+                if sys.version.split('.')[0] == '2':
+                    f = open(self.corpus_fname)
+                else:
+                    f = open(self.corpus_fname, encoding= "utf-8")
+
+                # skip headers
                 for _ in range(self.skip_header):
                     next(f)
+                
+                # check length
                 for doc_idx, doc in enumerate(f):
                     if (num_doc > 0) and (doc_idx >= num_doc):
                         return doc_idx, num_sent_
@@ -57,67 +66,56 @@ class DoublespaceLineCorpus:
                     sents = [sent for sent in sents if sent.strip()]
                     num_sent_ += len(sents)
                     if (num_sent > 0) and (num_sent_ > num_sent):
-                        return doc_idx, min(num_sent, num_sent_)
-        else:
-            with open(self.corpus_fname, encoding= "utf-8") as f:
-                for _ in range(self.skip_header):
-                    next(f)
-                for doc_idx, doc in enumerate(f):
-                    if (num_doc > 0) and (doc_idx >= num_doc):
-                        return doc_idx, num_sent_
-                    sents = doc.split('  ')
-                    sents = [sent for sent in sents if sent.strip()]
-                    num_sent_ += len(sents)
-                    if (num_sent > 0) and (num_sent_ > num_sent):
-                        return doc_idx, min(num_sent, num_sent_)
-        return doc_idx+1, num_sent_
-            
+                        return doc_idx+1, min(num_sent, num_sent_)
+
+            finally:
+                f.close()
+            return doc_idx+1, num_sent_
+
+        except Exception as e:
+            print(e)
+            return -1, -1
+    
     def __iter__(self):
-        if sys.version.split('.')[0] == '2':
-            with open(self.corpus_fname) as f:
+        try:
+            try:
+                if sys.version.split('.')[0] == '2':
+                    f = open(self.corpus_fname)
+                else:
+                    f = open(self.corpus_fname, encoding='utf-8')
+                
+                # skip headers
                 for _ in range(self.skip_header):
                     next(f)
-                num_sent = 0
-                stop = False
-                for doc_idx, doc in enumerate(f):
-                    if stop:
-                        break
-                    if not self.iter_sent:
-                        yield doc
-                        if (self.num_doc > 0) and ((doc_idx + 1) >= self.num_doc):
-                            stop = True
-                        continue
-                    for sent in doc.split('  '):
-                        if (self.num_sent > 0) and (num_sent >= self.num_sent):
-                            stop = True
-                            break
-                        sent = sent.strip()
-                        if not sent: continue
-                        yield sent
-                        num_sent += 1
-        else:
-            with open(self.corpus_fname, encoding= "utf-8") as f:
-                for _ in range(self.skip_header):
-                    next(f)
-                num_sent = 0
-                stop = False
-                for doc_idx, doc in enumerate(f):
-                    if stop:
-                        break
-                    if not self.iter_sent:
-                        yield doc
-                        if (self.num_doc > 0) and ((doc_idx + 1) >= self.num_doc):
-                            stop = True
-                        continue
-                    for sent in doc.split('  '):
-                        if (self.num_sent > 0) and (num_sent >= self.num_sent):
-                            stop = True
-                            break
-                        sent = sent.strip()
-                        if not sent: continue
-                        yield sent
-                        num_sent += 1
                     
+                # iteration
+                num_sent, stop = 0, False
+                for doc_idx, doc in enumerate(f):
+                    if stop:
+                        break
+
+                    # yield doc
+                    if not self.iter_sent:
+                        yield doc
+                        if (self.num_doc > 0) and ((doc_idx + 1) >= self.num_doc):
+                            stop = True
+                        continue
+
+                    # yield sents
+                    for sent in doc.split('  '):
+                        if (self.num_sent > 0) and (num_sent >= self.num_sent):
+                            stop = True
+                            break
+                        sent = sent.strip()
+                        if sent:
+                            yield sent
+                            num_sent += 1
+            finally:
+                f.close()
+
+        except Exception as e:
+            print(e)
+
     def __len__(self):
         if self.num_doc == 0:
             self.num_doc, self.num_sent = self._check_length(-1, -1)
