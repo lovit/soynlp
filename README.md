@@ -6,10 +6,13 @@
 
     pip install soynlp==0.0.41
 
+## Python version
+
+- Python 3.5+ 를 지원합니다. 3.x 에서 주로 작업을 하기 때문에 3.x 로 이용하시길 권장합니다.
+- Python 2.x 는 모든 기능에 대해서 테스트가 끝나지 않았습니다. 
+
 ## Requires
 
-- Python >= 3.4 (have not been tested in Python 2)
-- Python 2 is developing
 - numpy >= 1.12.1
 - psutil >= 5.0.1
 
