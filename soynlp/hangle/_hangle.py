@@ -1,3 +1,8 @@
+# -*- encoding:utf8 -*-
+
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 import warnings
 import re
 import numpy as np
@@ -95,7 +100,7 @@ def character_is_moum(c):
     return (moum_begin <= to_base(c) <= moum_end)
 
 def to_base(c):
-    if type(c) == str:
+    if type(c) == str or type(c) == unicode:
         return ord(c)
     else:
         raise TypeError

@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 __title__ = 'soynlp'
 __version__ = '0.0.41'
 __author__ = 'Lovit'

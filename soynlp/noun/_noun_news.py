@@ -1,5 +1,8 @@
+# -*- encoding:utf8 -*-
+
 from collections import namedtuple
 NewsNounScore = namedtuple('NewsNounScore', 'score frequency feature_proportion eojeol_proportion n_positive_feature unique_positive_feature_proportion')
+import sys
 
 class NewsNounExtractor:
     
@@ -30,21 +33,37 @@ class NewsNounExtractor:
         self._vdictionary.update(self._load_dictionary('%s/pos/dictionary/sejong/Adjective.txt' % directory))
 
     def _load_predictor(self, fname):
-        try:
-            with open(fname, encoding='utf-8') as f:
-                for num_line, line in enumerate(f):
-                    r, score = line.split('\t')
-                    score = float(score)
-                    self.r_scores[r] = max(self.r_scores.get(r, 0), score)
-        except FileNotFoundError:
-            print('predictor file was not found')
-        except Exception as e:
-            print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
+        if sys.version.split('.')[0] == '2':
+            try:
+                with open(fname) as f:
+                    for num_line, line in enumerate(f):
+                        r, score = line.split('\t')
+                        score = float(score)
+                        self.coefficient[r] = max(self.coefficient.get(r, 0), score)
+            # except FileNotFoundError:
+                # print('predictor file was not found')
+            except Exception as e:
+                print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
+        else:
+            try:
+                with open(fname, encoding='utf-8') as f:
+                    for num_line, line in enumerate(f):
+                        r, score = line.split('\t')
+                        score = float(score)
+                        self.coefficient[r] = max(self.coefficient.get(r, 0), score)
+            except FileNotFoundError:
+                print('predictor file was not found')
+            except Exception as e:
+                print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
     
     def _load_dictionary(self, fname):
         try:
-            with open(fname, encoding='utf-8') as f:
-                words = {word.strip().split('\t')[0] for word in f}
+            if sys.version.split('.')[0] == '2':
+                with open(fname) as f:
+                    words = {word.strip().split('\t')[0] for word in f}
+            else:
+                with open(fname, encoding='utf-8') as f:
+                    words = {word.strip().split('\t')[0] for word in f}
             return words
         except Exception as e:
             print(e)
@@ -59,7 +78,7 @@ class NewsNounExtractor:
     
     def train(self, sents):
         if self.verbose:
-            print('scan vocabulary ... ', end='')
+            print('scan vocabulary ... ')
 
         self.lrgraph, self.rlgraph, self.eojeols = self._build_graph(sents)
         self.lcount = {k:sum(d.values()) for k,d in self.lrgraph.items()}
@@ -108,10 +127,10 @@ class NewsNounExtractor:
             noun_scores[l] = self.predict(l)
             if self.verbose and (i+1) % 1000 == 0:
                 message = '\rpredicting noun score ... {} / {}'
-                print(message.format(i+1, len(noun_candidates)), end='', flush=True)
+                print(message.format(i+1, len(noun_candidates)))
 
         if self.verbose:
-            print('\rpredicting noun score ... done', flush=True)
+            print('\rpredicting noun score ... done')
         
         noun_scores = self._postprocessing(noun_scores, minimum_noun_score, minimum_feature_proportion)
         
@@ -146,7 +165,7 @@ class NewsNounExtractor:
             if self.verbose and (i+1) % 1000 == 0:
                 args = (len(self.noun_dictionary), i+1, len(candidates))
                 message = '\rextracting {} nouns using verb/adjective dictionary ... {} / {}'
-                print(message.format(*args), end='', flush=True)
+                print(message.format(*args))
 
             nv = eojeol_to_NV(l)
             if not nv:
@@ -156,7 +175,7 @@ class NewsNounExtractor:
 
         if self.verbose:
             message = '\rextracted {} nouns using verb/adjective dictionary'
-            print(message.format(len(self.noun_dictionary)), flush=True)
+            print(message.format(len(self.noun_dictionary)))
     
     def _post_eojeol_analysis(self, min_count=3,
         minimum_eojeol_proportion=0.99, minimum_noun_score=0.4):
@@ -169,7 +188,7 @@ class NewsNounExtractor:
             if self.verbose and (i+1) % 1000 == 0:
                 args = (len(self.noun_dictionary) - begin, i+1, len(candidates))
                 message = '\rextracting {} compounds from eojeols ... {} / {}'
-                print(message.format(*args), end='', flush=True)
+                print(message.format(*args))
                 
             if l in self._noun_scores_postprocessed:        
                 continue
@@ -184,7 +203,7 @@ class NewsNounExtractor:
 
         if self.verbose:
             message = '\rextracted {} compounds from eojeols'
-            print(message.format(len(self.noun_dictionary) - begin), flush=True)
+            print(message.format(len(self.noun_dictionary) - begin))
 
     def predict(self, l):
         (norm, score, _total, n_positive_feature, n_feature) = (0, 0, 0, 0, 0)
@@ -219,7 +238,7 @@ class NewsNounExtractor:
 
         if self.verbose:
             message = 'finding NJsubJ (대학생(으)+로), NsubJ (떡볶+(이)), NVsubE (사기(당)+했다) ... '
-            print(message, end='')
+            print(message)
 
         njsunjs = {l for l in self._noun_scores_ if self._is_NJsubJ(l)}
         nsubs = {l0 for l in self._noun_scores_ for l0 in self._find_NsubJ(l) if not (l in njsunjs)}
@@ -234,7 +253,7 @@ class NewsNounExtractor:
         for i, (noun, score) in enumerate(self._noun_scores_.items()):
             if self.verbose and (i+1) % 1000 == 0:
                 message = '\rchecking hardrules ... {} / {}'
-                print(message.format(i+1, len(self._noun_scores_)), flush=True, end='')
+                print(message.format(i+1, len(self._noun_scores_)))
 
             if(noun in njsunjs) or (noun in nsubs) or (noun in nvsubes):
                 continue

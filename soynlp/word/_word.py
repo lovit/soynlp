@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 from collections import defaultdict
 from collections import namedtuple
 import math
@@ -14,7 +16,7 @@ def _entropy(dic):
     sum_ = sum(dic.values())
     entropy = 0
     for freq in dic.values():
-        prob = freq / sum_
+        prob = float(freq) / sum_
         entropy += prob * math.log(prob)
     return -1 * entropy
 
@@ -62,9 +64,9 @@ class WordExtractor:
         self.R = defaultdict(lambda: 0)
         self._aL = defaultdict(lambda: 0)
         self._aR = defaultdict(lambda: 0)
-        
+
         for num_sent, sent in enumerate(sents):
-            words = sent.strip().split()
+            words = map(unicode, sent.strip().split())
             for word in words:
                 if (not word) or (len(word) <= 1):
                     continue
@@ -97,6 +99,8 @@ class WordExtractor:
             print('\rtraining was done. used memory %.3f Gb' % (get_process_memory()))
         self.L = dict(self.L)
         self.R = dict(self.R)
+        # print self.L
+        # print self.R
         self._aL = dict(self._aL)
         self._aR = dict(self._aR)
 
@@ -152,12 +156,12 @@ class WordExtractor:
         return cps
 
     def cohesion_score(self, word):
-        word_len = len(word)        
+        word_len = len(word)
         if (not word) or (word_len <= 1):
             return (0, 0)
-        l_freq, r_freq = self.frequency(word)
+        l_freq, r_freq = map(float, self.frequency(word))
         l_cohesion = 0 if l_freq == 0 else np.power( (l_freq / self.L[word[0]]), (1 / (word_len - 1)) )
-        r_cohesion = 0 if r_freq == 0 else np.power( (r_freq / self.R[word[-1]]), (1 / (word_len - 1)) )        
+        r_cohesion = 0 if r_freq == 0 else np.power( (r_freq / self.R[word[-1]]), (1 / (word_len - 1)) )
         return (l_cohesion, r_cohesion)
     
     def frequency(self, word):
@@ -257,12 +261,20 @@ class WordExtractor:
             'configuration': configuration,
             'data': data
             }
-        with open(fname, 'wb') as f:
-            pickle.dump(params, f)
+        if sys.version.split('.')[0] == '2':
+            with open(fname, 'wb') as f:
+                pickle.dump(params, f)
+        else:
+            with open(fname, 'wb', encoding= "utf-8") as f:
+                pickle.dump(params, f)
 
     def load(self, fname):
-        with open(fname, 'rb') as f:
-            params = pickle.load(f)
+        if sys.version.split('.')[0] == '2':
+            with open(fname, 'rb') as f:
+                params = pickle.load(f)
+        else:
+            with open(fname, 'rb', encoding="utf-8") as f:
+                params = pickle.load(f)
 
         configuration = params['configuration']
         self.left_max_length = configuration['left_max_length']

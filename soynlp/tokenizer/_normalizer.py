@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 import re
 from soynlp.hangle import decompose, compose
 

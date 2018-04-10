@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 class BaseVectorizer:
     def __init__(self, vocabulary=None,
                  preprocessor=lambda x:x.strip(),

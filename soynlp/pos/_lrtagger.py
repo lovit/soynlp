@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 from collections import OrderedDict
 from collections import namedtuple
 from math import log

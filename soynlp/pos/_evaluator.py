@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 class BaseEvaluator:
     def evaluate(self, candidate):
         # Develop your evaluation functions

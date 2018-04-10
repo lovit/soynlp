@@ -1,3 +1,4 @@
+# -*- encoding:utf8 -*-
 import sys
 sys.path.append('../../../')
 from soynlp.pos._lemmatizer import Lemmatizer

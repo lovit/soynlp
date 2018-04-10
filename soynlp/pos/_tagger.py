@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 from ._template import LR
 
 class BaseTagger:

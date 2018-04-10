@@ -1,3 +1,7 @@
+# -*- encoding:utf8 -*-
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 from pprint import pprint
 import re
 import numpy as np
@@ -7,11 +11,11 @@ class RegexTokenizer:
     
     def __init__(self):
         self.patterns = [
-            ('number', re.compile('[-+]?\d*[\.]?[\d]+|[-+]?\d+')),
-            ('korean', re.compile('[가-힣]+')),
-            ('jaum', re.compile('[ㄱ-ㅎ]+')), 
-            ('moum', re.compile('[ㅏ-ㅣ]+')), 
-            ('english & latin', re.compile("[a-zA-ZÀ-ÿ]+[[`']?s]*|[a-zA-ZÀ-ÿ]+"))
+            ('number', re.compile(ur'[-+]?\d*[\.]?[\d]+|[-+]?\d+', re.UNICODE)),
+            ('korean', re.compile(ur'[가-힣]+', re.UNICODE)),
+            ('jaum', re.compile(ur'[ㄱ-ㅎ]+', re.UNICODE)),
+            ('moum', re.compile(ur'[ㅏ-ㅣ]+', re.UNICODE)),
+            ('english & latin', re.compile(ur"[a-zA-ZÀ-ÿ]+[[`']?s]*|[a-zA-ZÀ-ÿ]+", re.UNICODE))
         ]
         
         self.doublewhite_pattern = re.compile('\s+')
@@ -30,6 +34,7 @@ class RegexTokenizer:
          ['Bob`s'],
          ['job', '.1']]
         '''
+        s = unicode(s)
         tokens = [self._tokenize(t, debug) for t in s.split()]
         if flatten:
             tokens = [subtoken for token in tokens for subtoken in token if subtoken]
@@ -41,7 +46,9 @@ class RegexTokenizer:
             founds = pattern.findall(s)
             if not founds: 
                 continue
-            
+
+            print name
+
             if debug:
                 print('\n%s' % name)
                 print(founds)
