@@ -1,8 +1,9 @@
 # -*- encoding:utf8 -*-
 
 import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
+if sys.version_info <= (2,7):
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 import warnings
 import re
 import numpy as np
@@ -100,10 +101,16 @@ def character_is_moum(c):
     return (moum_begin <= to_base(c) <= moum_end)
 
 def to_base(c):
-    if type(c) == str or type(c) == unicode:
-        return ord(c)
+    if sys.version_info.major == 2:
+        if type(c) == str or type(c) == unicode:
+            return ord(c)
+        else:
+            raise TypeError
     else:
-        raise TypeError
+        if type(c) == str or type(c) == int:
+            return ord(c)
+        else:
+            raise TypeError
 
 def character_is_number(i):
     i = to_base(i)

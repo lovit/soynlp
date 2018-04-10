@@ -66,7 +66,11 @@ class WordExtractor:
         self._aR = defaultdict(lambda: 0)
 
         for num_sent, sent in enumerate(sents):
-            words = map(unicode, sent.strip().split())
+            if sys.version_info.major == 2:
+                words = map(unicode, sent.strip().split())
+            else:
+                words = sent.split()
+
             for word in words:
                 if (not word) or (len(word) <= 1):
                     continue
@@ -99,8 +103,6 @@ class WordExtractor:
             print('\rtraining was done. used memory %.3f Gb' % (get_process_memory()))
         self.L = dict(self.L)
         self.R = dict(self.R)
-        # print self.L
-        # print self.R
         self._aL = dict(self._aL)
         self._aR = dict(self._aR)
 

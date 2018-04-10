@@ -1,5 +1,5 @@
 # -*- encoding:utf8 -*-
-
+import sys
 from collections import namedtuple
 
 # b:begin, m: middle, e: end
@@ -76,7 +76,8 @@ class LRTemplateMatcher(BaseTemplateMatcher):
         self.templates = templates
             
     def generate(self, token):
-        token = unicode(token)
+        if sys.version_info.major == 2:
+            token = unicode(token)
         candidates = self._initialize_L(token)
         candidates = self._expand_R(token, candidates)
         return candidates
