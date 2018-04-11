@@ -2,7 +2,7 @@
 .DS_Store
 
 # Python
-.pyc
+*.pyc
 __pycache__/
 dist/
 build/
