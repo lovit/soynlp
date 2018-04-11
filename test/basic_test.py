@@ -1,3 +1,5 @@
+# -*- encoding:utf8 -*-
+
 import argparse
 import sys
 sys.path.append('../')
