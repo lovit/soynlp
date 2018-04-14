@@ -34,28 +34,22 @@ class LRNounExtractor:
             print('%d r features was loaded' % len(self.coefficient))
         
     def _load_predictor(self, fname):
-        if sys.version.split('.')[0] == '2':
+        try:
+            if sys.version_info.major == 2:
+                f = open(fname)
+            else:
+                f = open(fname, encoding='utf-8')
             try:
-                with open(fname) as f:
-                    for num_line, line in enumerate(f):
-                        r, score = line.split('\t')
-                        score = float(score)
-                        self.coefficient[r] = max(self.coefficient.get(r, 0), score)
-            # except FileNotFoundError:
-                # print('predictor file was not found')
+                for num_line, line in enumerate(f):
+                    r, score = line.split('\t')
+                    score = float(score)
+                    self.coefficient[r] = max(self.coefficient.get(r, 0), score)
             except Exception as e:
-                print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
-        else:
-            try:
-                with open(fname, encoding='utf-8') as f:
-                    for num_line, line in enumerate(f):
-                        r, score = line.split('\t')
-                        score = float(score)
-                        self.coefficient[r] = max(self.coefficient.get(r, 0), score)
-            except FileNotFoundError:
-                print('predictor file was not found')
-            except Exception as e:
-                print(' ... %s parsing error line (%d) = %s' % (e, num_line, line))
+                print('predictor parsing error line {} = {}'.format(num_line+1, line))
+            finally:
+                f.close()
+        except Exception as e:
+            print(e)
     
     def train_extract(self, sents, minimum_noun_score=0.5, min_count=5,
             noun_candidates=None):
