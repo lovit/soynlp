@@ -180,7 +180,7 @@ def pos_tagger_test():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--corpus_path', type=str, default='corpus', help='DoublespaceLineCorpus text file')
+    parser.add_argument('--corpus_path', type=str, default='', help='DoublespaceLineCorpus text file')
     parser.add_argument('--pass_hangle', dest='pass_hangle', action='store_true')
     parser.add_argument('--pass_tokenizer', dest='pass_tokenizer', action='store_true')
     parser.add_argument('--pass_word', dest='pass_word', action='store_true')
@@ -190,6 +190,10 @@ def main():
     args = parser.parse_args()
     corpus_path = args.corpus_path
     
+    if not corpus_path:
+        print('You should insert corpus path\nTerminate test code\nSee argument option')
+        return
+
     if not args.pass_hangle:
         hangle_test()
     
