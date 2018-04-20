@@ -20,7 +20,10 @@ class RegexTokenizer:
         ]
         
         self.doublewhite_pattern = re.compile('\s+')
-    
+
+    def __call__(self, s, debug=True, flatten=True):
+        return self.tokenize(s, debug, flatten)
+
     def tokenize(self, s, debug=False, flatten=True):
         '''
         Usage
@@ -86,7 +89,10 @@ class LTokenizer:
     def __init__(self, scores=None, default_score=0.0):
         self.scores = scores if scores else {}
         self.ds = default_score
-        
+
+    def __call__(self, sentence, tolerance=0.0, flatten=True, remove_r=False):
+        return self.tokenize(sentence, tolerance, flatten, remove_r)
+
     def tokenize(self, sentence, tolerance=0.0, flatten=True, remove_r=False):
         
         def token_to_lr(token, tolerance=0.0):
@@ -119,7 +125,10 @@ class MaxScoreTokenizer:
         self.scores = scores if scores else {}
         self.max_length = max_length        
         self.ds = default_score
-        
+
+    def __call__(self, sentence, flatten=True):
+        return self.tokenize(sentence, flatten)
+
     def tokenize(self, sentence, flatten=True):
         tokens = [self._recursive_tokenize(token) for token in sentence.split()]
         if flatten:
@@ -264,6 +273,9 @@ class MaxLRScoreTokenizer:
         self.lscore_max_diffratio = lscore_max_diffratio
         self.ensurable_score_l = ensurable_score_l
         self.ensurable_score_lr_diff = ensurable_score_lr_diff
+
+    def __call__(self, sent, debug=True, flatten=True):
+        return self.tokenize(sent, debug, flatten)
 
     def tokenize(self, sent, debug=False, flatten=True):
         sent_ = [self._tokenize(t, debug) for t in sent.split() if t]
