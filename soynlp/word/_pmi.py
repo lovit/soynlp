@@ -38,11 +38,13 @@ def pmi(x, min_pmi=0, alpha=0.0001, verbose=False):
     for _n_idx, idx in enumerate(indices):
         # print current status        
         if verbose and _n_idx % 10000 == 0:
-            print('\rcomputing pmi {:.3} %  '.format(100 * _n_idx / indices.shape[0]), flush=True, end='')
+            print('\rcomputing pmi {:.3} %  mem={} Gb    '.format(
+                100 * _n_idx / indices.shape[0], '%.3f' % get_process_memory())
+                  , flush=True, end='')
         # apply logarithm
         pmi_dok[rows[idx], cols[idx]] = np.log(data[idx])
     if verbose:
-        print('\rcomputing pmi was done   ', flush=True)
+        print('\rcomputing pmi was done{}'.format(' '*30), flush=True)
 
     return pmi_dok
 
