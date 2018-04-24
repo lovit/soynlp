@@ -133,7 +133,7 @@ class LRNounExtractor:
             if len(word) <= 1:
                 continue
             features = self._get_r_features(word)
-            score = self.predict(features) if features else self._get_subword_score(nouns, word, minimum_noun_score)
+            score = self.predict(features, word) if features else self._get_subword_score(nouns, word, minimum_noun_score)
             if score[0] < minimum_noun_score:
                 continue
             nouns[word] = score
@@ -169,7 +169,15 @@ class LRNounExtractor:
         features = self._get_r_features(word)
         return self.predict(features)[0] >= minimum_noun_score
 
-    def predict(self, features):
+    def predict(self, features, word):
+        
+        def exist_longer_r_feature(features, word):
+            for e in range(len(word)-1, -1, -1):
+                suffix = word[e:] + features
+                if suffix in self.coefficient: 
+                    return True
+            return False
+        
         """Parameters
         ----------
             features: dict
@@ -182,8 +190,9 @@ class LRNounExtractor:
         
         for r, freq in features.items():
             if r in self.coefficient:
-                score += freq * self.coefficient[r]
-                norm += freq
+                if not exist_longer_r_feature(r, word):  
+                    score += freq * self.coefficient[r]
+                    norm += freq
             else:
                 unknown += freq
         
