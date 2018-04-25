@@ -196,6 +196,52 @@ WordExtractor 는 통계를 이용하여 단어의 경계 점수를 학습하는
 
 더 자세한 사용법은 [사용법 튜토리얼][tagger_usage] 에 기술되어 있으며, [개발과정 노트][tagger_lecture]는 여기에 기술되어 있습니다. 
 
+## Vetorizer
+
+토크나이저를 학습하거나, 혹은 학습된 토크나이저를 이용하여 문서를 sparse matrix 로 만듭니다. minimum / maximum of term frequency / document frequency 를 조절할 수 있습니다. Verbose mode 에서는 현재의 벡터라이징 상황을 print 합니다. 
+
+    vectorizer = BaseVectorizer(
+        tokenizer=tokenizer,
+        min_tf=0,
+        max_tf=10000,
+        min_df=0,
+        max_df=1.0,
+        stopwords=None,
+        lowercase=True,
+        verbose=True
+    )
+
+    corpus.iter_sent = False
+    x = vectorizer.fit_transform(corpus)
+
+문서의 크기가 크거나, 곧바로 sparse matrix 를 이용할 것이 아니라면 이를 메모리에 올리지 않고 그대로 파일로 저장할 수 있습니다. fit_to_file() 혹은 to_file() 함수는 하나의 문서에 대한 term frequency vector 를 얻는대로 파일에 기록합니다. BaseVectorizer 에서 이용할 수 있는 parameters 는 동일합니다.
+
+    vectorizer = BaseVectorizer(min_tf=1, tokenizer=tokenizer)
+    corpus.iter_sent = False
+
+    matrix_path = 'YOURS'
+    vectorizer.fit_to_file(corpus, matrix_path)
+
+하나의 문서를 sparse matrix 가 아닌 list of int 로 출력이 가능합니다. 이 때 vectorizer.vocabulary_ 에 학습되지 않은 단어는 encoding 이 되지 않습니다.
+
+    vectorizer.encode_a_doc_to_bow('오늘 뉴스는 이것이 전부다')
+    # {3: 1, 258: 1, 428: 1, 1814: 1}
+
+list of int 는 list of str 로 decoding 이 가능합니다.
+
+    vectorizer.decode_from_bow({3: 1, 258: 1, 428: 1, 1814: 1})
+    # {'뉴스': 1, '는': 1, '오늘': 1, '이것이': 1}
+
+dict 형식의 bag of words 로도 encoding 이 가능합니다. 
+
+    vectorizer.encode_a_doc_to_list('오늘의 뉴스는 매우 심각합니다')
+    # [258, 4, 428, 3, 333]
+
+dict 형식의 bag of words 는 decoding 이 가능합니다.
+
+    vectorizer.decode_from_list([258, 4, 428, 3, 333])
+    ['오늘', '의', '뉴스', '는', '매우']
+
 ## Normalizer
 
 대화 데이터, 댓글 데이터에 등장하는 반복되는 이모티콘의 정리 및 한글, 혹은 텍스트만 남기기 위한 함수를 제공합니다. 
