@@ -157,13 +157,12 @@ class LRNounExtractor:
             if (subword in nouns) and (suffix in nouns):
                 score1 = nouns[subword]
                 score2 = nouns[suffix]
-                score = score1 if score1[0] > score2[0] else score2
-                subword_scores[subword] = score
+                subword_scores[subword] = max(score1, score2)
             elif (subword in nouns) and (self.coefficient.get(suffix,0.0) > minimum_noun_score):
                 subword_scores[subword] = (self.coefficient.get(suffix,0.0), 0)
         if not subword_scores:
             return (-1.0, 0)
-        return sorted(subword_scores.items(), key=lambda x:x[1][0], reverse=True)[0][1]
+        return sorted(subword_scores.items(), key=lambda x:-x[1][0])[0][1]
 
     def is_noun(self, word, minimum_noun_score=0.5):
         features = self._get_r_features(word)
@@ -201,10 +200,10 @@ class LRNounExtractor:
     
     def _postprocess(self, nouns, minimum_noun_score, min_count):
         removals = set()
-        for word in sorted(nouns.keys(), key=lambda x:len(x)):
+        for word in nouns:
             if len(word) <= 2 :
                 continue
-            if word[-1] == '.':
+            if word[-1] == '.' or word[-1] == ',':
                 removals.add(word)
                 continue
             for e in range(2, len(word)):
