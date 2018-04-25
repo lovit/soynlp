@@ -9,7 +9,7 @@ NounScore = namedtuple('NounScore', 'frequency score known_r_ratio')
 class LRNounExtractor:
 
     def __init__(self, l_max_length=10, r_max_length=7,
-            predictor_fnames=None, verbose=True):
+            predictor_fnames=None, verbose=True, min_num_of_features=1):
         
         self.coefficient = {}
         self.verbose = verbose
@@ -18,6 +18,7 @@ class LRNounExtractor:
         self.lrgraph = None
         self.words = None
         self._wordset_l_counter = {}
+        self.min_num_of_features = min_num_of_features
         
         if not predictor_fnames:
             import os
@@ -129,11 +130,17 @@ class LRNounExtractor:
             noun_candidates = self.words
 
         nouns = {}
-        for word in noun_candidates:
+        for word in sorted(noun_candidates, key=lambda w:len(w)):
             if len(word) <= 1:
                 continue
             features = self._get_r_features(word)
-            score = self.predict(features) if features else self._get_subword_score(nouns, word, minimum_noun_score)
+
+            # (감사합니다 + 만) 처럼 뒤에 등장하는 R 의 종류가 한가지 뿐이면 제대로 된 판단이 되지 않음
+            if len(features) > self.min_num_of_features:
+                score = self.predict(features, word)
+            else:
+                score = self._get_subword_score(nouns, word, minimum_noun_score)
+
             if score[0] < minimum_noun_score:
                 continue
             nouns[word] = score
@@ -157,19 +164,26 @@ class LRNounExtractor:
             if (subword in nouns) and (suffix in nouns):
                 score1 = nouns[subword]
                 score2 = nouns[suffix]
-                score = score1 if score1[0] > score2[0] else score2
-                subword_scores[subword] = score
+                subword_scores[subword] = max(score1, score2)
             elif (subword in nouns) and (self.coefficient.get(suffix,0.0) > minimum_noun_score):
                 subword_scores[subword] = (self.coefficient.get(suffix,0.0), 0)
         if not subword_scores:
             return (-1.0, 0)
-        return sorted(subword_scores.items(), key=lambda x:x[1][0], reverse=True)[0][1]
+        return sorted(subword_scores.items(), key=lambda x:-x[1][0])[0][1]
 
     def is_noun(self, word, minimum_noun_score=0.5):
         features = self._get_r_features(word)
         return self.predict(features)[0] >= minimum_noun_score
 
-    def predict(self, features):
+    def predict(self, features, word):
+        
+        def exist_longer_r_feature(features, word):
+            for e in range(len(word)-1, -1, -1):
+                suffix = word[e:] + features
+                if suffix in self.coefficient: 
+                    return True
+            return False
+        
         """Parameters
         ----------
             features: dict
@@ -182,8 +196,9 @@ class LRNounExtractor:
         
         for r, freq in features.items():
             if r in self.coefficient:
-                score += freq * self.coefficient[r]
-                norm += freq
+                if not exist_longer_r_feature(r, word):  
+                    score += freq * self.coefficient[r]
+                    norm += freq
             else:
                 unknown += freq
         
@@ -192,10 +207,10 @@ class LRNounExtractor:
     
     def _postprocess(self, nouns, minimum_noun_score, min_count):
         removals = set()
-        for word in sorted(nouns.keys(), key=lambda x:len(x)):
-            if len(word) <= 2 :
+        for word in nouns:
+            if len(word) <= 2:
                 continue
-            if word[-1] == '.':
+            if word[-1] == '.' or word[-1] == ',':
                 removals.add(word)
                 continue
             for e in range(2, len(word)):
