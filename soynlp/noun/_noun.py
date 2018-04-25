@@ -9,7 +9,7 @@ NounScore = namedtuple('NounScore', 'frequency score known_r_ratio')
 class LRNounExtractor:
 
     def __init__(self, l_max_length=10, r_max_length=7,
-            predictor_fnames=None, verbose=True):
+            predictor_fnames=None, verbose=True, min_num_of_features=1):
         
         self.coefficient = {}
         self.verbose = verbose
@@ -18,6 +18,7 @@ class LRNounExtractor:
         self.lrgraph = None
         self.words = None
         self._wordset_l_counter = {}
+        self.min_num_of_features = min_num_of_features
         
         if not predictor_fnames:
             import os
@@ -129,11 +130,17 @@ class LRNounExtractor:
             noun_candidates = self.words
 
         nouns = {}
-        for word in noun_candidates:
+        for word in sorted(noun_candidates, key=lambda w:len(w)):
             if len(word) <= 1:
                 continue
             features = self._get_r_features(word)
-            score = self.predict(features, word) if features else self._get_subword_score(nouns, word, minimum_noun_score)
+
+            # (감사합니다 + 만) 처럼 뒤에 등장하는 R 의 종류가 한가지 뿐이면 제대로 된 판단이 되지 않음
+            if len(features) > self.min_num_of_features:
+                score = self.predict(features, word)
+            else:
+                score = self._get_subword_score(nouns, word, minimum_noun_score)
+
             if score[0] < minimum_noun_score:
                 continue
             nouns[word] = score
@@ -201,7 +208,7 @@ class LRNounExtractor:
     def _postprocess(self, nouns, minimum_noun_score, min_count):
         removals = set()
         for word in nouns:
-            if len(word) <= 2 :
+            if len(word) <= 2:
                 continue
             if word[-1] == '.' or word[-1] == ',':
                 removals.add(word)
