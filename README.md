@@ -289,7 +289,14 @@ dict 형식의 bag of words 는 decoding 이 가능합니다.
 
 ## notes
 
-- [slide files][unkornlp_pdf]에 알고리즘들의 원리 및 설명을 적어뒀습니다. 데이터야놀자에서 발표했던 자료입니다. 
+### Slides
+
+- [slide files][unkornlp_pdf]에 알고리즘들의 원리 및 설명을 적어뒀습니다. 데이터야놀자에서 발표했던 자료입니다.
+- [textmining tutorial][textmining-tutorial] 을 만들고 있습니다. soynlp project 에서 구현 중인 알고리즘들의 설명 및 텍스트 마이닝에 이용되는 머신 러닝 방법들을 설명하는 slids 입니다. 
+
+### Texts
+
+- [github io blog][lovitio] 에서 [slides][textmining-tutorial] 에 있는 내용들의 텍스트 설명 글들을 올리고 있습니다. Slides 의 내용에 대해 더 자세하게 보고 싶으실 때 읽으시길 권합니다. 
 
 
 [wordextraction_lecture]: tutorials/wordextractor_lecture.ipynb
@@ -297,3 +304,5 @@ dict 형식의 bag of words 는 decoding 이 가능합니다.
 [tagger_usage]: tutorials/tagger_usage.ipynb
 [tagger_lecture]: tutorials/tagger_lecture.ipynb
 [unkornlp_pdf]: notes/unskonlp.pdf
+[textmining-tutorial]: https://github.com/lovit/textmining-tutorial
+[lovitio]: https://lovit.github.io/
