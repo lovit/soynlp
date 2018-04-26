@@ -292,7 +292,7 @@ dict 형식의 bag of words 는 decoding 이 가능합니다.
 ### Slides
 
 - [slide files][unkornlp_pdf]에 알고리즘들의 원리 및 설명을 적어뒀습니다. 데이터야놀자에서 발표했던 자료입니다.
-- [textmining tutorial][textmining-tutorial] 을 만들고 있습니다. soynlp project 에서 구현 중인 알고리즘들의 설명 및 텍스트 마이닝에 이용되는 머신 러닝 방법들을 설명하는 slids 입니다. 
+- [textmining tutorial][textmining-tutorial] 을 만들고 있습니다. soynlp project 에서 구현 중인 알고리즘들의 설명 및 텍스트 마이닝에 이용되는 머신 러닝 방법들을 설명하는 slides 입니다. 
 
 ### Texts
 
