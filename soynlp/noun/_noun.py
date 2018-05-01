@@ -32,7 +32,7 @@ class LRNounExtractor:
                 print('used %s' % fname.split('/')[-1])
             self._load_predictor(fname)
         if verbose:
-            print('%d r features was loaded' % len(self.coefficient))
+            print('All %d r features was loaded' % len(self.coefficient))
         
     def _load_predictor(self, fname):
         try:
@@ -42,9 +42,12 @@ class LRNounExtractor:
                 f = open(fname, encoding='utf-8')
             try:
                 for num_line, line in enumerate(f):
-                    r, score = line.split('\t')
+                    r, score = line.strip().split('\t')
                     score = float(score)
-                    self.coefficient[r] = max(self.coefficient.get(r, 0), score)
+                    if r in self.coefficient:
+                        self.coefficient[r] = max(self.coefficient[r], score)
+                    else:
+                        self.coefficient[r] = score
             except Exception as e:
                 print('predictor parsing error line {} = {}'.format(num_line+1, line))
             finally:

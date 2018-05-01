@@ -45,7 +45,10 @@ class NewsNounExtractor:
                 for num_line, line in enumerate(f):
                     r, score = line.strip().split('\t')
                     score = float(score)
-                    self.r_scores[r] = max(self.r_scores.get(r, 0), score)
+                    if r in self.r_scores:
+                        self.r_scores[r] = max(self.r_scores[r], score)
+                    else:
+                        self.r_scores[r] = score
             finally:
                 f.close()
         except Exception as e:
