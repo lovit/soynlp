@@ -109,11 +109,13 @@ class LRNounExtractor:
             for token in sent.split():
                 if not token:
                     continue
-                token_len = len(token)
-                for i in range(1, min(self.l_max_length, token_len)+1):
+                n = len(token)
+                for i in range(1, min(self.l_max_length, n)+1):
                     l = token[:i]
                     r = token[i:]
-                    if (not l in wordset_l) or (not r in wordset_r):
+                    if not (l in wordset_l):
+                        continue
+                    if (len(r) > 0) and not (r in wordset_r):
                         continue
                     lrgraph[l][r] += 1
 
@@ -133,13 +135,8 @@ class LRNounExtractor:
         for word in sorted(noun_candidates, key=lambda w:len(w)):
             if len(word) <= 1:
                 continue
-            features = self._get_r_features(word)
 
-            # (감사합니다 + 만) 처럼 뒤에 등장하는 R 의 종류가 한가지 뿐이면 제대로 된 판단이 되지 않음
-            if len(features) > self.min_num_of_features:
-                score = self.predict(features, word)
-            else:
-                score = self._get_subword_score(nouns, word, minimum_noun_score)
+            score = self.predict(word, nouns)
 
             if score[0] < minimum_noun_score:
                 continue
@@ -151,11 +148,11 @@ class LRNounExtractor:
     
     def _get_r_features(self, word):
         features = self.lrgraph.get(word, {})
-        if '' in features:
-            del features['']
+        # remove empty str r only in features
+        features = {k:v for k,v in features.items() if k}
         return features
     
-    def _get_subword_score(self, nouns, word, minimum_noun_score):
+    def _get_subword_score(self, word, minimum_noun_score, nouns):
         subword_scores = {}
         for e in range(1, len(word)):
             subword = word[:e]
@@ -168,14 +165,26 @@ class LRNounExtractor:
             elif (subword in nouns) and (self.coefficient.get(suffix,0.0) > minimum_noun_score):
                 subword_scores[subword] = (self.coefficient.get(suffix,0.0), 0)
         if not subword_scores:
-            return (-1.0, 0)
+            return (0.0, 0)
         return sorted(subword_scores.items(), key=lambda x:-x[1][0])[0][1]
 
     def is_noun(self, word, minimum_noun_score=0.5):
-        features = self._get_r_features(word)
-        return self.predict(features)[0] >= minimum_noun_score
+        return self.predict(word)[0] >= minimum_noun_score
 
-    def predict(self, features, word):
+    def predict(self, word, minimum_noun_score=0.5, nouns=None):
+        features = self._get_r_features(word)
+
+        # (감사합니다 + 만) 처럼 뒤에 등장하는 R 의 종류가 한가지 뿐이면 제대로 된 판단이 되지 않음
+        if len(features) > self.min_num_of_features:
+            score = self._predict(features, word)
+        else:
+            if nouns is None:
+                nouns = {}
+            score = self._get_subword_score(word, minimum_noun_score, nouns)
+
+        return score
+
+    def _predict(self, features, word):
         
         def exist_longer_r_feature(features, word):
             for e in range(len(word)-1, -1, -1):
