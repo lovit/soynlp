@@ -171,6 +171,22 @@ class EojeolCounter:
     def get_eojeol_count(self, eojeol):
         return self._counter.get(eojeol, 0)
 
+    def items(self):
+        return self._counter.items()
+
+    def to_lrgraph(self, max_l_len=10, max_r_len=9):
+        _lrgraph = defaultdict(lambda: defaultdict(int))
+        for eojeol, count in self._counter.items():
+            for e in range(1, min(max_l_len, len(eojeol)) + 1):
+                l, r = eojeol[:e], eojeol[e:]
+                if len(r) > max_r_len:
+                    continue
+                _lrgraph[l][r] += count
+        _lrgraph = {l:dict(rdict) for l, rdict in _lrgraph.items()}
+        lrgraph = LRGraph(lrgraph=_lrgraph,
+            max_l_len=max_l_len, max_r_len=max_r_len)
+        return lrgraph
+
     def save(self, path):
         dirname = os.path.dirname(path)
         if dirname and not os.path.exists(dirname):
