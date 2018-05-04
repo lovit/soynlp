@@ -3,6 +3,7 @@
 import os
 import psutil
 import sys
+from collections import defaultdict
 
 def get_available_memory():
     """It returns remained memory as percentage"""
@@ -120,3 +121,211 @@ class DoublespaceLineCorpus:
         if self.num_doc == 0:
             self.num_doc, self.num_sent = self._check_length(-1, -1)
         return self.num_sent if self.iter_sent else self.num_doc
+
+class EojeolCounter:
+    def __init__(self, sents=None, min_count=1, max_length=15):
+        self.min_count = min_count
+        self.max_length = max_length
+        self._coverage = 0.0
+        if sents:
+            self._counter = self._counting_from_sents(sents)
+        else:
+            self._counter = {}
+        self._count_sum = sum(self._counter.values())
+
+    def _counting_from_sents(self, sents):
+        _counter = {}
+        for sent in sents:
+            for eojeol in sent.split():
+                if (not eojeol) or (len(eojeol) <= 1) or (len(eojeol) > self.max_length):
+                    continue
+                _counter[eojeol] = _counter.get(eojeol, 0) + 1
+        _counter = {k:v for k,v in _counter.items() if v >= self.min_count}
+        return _counter
+
+    @property
+    def coverage(self):
+        return self._coverage
+
+    @coverage.setter
+    def coverage(self, value):
+        if not (0 <= value <= 1):
+            raise ValueError('coverage should be in [0, 1]')
+        self._coverage = value
+
+    @property
+    def num_of_unique_uncovered_eojeols(self):
+        return len(self._counter)
+
+    @property
+    def num_of_uncovered_eojeols(self):
+        return sum(self._counter.values())
+
+    def get_uncovered_eojeols(self, min_count=0):
+        return {k:v for k,v in self._counter.items() if v >= min_count}
+
+    def remove_covered_eojeols(self, eojeols):
+        self._counter = {k:v for k,v in self._counter.items() if not (k in eojeols)}
+        self.coverage = 1 - self.num_of_uncovered_eojeols / self._count_sum
+
+    def get_eojeol_count(self, eojeol):
+        return self._counter.get(eojeol, 0)
+
+    def save(self, path):
+        dirname = os.path.dirname(path)
+        if dirname and not os.path.exists(dirname):
+            os.makedirs(dirname)
+        with open(path, 'w', encoding='utf-8') as f:
+            for eojeol, count in sorted(self._counter.items(), key=lambda x:(-x[1], x[0])):
+                f.write('{} {}\n'.format(eojeol, count))
+
+    def load(self, path):
+        self._coverage = 0.0
+        self._counter = {}
+        with open(path, encoding='utf-8') as f:
+            for line in f:
+                word, count = line.split()
+                self._counter[word] = int(count)
+        self._count_sum = sum(self._counter.values())
+
+class LRGraph:
+
+    def __init__(self, lrgraph=None, sents=None, max_l_len=10, max_r_len=9):
+
+        assert max_l_len > 1 and type(max_l_len) == int
+        assert max_r_len > 0 and type(max_l_len) == int
+
+        self.max_l_len = max_l_len
+        self.max_r_len = max_r_len
+
+        if sents:
+            if lrgraph:
+                raise ValueError(
+                    'Inserted lrgraph will be ignored. Insert only one (lrgraph, sents)')
+            lrgraph = self._construct_graph(sents)
+        if lrgraph:
+            self._lr, self._rl = self._check_lrgraph(lrgraph)
+        else:
+            self._lr, self._rl = {}, {}
+
+        self._lr_origin = {l:{r:c for r,c in rdict.items()}
+                           for l,rdict in self._lr.items()}
+
+    def _construct_graph(self, sents):
+        lrgraph = defaultdict(lambda: defaultdict(int))
+        for sent in sents:
+            for word in sent.split():
+                word = word.strip()
+                for e in range(1, min(len(word), self.max_l_len) + 1):
+                    l, r = word[:e], word[e:]
+                    if len(r) > self.max_r_len:
+                        continue
+                    lrgraph[l][r] += e
+        lrgraph = {l:dict(rdict) for l,rdict in lrgraph.items()}
+        return lrgraph
+
+    def _check_lrgraph(self, lrgraph):
+        if type(lrgraph) is not dict:
+            try:
+                lrgraph = dict(lrgraph)
+            except:
+                raise ValueError('lrgraph type should be dict of dict, not {}'.format(
+                    type(lrgraph)))
+        nested_dict_type = type(list(lrgraph.values())[0])
+        if nested_dict_type == defaultdict:
+            lrgraph = {l:dict(rdict) for l,rdict in lrgraph.items()}
+        elif not (nested_dict_type == dict):
+            raise ValueError('nested value type should be dict, not {}'.format(
+                nested_dict_type))
+        rlgraph = defaultdict(lambda: defaultdict(int))
+        for l, rdict in lrgraph.items():
+            for r, c in rdict.items():
+                if not r:
+                    continue
+                rlgraph[r][l] += c
+        rlgraph = {r:dict(ldict) for r, ldict in rlgraph.items()}
+        return lrgraph, rlgraph
+
+    def reset_lrgraph(self):
+        self._lr, self._rl = self._check_lrgraph(
+            {l:{r:c for r,c in rdict.items()}
+             for l, rdict in self._lr_origin.items()}
+        )
+
+    def add_lr_pair(self, l, r, count=1):
+        self._lr[l][r] += count
+        if r:
+            self._rl[r][l] += count
+
+    def add_eojeol(self, eojeol, count=1):
+        for i in range(1, len(eojeol) + 1):
+            l, r = eojeol[:i], eojeol[i:]
+            self.add_lr_pair(l, r, count)
+
+    def remove_lr_pair(self, l, r, count=1):
+        if l in self._lr:
+            rdict = self._lr[l]
+            if r in rdict:
+                rdict[r] -= count
+                if rdict[r] <= 0:
+                    rdict.pop(r)
+                    if len(rdict) <= 0:
+                        self._lr.pop(l)
+        if r in self._rl:
+            ldict = self._rl[r]
+            if l in ldict:
+                ldict[l] -= count
+                if ldict[l] <= 0:
+                    ldict.pop(l)
+                    if len(ldict) <= 0:
+                        self._rl.pop(r)
+
+    def remove_eojeol(self, eojeol, count=1):
+        for i in range(1, len(eojeol) + 1):
+            l, r = eojeol[:i], eojeol[i:]
+            self.remove_lr_pair(l, r, count)
+
+    def get_r(self, l, topk=10):
+        rlist = sorted(self._lr.get(l, {}).items(), key=lambda x:-x[1])
+        if topk > 0:
+            rlist = rlist[:topk]
+        return rlist
+
+    def get_l(self, r, topk=10):
+        llist = sorted(self._rl.get(r, {}).items(), key=lambda x:-x[1])
+        if topk > 0:
+            llist = llist[:topk]
+        return llist
+
+    def save(self, path):
+        dirname = os.path.dirname(path)
+        if dirname and not os.path.exists(dirname):
+            os.makedirs(dirname)
+        with open(path, 'w', encoding='utf-8') as f:
+            for l, rdict in sorted(self._lr_origin.items()):
+                for r, c in sorted(rdict.items()):
+                    f.write('{} {} {}\n'.format(l, r, c))
+
+    def load(self, path):
+        self._lr_origin = {}
+        with open(path, encoding='utf-8') as f:
+            l = ''
+            rdict = {}
+            for line in f:
+                sep = line.split()
+                if not (sep[0] == l):
+                    if rdict:
+                        self._lr_origin[l] = rdict
+                        rdict = {}
+                l = sep[0]
+                if len(sep) == 2:
+                    rdict[''] = int(sep[-1])
+                elif len(sep) == 3:
+                    rdict[sep[1]] = int(sep[-1])
+                else:
+                    raise ValueError('Wrong lr-graph format: {}'.format(line))
+            if rdict:
+                self._lr_origin[l] = rdict
+        self._lr, self._rl = self._check_lrgraph(
+            {l:{r:c for r,c in rdict.items()}
+             for l,rdict in self._lr_origin.items()})
