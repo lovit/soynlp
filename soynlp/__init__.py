@@ -11,20 +11,10 @@ from . import pos
 from . import tokenizer
 from . import vectorizer
 from . import word
-from .utils import get_available_memory
-from .utils import get_process_memory
-from .utils import sort_by_alphabet
-from .utils import DoublespaceLineCorpus
-from .utils import EojeolCounter
-from .utils import LRGraph
-
+from . import utils
 
 __all__ = [
     # modules
     'hangle', 'normalizer', 'noun', 'pos', 'tokenizer',
-    'vectorizer', 'word',
-    # utils
-    'get_available_memory', 'get_process_memory',
-    'sort_by_alphabet', 'DoublespaceLineCorpus',
-    'EojeolCounter', 'LRGraph',
+    'vectorizer', 'word', 'utils'
 ]
