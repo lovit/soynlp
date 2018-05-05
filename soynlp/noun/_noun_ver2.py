@@ -26,7 +26,7 @@ class LRNounExtractor_v2:
     def _set_default_predictor_header(self):
 
         if self.verbose:
-            print('Noun extractor use default predictors')
+            print('[Noun Extractor] use default predictors')
 
         dirname = '/'.join(os.path.abspath(__file__).replace('\\', '/').split('/')[:-2])
         predictor_header = ['{}/trained_models/noun_predictor_ver2'.format(dirname)]
@@ -59,7 +59,7 @@ class LRNounExtractor_v2:
         neg = {feature for feature in neg if not (feature in common)}
 
         if self.verbose:
-            print('num features: pos={}, neg={}, common={}'.format(
+            print('[Noun Extractor] num features: pos={}, neg={}, common={}'.format(
                 len(pos), len(neg), len(common)))
 
         self._pos_features = pos
@@ -76,40 +76,40 @@ class LRNounExtractor_v2:
     def train(self, sentences, min_eojeol_count=1):
 
         if self.verbose:
-            print('Counting eojeols')
+            print('[Noun Extractor] counting eojeols')
         eojeol_counter = EojeolCounter(sentences, min_eojeol_count,
             max_length=self.max_l_len + self.max_r_len)
 
         if self.verbose:
-            print('Convert EojeolCounter to LRGraph')
+            print('[Noun Extractor] complete eojeol counter -> lr graph')
         self.lrgraph = eojeol_counter.to_lrgraph(
             self.max_l_len, self.max_r_len)
 
         if self.verbose:
-            print('Noun Extractor has been trained.')
+            print('[Noun Extractor] has been trained.')
     
     def extract(self, minimum_noun_score=0.3, min_count=1):
         return {}
 
     def _get_nonempty_features(self, word, features):
-        return [r for r, _ in features if ((not self._exist_longer_r(word, r)) and 
+        return [r for r, _ in features if ((not self._exist_longer_pos(word, r)) and 
             (r in self._pos_features) or (r in self._neg_features))]
 
-    def _exist_longer_r(self, word, r):
+    def _exist_longer_pos(self, word, r):
         for e in range(len(word)-1, -1, -1):
             if (word[e:]+r) in self._pos_features:
                 return True
         return False
 
-    def predict(self, word, min_score=0.3, debug=False):
+    def predict(self, word, minimum_noun_score=0.3, debug=False):
 
         # scoring
         features = self.lrgraph.get_r(word, -1)
-        pos, common, neg, unk, end = self._predict(word, features, min_score)
+        pos, common, neg, unk, end = self._predict(word, features)
 
         base = pos + neg
         score = 0 if base == 0 else (pos - neg) / base
-        support = pos + end if score >= min_score else neg + end
+        support = pos + end + common if score >= minimum_noun_score else neg + end + common
 
         # debug code
         if debug:
@@ -136,7 +136,7 @@ class LRNounExtractor_v2:
                 if not r:
                     continue
                 if r in self._pos_features or r in self._common_features:
-                    if not self._exist_longer_r(word, r):
+                    if not self._exist_longer_pos(word, r):
                         first_chars.add(r[0])
                 if not (r in self._pos_features or r in self._common_features):
                     first_chars.add(r[0])
@@ -154,7 +154,7 @@ class LRNounExtractor_v2:
             # "명사 + Unknown R" 로 후처리
             return (0, support)
 
-    def _predict(self, word, features, min_score=0.3):
+    def _predict(self, word, features):
 
         pos, common, neg, unk, end = 0, 0, 0, 0, 0
 
@@ -162,7 +162,7 @@ class LRNounExtractor_v2:
             if r == '':
                 end += freq
                 continue
-            if self._exist_longer_r(word, r): # ignore
+            if self._exist_longer_pos(word, r): # ignore
                 continue
             if r in self._common_features:
                 common += freq
@@ -174,3 +174,55 @@ class LRNounExtractor_v2:
                 unk += freq
 
         return pos, common, neg, unk, end
+
+    def _noun_candidates_from_positive_features(self, condition=None):
+
+        def satisfy(word, e):
+            return word[:e] == condition
+
+        # noun candidates from positive featuers such as Josa
+        N_from_J = {}
+        for r in self._pos_features:
+            for l, c in self.lrgraph.get_l(r, -1):
+                # candidates filtering for debugging
+                # condition is first chars in L
+                if not condition:
+                    N_from_J[l] = N_from_J.get(l,0) + c
+                    continue
+                # for debugging
+                if not satisfy(l, len(condition)):
+                    continue
+                N_from_J[l] = N_from_J.get(l,0) + c
+
+        # sort by length of word
+        N_from_J = sorted(N_from_J.items(), key=lambda x:-len(x[0]))
+
+        return N_from_J
+
+    def _batch_prediction_order_by_word_length(self,
+        noun_candidates, minimum_noun_score=0.3):
+
+        prediction_scores = {}
+
+        n = len(noun_candidates)
+        for i, (word, _) in enumerate(noun_candidates):
+
+            if self.verbose and i % 1000 == 999:
+                percentage = '%.3f' % (100 * (i+1) / n)
+                print('\r  -- batch prediction {} % of {} words'.format(
+                    percentage, n), flush=True, end='')
+
+            # base prediction
+            score, support = self.predict(word, minimum_noun_score)
+            prediction_scores[word] = (score, support)
+
+            # if their score is higher than minimum_noun_score,
+            # remove eojeol pattern from lrgraph
+            if score >= minimum_noun_score:
+                for r, count in self.lrgraph.get_r(word, -1):
+                    if r == '' or (r in self._pos_features):
+                        self.lrgraph.remove_eojeol(word+r, count)
+        if self.verbose:
+            print('\r[Noun Extractor] batch prediction was completed.', flush=True)
+
+        return prediction_scores
