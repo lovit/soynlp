@@ -6,14 +6,15 @@ from soynlp.utils import LRGraph
 
 
 class LRNounExtractor_v2:
-    def __init__(self, max_l_len=10, max_r_len=9,
-        predictor_headers=None, verbose=True, min_num_of_features=1):
+    def __init__(self, max_l_len=10, max_r_len=9, predictor_headers=None,
+        verbose=True, min_num_of_features=1, max_count_when_noun_is_eojeol=30):
 
         self.max_l_len = max_l_len
         self.max_r_len = max_r_len
         self.lrgraph = None
         self.verbose = verbose
         self.min_num_of_features = min_num_of_features
+        self.max_count_when_noun_is_eojeol = max_count_when_noun_is_eojeol
 
         if not predictor_headers:
             predictor_headers = self._set_default_predictor_header()
@@ -130,6 +131,10 @@ class LRNounExtractor_v2:
             sum_ = pos + common + neg + unk + end
             if sum_ == 0:
                 return 0, support
+
+            # exception. frequent nouns may have various positive R such as Josa
+            if ((end > self.max_count_when_noun_is_eojeol) and (neg >= pos) ):
+                return score, support
 
             if (common > 0 or pos > 0) and (end / sum_ >= 0.3) and (common >= neg):
                 # 아이웨딩 + [('', 90), ('은', 3), ('측은', 1)] # 은 common / 대부분 단일어절 / 측은 unknown. 
