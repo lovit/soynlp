@@ -92,12 +92,19 @@ class LRNounExtractor_v2:
         return {}
 
     def _get_nonempty_features(self, word, features):
-        return [r for r, _ in features if ((not self._exist_longer_pos(word, r)) and 
-            (r in self._pos_features) or (r in self._neg_features))]
+        return [r for r, _ in features if (
+            ( (r in self._pos_features) and (not self._exist_longer_pos(word, r)) ) or
+            ( (r in self._neg_features) and (not self._exist_longer_neg(word, r)) ) )]
 
     def _exist_longer_pos(self, word, r):
         for e in range(len(word)-1, -1, -1):
             if (word[e:]+r) in self._pos_features:
+                return True
+        return False
+
+    def _exist_longer_neg(self, word, r):
+        for e in range(len(word)-1, -1, -1):
+            if (word[e:]+r) in self._neg_features:
                 return True
         return False
 
@@ -163,6 +170,9 @@ class LRNounExtractor_v2:
                 end += freq
                 continue
             if self._exist_longer_pos(word, r): # ignore
+                continue
+            if self._exist_longer_neg(word, r): # negative -다고
+                neg += freq
                 continue
             if r in self._common_features:
                 common += freq
