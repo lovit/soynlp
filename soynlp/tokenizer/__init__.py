@@ -4,3 +4,4 @@ from ._tokenizer import MaxLRScoreTokenizer
 from ._tokenizer import RegexTokenizer
 from ._normalizer import normalize
 from ._noun_tokenizer import NounLMatchTokenizer
+from ._noun_tokenizer import NounMatchTokenizer

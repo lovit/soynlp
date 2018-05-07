@@ -61,3 +61,43 @@ class NounLMatchTokenizer:
             nouns = [noun for noun in nouns if noun[1] >= e]
 
         return nouns_to_larray_and_r(token, nouns_)
+
+class NounMatchTokenizer:
+
+    def __init__(self, noun_scores):
+        self._tokenizer = MaxScoreTokenizer(scores=noun_scores)
+
+    def tokenize(self, sentence, flatten=True, compose_compound=True):
+
+        def concatenate(eojeol, words):
+            words_, b, e, score = [], 0, 0, 0
+            for noun_, b_, e_, score_, _ in words:
+                if e == b_:
+                    e, score = e_, max(score, score_)
+                else:
+                    words_.append((eojeol[b:e], b, e, score, e-b))
+                    b, e = b_, e_
+            if e > b:
+                words_.append((eojeol[b:e], b, e, score, e-b))
+            return words_
+
+        sentence_ = []
+        for eojeol in sentence.split():
+
+            eojeol = eojeol.strip()
+            if not eojeol:
+                continue
+
+            words = self._tokenizer(eojeol, flatten=False)[0]
+            # remove non-noun words
+            words = [word for word in words if word[3] > 0]
+
+            if compose_compound:
+                words = concatenate(eojeol, words)
+
+            sentence_.append(words)
+
+        if flatten:
+            sentence_ = [word[0] for words in sentence_ for word in words]
+
+        return sentence_
