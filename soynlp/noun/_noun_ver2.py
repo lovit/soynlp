@@ -79,8 +79,11 @@ class LRNounExtractor_v2:
 
         if self.verbose:
             print('[Noun Extractor] counting eojeols')
+
         eojeol_counter = EojeolCounter(sentences, min_eojeol_count,
             max_length=self.max_l_len + self.max_r_len)
+        self._num_of_eojeols = eojeol_counter._count_sum
+        self._num_of_covered_eojeols = 0
 
         if self.verbose:
             print('[Noun Extractor] complete eojeol counter -> lr graph')
@@ -112,11 +115,18 @@ class LRNounExtractor_v2:
         nouns = {noun:score for noun, score in nouns.items()
             if score[1] >= min_count}
 
+        nouns = self._post_processing(nouns, prediction_scores, compounds)
+
         if self.verbose:
             print('[Noun Extractor] {} nouns ({} compounds) with min count={}'.format(
                 len(nouns), len(compounds), min_count), flush=True)
 
+            coverage = '%.2f' % (100 * self._num_of_covered_eojeols
+                / self._num_of_eojeols)
+            print('[Noun Extractor] {} % eojeols are covered'.format(coverage), flush=True)
+
         self._nouns = nouns
+        self.lrgraph.reset_lrgraph()
 
         return nouns
 
@@ -265,6 +275,7 @@ class LRNounExtractor_v2:
                 for r, count in self.lrgraph.get_r(word, -1):
                     if r == '' or (r in self._pos_features):
                         self.lrgraph.remove_eojeol(word+r, count)
+                        self._num_of_covered_eojeols += count
         if self.verbose:
             print('\r[Noun Extractor] batch prediction was completed for {} words'.format(
                 n), flush=True)
@@ -274,10 +285,11 @@ class LRNounExtractor_v2:
     def extract_compounds(self, candidates, prediction_scores, minimum_noun_score=0.3):
 
         noun_scores = {noun:len(noun) for noun, score in prediction_scores.items()
-                       if score[0] > minimum_noun_score}
+                       if score[0] > minimum_noun_score and len(noun) > 1}
         compound_decomposer = MaxScoreTokenizer(scores=noun_scores)
 
-        candidates = {l:sum(rdict.values()) for l,rdict in self.lrgraph._lr.items() if len(l) >= 4}
+        candidates = {l:sum(rdict.values()) for l,rdict in self.lrgraph._lr.items()
+            if (len(l) >= 4) and not (l in noun_scores)}
 
         n = len(candidates)
         compounds_scores = {}
@@ -301,7 +313,9 @@ class LRNounExtractor_v2:
                 compound_score = max((prediction_scores.get(t, (0,0))[0] for t in compound_parts))
                 compounds_scores[noun] = max(compounds_scores.get(noun,0), compound_score)
                 compounds_counts[noun] = compounds_counts.get(noun,0) + count
+                # coverage
                 self.lrgraph.remove_eojeol(word)
+                self._num_of_covered_eojeols += count
 
         if self.verbose:
             print('\r[Noun Extractor] checked compounds. discovered {} compounds'.format(
@@ -310,7 +324,7 @@ class LRNounExtractor_v2:
         compounds = {noun:(score, compounds_counts.get(noun,0))
              for noun, score in compounds_scores.items()}
 
-        self.compounds_components = compounds_components
+        self._compounds_components = compounds_components
 
         return compounds
 
@@ -329,3 +343,8 @@ class LRNounExtractor_v2:
             return tuple(t[0] for t in tokens)
         # else, not compound
         return None
+
+    def _post_processing(self, nouns, prediction_scores, compounds):
+        # TODO
+        # Not Implemented
+        return nouns
