@@ -3,6 +3,7 @@ import os
 
 from soynlp.utils import EojeolCounter
 from soynlp.utils import LRGraph
+from soynlp.tokenizer import MaxScoreTokenizer
 
 
 class LRNounExtractor_v2:
@@ -90,7 +91,34 @@ class LRNounExtractor_v2:
             print('[Noun Extractor] has been trained.')
     
     def extract(self, minimum_noun_score=0.3, min_count=1):
-        return {}
+
+        # base prediction
+        noun_candidates = self._noun_candidates_from_positive_features()
+        prediction_scores = self._batch_prediction_order_by_word_length(
+            noun_candidates, minimum_noun_score)
+
+        # E = N*J+ or N*Posi+
+        candidates = {l:sum(rdict.values()) for l,rdict in
+            self.lrgraph._lr.items() if len(l) >= 4}
+        compounds = self.extract_compounds(
+            candidates, prediction_scores, minimum_noun_score)
+
+        # combine single nouns and compounds
+        nouns = {noun:score for noun, score in prediction_scores.items()
+            if score[0] >= minimum_noun_score}
+        nouns.update(compounds)
+
+        # frequency filtering
+        nouns = {noun:score for noun, score in nouns.items()
+            if score[1] >= min_count}
+
+        if self.verbose:
+            print('[Noun Extractor] {} nouns ({} compounds) with min count={}'.format(
+                len(nouns), len(compounds), min_count), flush=True)
+
+        self._nouns = nouns
+
+        return nouns
 
     def _get_nonempty_features(self, word, features):
         return [r for r, _ in features if (
@@ -238,6 +266,66 @@ class LRNounExtractor_v2:
                     if r == '' or (r in self._pos_features):
                         self.lrgraph.remove_eojeol(word+r, count)
         if self.verbose:
-            print('\r[Noun Extractor] batch prediction was completed.', flush=True)
+            print('\r[Noun Extractor] batch prediction was completed for {} words'.format(
+                n), flush=True)
 
         return prediction_scores
+
+    def extract_compounds(self, candidates, prediction_scores, minimum_noun_score=0.3):
+
+        noun_scores = {noun:len(noun) for noun, score in prediction_scores.items()
+                       if score[0] > minimum_noun_score}
+        compound_decomposer = MaxScoreTokenizer(scores=noun_scores)
+
+        candidates = {l:sum(rdict.values()) for l,rdict in self.lrgraph._lr.items() if len(l) >= 4}
+
+        n = len(candidates)
+        compounds_scores = {}
+        compounds_counts = {}
+        compounds_components = {}
+
+        for i, (word, count) in enumerate(sorted(candidates.items(), key=lambda x:-len(x))):
+
+            if self.verbose and i % 1000 == 999:
+                percentage = '%.2f' % (100 * i / n)
+                print('\r  -- check compound {} %'.format(percentage), flush=True, end='')
+
+            tokens = compound_decomposer.tokenize(word, flatten=False)[0]
+            compound_parts = self._parse_compound(tokens)
+
+            if compound_parts:
+                # store compound components
+                noun = ''.join(compound_parts)
+                compounds_components[noun] = compound_parts
+                # cumulate count and store compound score
+                compound_score = max((prediction_scores.get(t, (0,0))[0] for t in compound_parts))
+                compounds_scores[noun] = max(compounds_scores.get(noun,0), compound_score)
+                compounds_counts[noun] = compounds_counts.get(noun,0) + count
+                self.lrgraph.remove_eojeol(word)
+
+        if self.verbose:
+            print('\r[Noun Extractor] checked compounds. discovered {} compounds'.format(
+                len(compounds_scores)))
+
+        compounds = {noun:(score, compounds_counts.get(noun,0))
+             for noun, score in compounds_scores.items()}
+
+        self.compounds_components = compounds_components
+
+        return compounds
+
+    def _parse_compound(self, tokens):
+        """Check Noun* or Noun*Josa"""
+
+        # format: (word, begin, end, score, length)
+        for token in tokens[:-1]:
+            if token[3] <= 0:
+                return None
+        # Noun* + Josa
+        if len(tokens) >= 3 and tokens[-1][0] in self._pos_features:
+            return tuple(t[0] for t in tokens[:-1])
+        # all tokens are noun
+        if tokens[-1][3] > 0:
+            return tuple(t[0] for t in tokens)
+        # else, not compound
+        return None
