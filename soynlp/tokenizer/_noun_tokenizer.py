@@ -67,6 +67,9 @@ class NounMatchTokenizer:
     def __init__(self, noun_scores):
         self._tokenizer = MaxScoreTokenizer(scores=noun_scores)
 
+    def __call__(self, sentence, flatten=True, compose_compound=True):
+        return self.tokenize(sentence, flatten, compose_compound)
+
     def tokenize(self, sentence, flatten=True, compose_compound=True):
 
         def concatenate(eojeol, words):
