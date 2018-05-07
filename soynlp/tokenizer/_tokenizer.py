@@ -11,7 +11,7 @@ import numpy as np
 class RegexTokenizer:
     
     def __init__(self):
-        self.patterns = [
+        self._patterns = [
             ('number', re.compile(u'[-+]?\d*[\.]?[\d]+|[-+]?\d+', re.UNICODE)),
             ('korean', re.compile(u'[가-힣]+', re.UNICODE)),
             ('jaum', re.compile(u'[ㄱ-ㅎ]+', re.UNICODE)),
@@ -44,7 +44,7 @@ class RegexTokenizer:
         return tokens
     
     def _tokenize(self, s, debug=False):
-        for name, pattern in self.patterns:
+        for name, pattern in self._patterns:
             
             founds = pattern.findall(s)
             if not founds: 
@@ -87,8 +87,8 @@ class RegexTokenizer:
 class LTokenizer:
     
     def __init__(self, scores=None, default_score=0.0):
-        self.scores = scores if scores else {}
-        self.ds = default_score
+        self._scores = scores if scores else {}
+        self._ds = default_score
 
     def __call__(self, sentence, tolerance=0.0, flatten=True, remove_r=False):
         return self.tokenize(sentence, tolerance, flatten, remove_r)
@@ -99,7 +99,7 @@ class LTokenizer:
             length = len(token)
             if length <= 2: return (token, '')
             candidates = [(token[:e], token[e:]) for e in range(2, length + 1)]
-            candidates = [(self.scores.get(t[0], self.ds), t[0], t[1]) for t in candidates]
+            candidates = [(self._scores.get(t[0], self._ds), t[0], t[1]) for t in candidates]
             if tolerance > 0:
                 max_score = max([c[0] for c in candidates])
                 candidates = [c for c in candidates if (max_score - c[0]) <= tolerance]
@@ -122,9 +122,9 @@ class LTokenizer:
 class MaxScoreTokenizer:
     
     def __init__(self, scores=None, max_length=10, default_score=0.0):
-        self.scores = scores if scores else {}
-        self.max_length = max_length        
-        self.ds = default_score
+        self._scores = scores if scores else {}
+        self._max_length = max_length
+        self._ds = default_score
 
     def __call__(self, sentence, flatten=True):
         return self.tokenize(sentence, flatten)
@@ -139,10 +139,10 @@ class MaxScoreTokenizer:
         
         length = len(token)
         if length <= 2:
-            return [(token, 0, length, self.ds, length)]
+            return [(token, 0, length, self._ds, length)]
 
         if range_l == 0:
-            range_l = min(self.max_length, length)
+            range_l = min(self._max_length, length)
 
         scores = self._initialize(token, range_l, length)
         if debug:
@@ -170,7 +170,7 @@ class MaxScoreTokenizer:
                     continue
                 
                 subtoken = token[b:e]
-                score = self.scores.get(subtoken, self.ds)
+                score = self._scores.get(subtoken, self._ds)
                 scores.append((subtoken, b, e, score, r))
                 
         return sorted(scores, key=lambda x:(x[3], x[4]), reverse=True)
@@ -208,20 +208,20 @@ class MaxScoreTokenizer:
             b = base[2]
             e = result[i+1][1]
             subtoken = token[b:e]
-            adds.append((subtoken, b, e, self.ds, e - b))
+            adds.append((subtoken, b, e, self._ds, e - b))
         
         return adds
 
     def _add_first_subtoken(self, token, result):
         e = result[0][1]
         subtoken = token[0:e]
-        score = self.scores.get(subtoken, self.ds)
+        score = self._scores.get(subtoken, self._ds)
         return [(subtoken, 0, e, score, e)]
     
     def _add_last_subtoken(self, token, result):
         b = result[-1][2]
         subtoken = token[b:]
-        score = self.scores.get(subtoken, self.ds)
+        score = self._scores.get(subtoken, self._ds)
         return [(subtoken, b, len(token), score, len(subtoken))]
 
 class MaxLRScoreTokenizer:
