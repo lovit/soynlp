@@ -1,6 +1,6 @@
 from ._tokenizer import MaxScoreTokenizer
 
-class NounLTokenizer:
+class NounLMatchTokenizer:
 
     def __init__(self, nouns):
         self._nouns  = nouns
