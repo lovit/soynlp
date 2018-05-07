@@ -9,11 +9,11 @@ from soynlp.tokenizer import MaxScoreTokenizer
 NounScore = namedtuple('NounScore', 'frequency score')
 
 class LRNounExtractor_v2:
-    def __init__(self, max_l_len=10, max_r_len=9, predictor_headers=None,
+    def __init__(self, l_max_length=10, r_max_length=9, predictor_headers=None,
         verbose=True, min_num_of_features=1, max_count_when_noun_is_eojeol=30):
 
-        self.max_l_len = max_l_len
-        self.max_r_len = max_r_len
+        self.l_max_length = l_max_length
+        self.r_max_length = r_max_length
         self.lrgraph = None
         self.verbose = verbose
         self.min_num_of_features = min_num_of_features
@@ -83,14 +83,14 @@ class LRNounExtractor_v2:
             print('[Noun Extractor] counting eojeols')
 
         eojeol_counter = EojeolCounter(sentences, min_eojeol_count,
-            max_length=self.max_l_len + self.max_r_len)
+            max_length=self.l_max_length + self.r_max_length)
         self._num_of_eojeols = eojeol_counter._count_sum
         self._num_of_covered_eojeols = 0
 
         if self.verbose:
             print('[Noun Extractor] complete eojeol counter -> lr graph')
         self.lrgraph = eojeol_counter.to_lrgraph(
-            self.max_l_len, self.max_r_len)
+            self.l_max_length, self.r_max_length)
 
         if self.verbose:
             print('[Noun Extractor] has been trained.')

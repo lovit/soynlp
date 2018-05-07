@@ -174,17 +174,17 @@ class EojeolCounter:
     def items(self):
         return self._counter.items()
 
-    def to_lrgraph(self, max_l_len=10, max_r_len=9):
+    def to_lrgraph(self, l_max_length=10, r_max_length=9):
         _lrgraph = defaultdict(lambda: defaultdict(int))
         for eojeol, count in self._counter.items():
-            for e in range(1, min(max_l_len, len(eojeol)) + 1):
+            for e in range(1, min(l_max_length, len(eojeol)) + 1):
                 l, r = eojeol[:e], eojeol[e:]
-                if len(r) > max_r_len:
+                if len(r) > r_max_length:
                     continue
                 _lrgraph[l][r] += count
         _lrgraph = {l:dict(rdict) for l, rdict in _lrgraph.items()}
         lrgraph = LRGraph(lrgraph=_lrgraph,
-            max_l_len=max_l_len, max_r_len=max_r_len)
+            l_max_length=l_max_length, r_max_length=r_max_length)
         return lrgraph
 
     def save(self, path):
@@ -206,13 +206,13 @@ class EojeolCounter:
 
 class LRGraph:
 
-    def __init__(self, lrgraph=None, sents=None, max_l_len=10, max_r_len=9):
+    def __init__(self, lrgraph=None, sents=None, l_max_length=10, r_max_length=9):
 
-        assert max_l_len > 1 and type(max_l_len) == int
-        assert max_r_len > 0 and type(max_l_len) == int
+        assert l_max_length > 1 and type(l_max_length) == int
+        assert r_max_length > 0 and type(r_max_length) == int
 
-        self.max_l_len = max_l_len
-        self.max_r_len = max_r_len
+        self.l_max_length = l_max_length
+        self.r_max_length = r_max_length
 
         if sents:
             if lrgraph:
@@ -232,9 +232,9 @@ class LRGraph:
         for sent in sents:
             for word in sent.split():
                 word = word.strip()
-                for e in range(1, min(len(word), self.max_l_len) + 1):
+                for e in range(1, min(len(word), self.l_max_length) + 1):
                     l, r = word[:e], word[e:]
-                    if len(r) > self.max_r_len:
+                    if len(r) > self.r_max_length:
                         continue
                     lrgraph[l][r] += e
         lrgraph = {l:dict(rdict) for l,rdict in lrgraph.items()}
