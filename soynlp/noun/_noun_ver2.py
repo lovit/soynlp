@@ -291,7 +291,7 @@ class LRNounExtractor_v2:
 
         noun_scores = {noun:len(noun) for noun, score in prediction_scores.items()
                        if score[0] > minimum_noun_score and len(noun) > 1}
-        compound_decomposer = MaxScoreTokenizer(scores=noun_scores)
+        self._compound_decomposer = MaxScoreTokenizer(scores=noun_scores)
 
         candidates = {l:sum(rdict.values()) for l,rdict in self.lrgraph._lr.items()
             if (len(l) >= 4) and not (l in noun_scores)}
@@ -311,7 +311,7 @@ class LRNounExtractor_v2:
             if candidates.get(word, 0) <= 0:
                 continue
 
-            tokens = compound_decomposer.tokenize(word, flatten=False)[0]
+            tokens = self._compound_decomposer.tokenize(word, flatten=False)[0]
             compound_parts = self._parse_compound(tokens)
 
             if compound_parts:
@@ -342,6 +342,13 @@ class LRNounExtractor_v2:
         self._compounds_components = compounds_components
 
         return compounds
+
+    def decompose_compound(self, word):
+
+        tokens = self._compound_decomposer.tokenize(word, flatten=False)[0]
+        compound_parts = self._parse_compound(tokens)
+
+        return (word, ) if not compound_parts else compound_parts
 
     def _parse_compound(self, tokens):
         """Check Noun* or Noun*Josa"""
