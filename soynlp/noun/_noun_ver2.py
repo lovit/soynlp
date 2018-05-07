@@ -125,8 +125,13 @@ class LRNounExtractor_v2:
                 / self._num_of_eojeols)
             print('[Noun Extractor] {} % eojeols are covered'.format(coverage), flush=True)
 
+        if self.verbose:
+            print('[Noun Extractor] flushing ... ', flush=True, end='')
+
         self._nouns = nouns
         self.lrgraph.reset_lrgraph()
+        if self.verbose:
+            print('done')
 
         return nouns
 
@@ -296,11 +301,15 @@ class LRNounExtractor_v2:
         compounds_counts = {}
         compounds_components = {}
 
-        for i, (word, count) in enumerate(sorted(candidates.items(), key=lambda x:-len(x))):
+        for i, (word, count) in enumerate(sorted(candidates.items(), key=lambda x:-len(x[0]))):
 
             if self.verbose and i % 1000 == 999:
                 percentage = '%.2f' % (100 * i / n)
                 print('\r  -- check compound {} %'.format(percentage), flush=True, end='')
+
+            # skip if candidate is substring of longer compound
+            if candidates.get(word, 0) <= 0:
+                continue
 
             tokens = compound_decomposer.tokenize(word, flatten=False)[0]
             compound_parts = self._parse_compound(tokens)
@@ -313,7 +322,13 @@ class LRNounExtractor_v2:
                 compound_score = max((prediction_scores.get(t, (0,0))[0] for t in compound_parts))
                 compounds_scores[noun] = max(compounds_scores.get(noun,0), compound_score)
                 compounds_counts[noun] = compounds_counts.get(noun,0) + count
-                # coverage
+                # reduce frequency of substrings
+                for e in range(2, len(word)):
+                    subword = word[:e]
+                    if not subword in candidates:
+                        continue
+                    candidates[subword] = candidates.get(subword, 0) - count
+                # eojeol coverage
                 self.lrgraph.remove_eojeol(word)
                 self._num_of_covered_eojeols += count
 
