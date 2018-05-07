@@ -1,10 +1,12 @@
 from collections import defaultdict
+from collections import namedtuple
 import os
 
 from soynlp.utils import EojeolCounter
 from soynlp.utils import LRGraph
 from soynlp.tokenizer import MaxScoreTokenizer
 
+NounScore = namedtuple('NounScore', 'frequency score')
 
 class LRNounExtractor_v2:
     def __init__(self, max_l_len=10, max_r_len=9, predictor_headers=None,
@@ -133,7 +135,8 @@ class LRNounExtractor_v2:
         if self.verbose:
             print('done')
 
-        return nouns
+        nouns_ = {noun:NounScore(score[1], score[0]) for noun, score in nouns.items()}
+        return nouns_
 
     def _get_nonempty_features(self, word, features):
         return [r for r, _ in features if (
