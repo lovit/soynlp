@@ -5,10 +5,10 @@ class NounLMatchTokenizer:
     def __init__(self, nouns):
         self._nouns  = nouns
 
-    def __call__(self, sentence, tolerance=0.0, compose_compound=True):
-        return self.tokenize(sentence, tolerance, compose_compound)
+    def __call__(self, sentence, compose_compound=True):
+        return self.tokenize(sentence, compose_compound)
 
-    def tokenize(self, sentence, tolerance=0.0, compose_compound=True):
+    def tokenize(self, sentence, compose_compound=True):
 
         tokens = [self._max_length_l_tokenize(token)
             for token in sentence.split() if token]
