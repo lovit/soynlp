@@ -173,7 +173,7 @@ class MaxScoreTokenizer:
                 score = self._scores.get(subtoken, self._ds)
                 scores.append((subtoken, b, e, score, r))
                 
-        return sorted(scores, key=lambda x:(x[3], x[4]), reverse=True)
+        return sorted(scores, key=lambda x:(-x[3], -x[4], x[1]))
 
     def _find(self, scores):
         result = []
