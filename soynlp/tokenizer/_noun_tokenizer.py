@@ -24,6 +24,7 @@ class NounLMatchTokenizer:
         else:
             tokens = [unit for token in tokens for unit in token]
 
+        tokens = [token for token in tokens if token]
         return tokens
 
     def _max_length_l_tokenize(self, token):
@@ -101,6 +102,6 @@ class NounMatchTokenizer:
             sentence_.append(words)
 
         if flatten:
-            sentence_ = [word[0] for words in sentence_ for word in words]
+            sentence_ = [word[0] for words in sentence_ for word in words if word[0]]
 
         return sentence_
