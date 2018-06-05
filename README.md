@@ -136,6 +136,8 @@ LTokenizer 와 MaxScoreTokenizer 에 들어갈 dict[str]=float 의 scores dictio
 
 WordExtractor 는 통계를 이용하여 단어의 경계 점수를 학습하는 것일 뿐, 각 단어의 품사를 판단하지는 못합니다. 때로는 각 단어의 품사를 알아야 하는 경우가 있습니다. 또한 다른 품사보다도 명사에서 새로운 단어가 가장 많이 만들어집니다. 명사의 오른쪽에는 -은, -는, -라는, -하는 처럼 특정 글자들이 자주 등장합니다. 문서의 어절 (띄어쓰기 기준 유닛)에서 왼쪽에 위치한 substring 의 오른쪽에 어떤 글자들이 등장하는지 분포를 살펴보면 명사인지 아닌지 판단할 수 있습니다. soynlp 에서는 두 가지 종류의 명사 추출기를 제공합니다. 둘 모두 개발 단계이기 때문에 어떤 것이 더 우수하다 말하기는 어렵습니다만, NewsNounExtractor 가 좀 더 많은 기능을 포함하고 있습니다. 추후, 명사 추출기는 하나의 클래스로 정리될 예정입니다. 
 
+### Noun Extractor ver 1 & News Noun Extractor
+
     from soynlp.noun import LRNounExtractor
     noun_extractor = LRNounExtractor()
     nouns = noun_extractor.train_extract(sentences) # list of str like
@@ -158,6 +160,50 @@ WordExtractor 는 통계를 이용하여 단어의 경계 점수를 학습하는
     세무조사  석유화학  워킹  원피스  서장  공범
 
 더 자세한 설명은 [튜토리얼][nounextraction-v1_usage]에 있습니다. 
+
+### Noun Extractor ver 2
+
+soynlp=0.0.46+ 에서는 명사 추출기 version 2 를 제공합니다. 이전 버전의 명사 추출의 정확성과 합성명사 인식 능력, 출력되는 정보의 오류를 수정한 버전입니다. 사용법은 version 1 과 비슷합니다.
+
+    from soynlp.utils import DoublespaceLineCorpus
+    from soynlp.noun import LRNounExtractor_v2
+
+    corpus_path = '2016-10-20-news'
+    sents = DoublespaceLineCorpus(corpus_path, iter_sent=True)
+
+    noun_extractor = LRNounExtractor_v2(verbose=True)
+    nouns = noun_extractor.train_extract(sents)
+
+추출된 nouns 는 {str:namedtuple} 형식입니다. 
+
+    print(nouns['뉴스']) # NounScore(frequency=4319, score=1.0)
+
+_compounds_components 에는 복합명사를 구성하는 단일명사들의 정보가 저장되어 있습니다. '대한민국', '녹색성장'과 같이 실제로는 복합형태소이지만, 단일 명사로 이용되는 경우는 단일 명사로 인식합니다.
+
+    list(noun_extractor._compounds_components.items())[:5]
+
+    # [('잠수함발사탄도미사일', ('잠수함', '발사', '탄도미사일')),
+    #  ('미사일대응능력위원회', ('미사일', '대응', '능력', '위원회')),
+    #  ('글로벌녹색성장연구소', ('글로벌', '녹색성장', '연구소')),
+    #  ('시카고옵션거래소', ('시카고', '옵션', '거래소')),
+    #  ('대한민국특수임무유공', ('대한민국', '특수', '임무', '유공')),
+
+LRGraph 는 학습된 corpus 에 등장한 어절의 L-R 구조를 저장하고 있습니다. get_r 과 get_l 을 이용하여 이를 확인할 수 있습니다.
+
+    noun_extractor.lrgraph.get_r('아이오아이')
+
+    # [('', 123),
+    #  ('의', 47),
+    #  ('는', 40),
+    #  ('와', 18),
+    #  ('가', 18),
+    #  ('에', 7),
+    #  ('에게', 6),
+    #  ('까지', 2),
+    #  ('랑', 2),
+    #  ('부터', 1)]
+
+더 자세한 설명은 [튜토리얼 2][nounextractor-v2_usage]에 있습니다.
 
 ## Part of Speech Tagger
 
@@ -302,6 +348,7 @@ dict 형식의 bag of words 는 decoding 이 가능합니다.
 
 [wordextraction_lecture]: tutorials/wordextractor_lecture.ipynb
 [nounextraction-v1_usage]: tutorials/nounextraction-v1_usage.ipynb
+[nounextractor-v2_usage]: tutorials/nounextractor-v2_usage.ipynb
 [tagger_usage]: tutorials/tagger_usage.ipynb
 [tagger_lecture]: tutorials/tagger_lecture.ipynb
 [unkornlp_pdf]: notes/unskonlp.pdf
