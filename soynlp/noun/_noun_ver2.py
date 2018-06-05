@@ -71,11 +71,11 @@ class LRNounExtractor_v2:
         self._common_features = common
 
     def train_extract(self, sentences, minimum_noun_score=0.3,
-        min_count=1, min_eojeol_count=1):
+        min_count=1, min_eojeol_count=1, reset_lrgraph=True):
 
         self.train(sentences, min_eojeol_count)
 
-        return self.extract(minimum_noun_score, min_count)
+        return self.extract(minimum_noun_score, min_count, reset_lrgraph)
 
     def train(self, sentences, min_eojeol_count=1):
 
@@ -95,7 +95,7 @@ class LRNounExtractor_v2:
         if self.verbose:
             print('[Noun Extractor] has been trained.')
     
-    def extract(self, minimum_noun_score=0.3, min_count=1):
+    def extract(self, minimum_noun_score=0.3, min_count=1, reset_lrgraph=True):
 
         # base prediction
         noun_candidates = self._noun_candidates_from_positive_features()
@@ -131,7 +131,9 @@ class LRNounExtractor_v2:
             print('[Noun Extractor] flushing ... ', flush=True, end='')
 
         self._nouns = nouns
-        self.lrgraph.reset_lrgraph()
+        if reset_lrgraph:
+            # for predicate extraction
+            self.lrgraph.reset_lrgraph()
         if self.verbose:
             print('done')
 
