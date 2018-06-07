@@ -18,11 +18,11 @@ class Lemmatizer:
     def is_root(self, w): return w in self._roots
     def is_surfacial_eomi(self, w): return w in self._surfacial_eomis
 
-    def lemmatize(self, word):
+    def lemmatize(self, word, check_if_r_is_unknown=False):
         candidates = set()
         for i in range(1, len(word)+1):
             l, r = word[:i], word[i:]
-            if not self.is_surfacial_eomi(r):
+            if not check_if_r_is_unknown and not self.is_surfacial_eomi(r):
                 continue
             candidates.update(self._candidates(l, r))
         return candidates
