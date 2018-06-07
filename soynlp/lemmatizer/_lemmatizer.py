@@ -9,15 +9,15 @@ class Lemmatizer:
         self._initialize()
         if predefined:
             self._predefined.update(predefined)
-        
+
     def _initialize(self):
         self._predefined = {'불어':('붇다', '불다'),
                             '그래':('그렇다',)
                            }
-    
+
     def is_root(self, w): return w in self._roots
     def is_surfacial_eomi(self, w): return w in self._surfacial_eomis
-    
+
     def lemmatize(self, word):
         candidates = set()
         for i in range(1, len(word)+1):
@@ -26,7 +26,7 @@ class Lemmatizer:
                 continue
             candidates.update(self._candidates(l, r))
         return candidates
-    
+
     def _candidates(self, l, r):
         candidates = set()
         if self.is_root(l):
@@ -34,7 +34,7 @@ class Lemmatizer:
 
         l_last = decompose(l[-1])
         l_last_ = compose(l_last[0], l_last[1], ' ')
-        r_first = decompose(r[0]) if r else ('', '', '')    
+        r_first = decompose(r[0]) if r else ('', '', '')
         r_first_ = compose(r_first[0], r_first[1], ' ') if r else ' '
 
         ## 1. 어간이 바뀌는 불규칙 활용
@@ -61,7 +61,7 @@ class Lemmatizer:
             l_root = compose(l_last[0], l_last[1], 'ㅂ')
             if self.is_root(l_root):
                 candidates.add(l_root + '다')
-        
+
         # 1.3. (추가) ㅂ 추가 불규칙: 입 + 니다 -> 이다, 합 + 니다 -> 하다
         if l_last[2] == 'ㅂ':
             l_root = compose(l_last[0], l_last[1], ' ')
