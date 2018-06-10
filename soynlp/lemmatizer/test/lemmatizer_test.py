@@ -1,7 +1,7 @@
 # -*- encoding:utf8 -*-
 import sys
-sys.path.append('../../../')
-from soynlp.lemmatizer._lemmatizer import Lemmatizer
+sys.path.append('../')
+from _lemmatizer import Lemmatizer
 
 def main():
     test_roots = {
