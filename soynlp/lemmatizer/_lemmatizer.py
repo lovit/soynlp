@@ -52,7 +52,7 @@ class Lemmatizer:
                 candidates.add((l_root, r))
 
         # 르 불규칙 활용: 굴 + 러 -> 구르 + 어
-        if (l_last[2] == 'ㄹ') and (r_first_ == '러' or (r_first_ == '라')):
+        if (l_last[2] == 'ㄹ') and (r_first_ == '러' or r_first_ == '라'):
             l_root = l[:-1] + compose(l_last[0], l_last[1], ' ') + '르'
             r_canon = compose('ㅇ', r_first[1], r_first[2]) + r[1:]
             if self.is_root(l_root):
