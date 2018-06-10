@@ -121,6 +121,14 @@ class Lemmatizer:
         # 여 불규칙 활용
         # 하 + 였다 -> 하 + 았다 -> 하다: '였다'를 어미로 취급하면 규칙 활용
 
+        # 여 불규칙 활용 (2)
+        # 했 + 다 -> 하 + 았다 / 해 + 라니깐 -> 하 + 아라니깐 / 했 + 었다 -> 하 + 았었다
+        if l_last[0] == 'ㅎ' and l_last[1] == 'ㅐ':
+            l_root = l[:-1] + '하'
+            r_canon = compose('ㅇ', 'ㅏ', l_last[2]) + r
+            if self.is_root(l_root):
+                candidates.add((l_root, r_canon))
+
         # ㅎ (탈락) 불규칙 활용
         # 파라 + 면 -> 파랗 + 면
         if (l_last[2] == ' ' or l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ'):
