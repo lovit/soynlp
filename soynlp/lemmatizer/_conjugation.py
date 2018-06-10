@@ -100,8 +100,13 @@ def conjugate(root, ending):
     # 여 불규칙 활용
     # 하 + 았다 -> 하였다 / 하 + 었다 -> 하였다
     if l_last_ == '하' and r_first[0] == 'ㅇ' and (r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ'):
+        # case 1
         r = compose(r_first[0], 'ㅕ', r_first[2]) + ending[1:]
         candidates.add(root + r)
+        # case 2
+        l = root[:-1] + compose('ㅎ', 'ㅐ', r_first[2])
+        r = ending[1:]
+        candidates.add(l + r)
 
     # ㅎ (탈락) 불규칙 활용
     # 파라 + 면 -> 파랗다 / 동그랗 + ㄴ -> 동그란
