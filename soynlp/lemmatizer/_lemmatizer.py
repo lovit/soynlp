@@ -24,7 +24,9 @@ class Lemmatizer:
             l, r = word[:i], word[i:]
             if not check_if_r_is_unknown and not self.is_surfacial_eomi(r):
                 continue
-            candidates.update(self._candidates(l, r))
+            for root, ending in self._candidates(l, r):
+                if self.is_root(root):
+                    candidates.add((root, ending))
         return candidates
 
     def candidates(self, word):
@@ -48,65 +50,56 @@ class Lemmatizer:
         # ㄷ 불규칙 활용: 깨달 + 아 -> 깨닫 + 아
         if l_last[2] == 'ㄹ' and r_first[0] == 'ㅇ':
             l_root = l[:-1] + compose(l_last[0], l_last[1], 'ㄷ')
-            if self.is_root(l_root):
-                candidates.add((l_root, r))
+            candidates.add((l_root, r))
 
         # 르 불규칙 활용: 굴 + 러 -> 구르 + 어
         if (l_last[2] == 'ㄹ') and (r_first_ == '러' or r_first_ == '라'):
             l_root = l[:-1] + compose(l_last[0], l_last[1], ' ') + '르'
             r_canon = compose('ㅇ', r_first[1], r_first[2]) + r[1:]
-            if self.is_root(l_root):
-                candidates.add((l_root, r_canon))
+            candidates.add((l_root, r_canon))
 
         # ㅂ 불규칙 활용: 더러 + 워서 -> 더럽 + 어서
         if (l_last[2] == ' ') and (r_first_ == '워' or r_first_ == '와'):
             l_root = l[:-1] + compose(l_last[0], l_last[1], 'ㅂ')
             r_canon = compose('ㅇ', 'ㅏ' if r_first_ == '와' else 'ㅓ', r_first[2]) + r[1:]
-            if self.is_root(l_root):
-                candidates.add((l_root, r_canon))
+            candidates.add((l_root, r_canon))
 
 #         # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅂ, -ㅅ)
 #         # 입 + 니다 -> 이 + ㅂ니다
         if l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ':
             l_root = l[:-1] + compose(l_last[0], l_last[1], ' ')
             r_canon = l_last[2] + r
-            if self.is_root(l_root):
-                candidates.add((l_root, r_canon))
+            candidates.add((l_root, r_canon))
 
 #         # ㅅ 불규칙 활용: 부 + 어 -> 붓 + 어
 #         # exception : 벗 + 어 -> 벗어
         if (l_last[2] == ' ' and l[-1] != '벗') and (r_first[0] == 'ㅇ'):
             l_root = l[:-1] + compose(l_last[0], l_last[1], 'ㅅ')
-            if self.is_root(l_root):
-                candidates.add((l_root, r))
+            candidates.add((l_root, r))
 
         # 우 불규칙 활용: 똥퍼 + '' -> 똥푸 + 어
         if l_last_ == '퍼':
             l_root = l[:-1] + '푸'
             r_canon = compose('ㅇ', l_last[1], l_last[2]) + r
-            if self.is_root(l_root):
-                candidates.add((l_root, r_canon))
+            candidates.add((l_root, r_canon))
 
         # 우 불규칙 활용: 줬 + 어 -> 주 + 었어
         if l_last[1] == 'ㅝ':
             l_root = l[:-1] + compose(l_last[0], 'ㅜ', ' ')
             r_canon = compose('ㅇ', 'ㅓ', l_last[2]) + r
-            if self.is_root(l_root):
-                candidates.add((l_root, r_canon))
+            candidates.add((l_root, r_canon))
 
         # 오 불규칙 활용: 왔 + 어 -> 오 + 았어
         if l_last[1] == 'ㅘ':
             l_root = l[:-1] + compose(l_last[0], 'ㅗ', ' ')
             r_canon = compose('ㅇ', 'ㅏ', l_last[2]) + r
-            if self.is_root(l_root):
-                candidates.add((l_root, r_canon))
+            candidates.add((l_root, r_canon))
 
         # ㅡ 탈락 불규칙 활용: 꺼 + '' -> 끄 + 어 / 텄 + 어 -> 트 + 었어
         if (l_last[1] == 'ㅓ' or l_last[1] == 'ㅏ'):
             l_root = l[:-1] + compose(l_last[0], 'ㅡ', ' ')
             r_canon = compose('ㅇ', l_last[1], l_last[2]) + r
-            if self.is_root(l_root):
-                candidates.add((l_root, r_canon))
+            candidates.add((l_root, r_canon))
 
         # 거라, 너라 불규칙 활용
         # '-거라/-너라'를 어미로 취급하면 규칙 활용
@@ -126,16 +119,14 @@ class Lemmatizer:
         if l_last[0] == 'ㅎ' and l_last[1] == 'ㅐ':
             l_root = l[:-1] + '하'
             r_canon = compose('ㅇ', 'ㅏ', l_last[2]) + r
-            if self.is_root(l_root):
-                candidates.add((l_root, r_canon))
+            candidates.add((l_root, r_canon))
 
         # ㅎ (탈락) 불규칙 활용
         # 파라 + 면 -> 파랗 + 면
         if (l_last[2] == ' ' or l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ'):
             l_root = l[:-1] + compose(l_last[0], l_last[1], 'ㅎ')
             r_canon = r if l_last[2] == ' ' else l_last[2] + r
-            if self.is_root(l_root):
-                candidates.add((l_root, r_canon))
+            candidates.add((l_root, r_canon))
 
         # ㅎ (축약) 불규칙 할용
         # 시퍼렜 + 다 -> 시퍼렇 + 었다, 파랬 + 다 -> 파랗 + 았다
@@ -146,8 +137,7 @@ class Lemmatizer:
             else:
                 l_root = l[:-1] + compose(l_last[0], 'ㅓ' if l_last[1] == 'ㅔ' else 'ㅏ', 'ㅎ')
             r_canon = compose('ㅇ', 'ㅓ' if l_last[1] == 'ㅔ' else 'ㅏ', l_last[2]) + r
-            if self.is_root(l_root):
-                candidates.add((l_root, r_canon))
+            candidates.add((l_root, r_canon))
 
         ## Pre-defined set
         if (l, r) in self._predefined:
