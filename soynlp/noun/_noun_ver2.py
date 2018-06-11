@@ -132,7 +132,8 @@ class LRNounExtractor_v2:
 
         self._nouns = nouns
         if reset_lrgraph:
-            # for predicate extraction
+            # when extracting predicates, do not reset lrgraph.
+            # the remained lrgraph is predicate (root - ending) graph
             self.lrgraph.reset_lrgraph()
         if self.verbose:
             print('done')
