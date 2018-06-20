@@ -123,9 +123,12 @@ class DoublespaceLineCorpus:
         return self.num_sent if self.iter_sent else self.num_doc
 
 class EojeolCounter:
-    def __init__(self, sents=None, min_count=1, max_length=15):
+    def __init__(self, sents=None, min_count=1,
+        max_length=15, filtering_checkpoint=0):
+
         self.min_count = min_count
         self.max_length = max_length
+        self.filtering_checkpoint = filtering_checkpoint
         self._coverage = 0.0
         if sents:
             self._counter = self._counting_from_sents(sents)
@@ -135,11 +138,19 @@ class EojeolCounter:
 
     def _counting_from_sents(self, sents):
         _counter = {}
-        for sent in sents:
+        for i_sent, sent in enumerate(sents):
+            # filtering during eojeol counting
+            if (self.filtering_checkpoint > 0 and
+                i_sent > 0 and
+                i_sent % self.filtering_checkpoint == 0):
+                _counter = {k:v for k,v in _counter.items()
+                            if v >= self.min_count}
+            # add eojeol count
             for eojeol in sent.split():
                 if (not eojeol) or (len(eojeol) <= 1) or (len(eojeol) > self.max_length):
                     continue
                 _counter[eojeol] = _counter.get(eojeol, 0) + 1
+        # final filtering
         _counter = {k:v for k,v in _counter.items() if v >= self.min_count}
         return _counter
 
