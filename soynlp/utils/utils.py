@@ -153,13 +153,13 @@ class EojeolCounter:
                 _counter[eojeol] = _counter.get(eojeol, 0) + 1
             # print status
             if self.verbose and i_sent % 100000 == 99999:
-                print('\r[EojeolCounter] n eojeol = {} from {} sents{}. Mem={} Gb'.format(
-                    len(_counter), i_sent + 1, ' '*20), flush=True, end='')
+                print('\r[EojeolCounter] n eojeol = {} from {} sents. mem={} Gb{}'.format(
+                    len(_counter), i_sent + 1, '%.3f'%get_process_memory(), ' '*20), flush=True, end='')
         # final filtering
         _counter = {k:v for k,v in _counter.items() if v >= self.min_count}
         if self.verbose:
-            print('\r[EojeolCounter] n eojeol = {} from {} sents{}. Mem={} Gb'.format(
-                len(_counter), i_sent + 1, ' '*20), flush=True)
+            print('\r[EojeolCounter] n eojeol = {} from {} sents. mem={} Gb{}'.format(
+                len(_counter), i_sent + 1, '%.3f'%get_process_memory(), ' '*20), flush=True)
         return _counter
 
     @property
