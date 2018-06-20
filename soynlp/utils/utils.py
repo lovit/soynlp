@@ -124,11 +124,12 @@ class DoublespaceLineCorpus:
 
 class EojeolCounter:
     def __init__(self, sents=None, min_count=1,
-        max_length=15, filtering_checkpoint=0):
+        max_length=15, filtering_checkpoint=0, verbose=False):
 
         self.min_count = min_count
         self.max_length = max_length
         self.filtering_checkpoint = filtering_checkpoint
+        self.verbose = verbose
         self._coverage = 0.0
         if sents:
             self._counter = self._counting_from_sents(sents)
@@ -150,8 +151,15 @@ class EojeolCounter:
                 if (not eojeol) or (len(eojeol) <= 1) or (len(eojeol) > self.max_length):
                     continue
                 _counter[eojeol] = _counter.get(eojeol, 0) + 1
+            # print status
+            if self.verbose and i_sent % 100000 == 99999:
+                print('\r[EojeolCounter] n eojeol = {} from {} sents{}. Mem={} Gb'.format(
+                    len(_counter), i_sent + 1, ' '*20), flush=True, end='')
         # final filtering
         _counter = {k:v for k,v in _counter.items() if v >= self.min_count}
+        if self.verbose:
+            print('\r[EojeolCounter] n eojeol = {} from {} sents{}. Mem={} Gb'.format(
+                len(_counter), i_sent + 1, ' '*20), flush=True)
         return _counter
 
     @property
