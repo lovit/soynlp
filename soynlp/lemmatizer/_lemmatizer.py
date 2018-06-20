@@ -38,9 +38,7 @@ class Lemmatizer:
         return candidates
 
     def _candidates(self, l, r):
-        candidates = set()
-        if self.is_root(l):
-            candidates.add((l, r))
+        candidates = {(l, r)}
 
         l_last = decompose(l[-1])
         l_last_ = compose(l_last[0], l_last[1], ' ')
