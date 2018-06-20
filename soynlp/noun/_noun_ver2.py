@@ -4,6 +4,7 @@ import os
 
 from soynlp.utils import EojeolCounter
 from soynlp.utils import LRGraph
+from soynlp.utils import get_process_memory
 from soynlp.tokenizer import MaxScoreTokenizer
 
 NounScore = namedtuple('NounScore', 'frequency score')
@@ -86,7 +87,8 @@ class LRNounExtractor_v2:
 
         eojeol_counter = EojeolCounter(sentences, min_eojeol_count,
             max_length=self.l_max_length + self.r_max_length,
-            filtering_checkpoint=self.eojeol_counter_filtering_checkpoint)
+            filtering_checkpoint=self.eojeol_counter_filtering_checkpoint,
+            verbose=self.verbose)
         self._num_of_eojeols = eojeol_counter._count_sum
         self._num_of_covered_eojeols = 0
 
@@ -96,7 +98,8 @@ class LRNounExtractor_v2:
             self.l_max_length, self.r_max_length)
 
         if self.verbose:
-            print('[Noun Extractor] has been trained.')
+            print('[Noun Extractor] has been trained. mem={} Gb'.format(
+                '%.3f'%get_process_memory()))
     
     def extract(self, minimum_noun_score=0.3, min_count=1, reset_lrgraph=True):
 
@@ -139,7 +142,7 @@ class LRNounExtractor_v2:
             # the remained lrgraph is predicate (root - ending) graph
             self.lrgraph.reset_lrgraph()
         if self.verbose:
-            print('done')
+            print('done. mem={} Gb'.format('%.3f'%get_process_memory()))
 
         nouns_ = {noun:NounScore(score[1], score[0]) for noun, score in nouns.items()}
         return nouns_
