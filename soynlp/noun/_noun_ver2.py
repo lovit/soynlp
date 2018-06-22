@@ -12,7 +12,7 @@ NounScore = namedtuple('NounScore', 'frequency score')
 class LRNounExtractor_v2:
     def __init__(self, l_max_length=10, r_max_length=9, predictor_headers=None,
         verbose=True, min_num_of_features=1, max_count_when_noun_is_eojeol=30,
-        eojeol_counter_filtering_checkpoint=0):
+        eojeol_counter_filtering_checkpoint=0, extract_compound=True):
 
         self.l_max_length = l_max_length
         self.r_max_length = r_max_length
@@ -21,6 +21,7 @@ class LRNounExtractor_v2:
         self.min_num_of_features = min_num_of_features
         self.max_count_when_noun_is_eojeol = max_count_when_noun_is_eojeol
         self.eojeol_counter_filtering_checkpoint = eojeol_counter_filtering_checkpoint
+        self.extract_compound = extract_compound
 
         if not predictor_headers:
             predictor_headers = self._set_default_predictor_header()
@@ -109,10 +110,13 @@ class LRNounExtractor_v2:
             noun_candidates, minimum_noun_score)
 
         # E = N*J+ or N*Posi+
-        candidates = {l:sum(rdict.values()) for l,rdict in
-            self.lrgraph._lr.items() if len(l) >= 4}
-        compounds = self.extract_compounds(
-            candidates, prediction_scores, minimum_noun_score)
+        if self.extract_compound:
+            candidates = {l:sum(rdict.values()) for l,rdict in
+                self.lrgraph._lr.items() if len(l) >= 4}
+            compounds = self.extract_compounds(
+                candidates, prediction_scores, minimum_noun_score)
+        else:
+            compounds = {}
 
         # combine single nouns and compounds
         nouns = {noun:score for noun, score in prediction_scores.items()
