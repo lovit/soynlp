@@ -12,7 +12,8 @@ NounScore = namedtuple('NounScore', 'frequency score')
 class LRNounExtractor_v2:
     def __init__(self, l_max_length=10, r_max_length=9, predictor_headers=None,
         verbose=True, min_num_of_features=1, max_count_when_noun_is_eojeol=30,
-        eojeol_counter_filtering_checkpoint=0, extract_compound=True):
+        eojeol_counter_filtering_checkpoint=0, extract_compound=True,
+        extract_determiner=False, extract_josa=False):
 
         self.l_max_length = l_max_length
         self.r_max_length = r_max_length
@@ -101,7 +102,13 @@ class LRNounExtractor_v2:
         if self.verbose:
             print('[Noun Extractor] has been trained. mem={} Gb'.format(
                 '%.3f'%get_process_memory()))
-    
+
+    def _extract_determiner(self):
+        raise NotImplemented
+
+    def _extract_josa(self):
+        raise NotImplemented
+
     def extract(self, minimum_noun_score=0.3, min_count=1, reset_lrgraph=True):
 
         # reset covered eojeol count
