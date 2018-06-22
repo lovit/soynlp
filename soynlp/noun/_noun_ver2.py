@@ -104,6 +104,9 @@ class LRNounExtractor_v2:
     
     def extract(self, minimum_noun_score=0.3, min_count=1, reset_lrgraph=True):
 
+        # reset covered eojeol count
+        self._num_of_covered_eojeols = 0
+
         # base prediction
         noun_candidates = self._noun_candidates_from_positive_features()
         prediction_scores = self._batch_prediction_order_by_word_length(
