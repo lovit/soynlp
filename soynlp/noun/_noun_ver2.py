@@ -13,7 +13,7 @@ class LRNounExtractor_v2:
     def __init__(self, l_max_length=10, r_max_length=9, predictor_headers=None,
         verbose=True, min_num_of_features=1, max_count_when_noun_is_eojeol=30,
         eojeol_counter_filtering_checkpoint=0, extract_compound=True,
-        extract_determiner=False, extract_josa=False):
+        extract_determiner=False, extract_josa=False, postprocessing=None):
 
         self.l_max_length = l_max_length
         self.r_max_length = r_max_length
@@ -23,6 +23,12 @@ class LRNounExtractor_v2:
         self.max_count_when_noun_is_eojeol = max_count_when_noun_is_eojeol
         self.eojeol_counter_filtering_checkpoint = eojeol_counter_filtering_checkpoint
         self.extract_compound = extract_compound
+
+        if not postprocessing:
+            postprocessing = ['detaching_features']
+        elif isinstance(postprocessing) == str:
+            postprocessing = [postprocessing]
+        self.postprocessing = postprocessing
 
         if not predictor_headers:
             predictor_headers = self._set_default_predictor_header()
@@ -394,6 +400,26 @@ class LRNounExtractor_v2:
         return None
 
     def _post_processing(self, nouns, prediction_scores, compounds):
-        # TODO
-        # Not Implemented
+        for method in self.postprocessing:
+            if method == 'detaching_features':
+                n_before = len(nouns)
+                nouns = _postprocess_detaching_features(nouns, self._pos_features)
+                n_after = len(nouns)
+                if self.verbose:
+                    print('[NounExtractor] postprocessing {} : {} -> {}'.format(
+                        method, n_before, n_after))
         return nouns
+
+def _postprocess_detaching_features(nouns, features):
+    removals = set()
+    for word in nouns:
+        if len(word) <= 2:
+            continue
+        for e in range(2, len(word)):
+            if (word[:e] in nouns) and (word[e:] in features):
+                removals.add(word)
+                break
+    ## debug code ##
+    # print(sorted(removals, key=lambda x:-nouns[x][1])[:50])
+    nouns_ = {word:score for word, score in nouns.items() if (word in removals) == False}
+    return nouns_
