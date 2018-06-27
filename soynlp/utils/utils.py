@@ -341,6 +341,7 @@ class LRGraph:
         self._lr_origin = None
 
     def copy_compatified_lrgraph_origin(self):
+        """It returns original LRGraph which has no self._lr_origin"""
         lr_graph = LRGraph(
             l_max_length = self.l_max_length,
             r_max_length = self.r_max_length)
