@@ -282,6 +282,9 @@ class LRGraph:
         return lrgraph, rlgraph
 
     def reset_lrgraph(self):
+        if not self._lr_origin:
+            return None
+
         self._lr, self._rl = self._check_lrgraph(
             {l:{r:c for r,c in rdict.items()}
              for l, rdict in self._lr_origin.items()}
@@ -331,6 +334,11 @@ class LRGraph:
         if topk > 0:
             llist = llist[:topk]
         return llist
+
+    def freeze(self):
+        """Remove self._lr_origin. Be careful.
+        When you excute freeze, you cannot reset_lrgraph anynore."""
+        self._lr_origin = None
 
     def save(self, path):
         dirname = os.path.dirname(path)
