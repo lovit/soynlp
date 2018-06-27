@@ -340,6 +340,16 @@ class LRGraph:
         When you excute freeze, you cannot reset_lrgraph anynore."""
         self._lr_origin = None
 
+    def copy_compatified_lrgraph_origin(self):
+        lr_graph = LRGraph(
+            l_max_length = self.l_max_length,
+            r_max_length = self.r_max_length)
+        lr_graph._lr, lr_graph._rl = self._check_lrgraph(
+            {l:{r:c for r,c in rdict.items()}
+             for l, rdict in self._lr_origin.items()}
+        )
+        return lr_graph
+
     def save(self, path):
         dirname = os.path.dirname(path)
         if dirname and not os.path.exists(dirname):
