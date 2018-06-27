@@ -306,7 +306,8 @@ class LRNounExtractor_v2:
                 for r, count in self.lrgraph.get_r(word, -1):
                     if r == '' or (r in self._pos_features) or (r in self._common_features):
                         self.lrgraph.remove_eojeol(word+r, count)
-                        self._num_of_covered_eojeols += count
+                        # Do 'eojeol counting covered' in flushing step
+                        # self._num_of_covered_eojeols += count
         if self.verbose:
             print('\r[Noun Extractor] batch prediction was completed for {} words'.format(
                 n), flush=True)
