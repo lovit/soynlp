@@ -68,6 +68,8 @@ def _predict(r, features, nouns, pos_r):
     pos, neg, unk = 0, 0, 0
 
     for l, freq in features:
+        if len(l) <= 1:
+            continue
         if _is_NJ(r, nouns, pos_r):
             neg += freq
         elif _exist_longer_noun(l, r, nouns):
