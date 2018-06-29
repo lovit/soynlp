@@ -85,14 +85,34 @@ class LRNounExtractor_v2:
         self._common_features = common
 
     def _append_features(self, feature_type, features):
+
+        def check_feature_size():
+            return (len(self._pos_features),
+                    len(self._neg_features),
+                    len(self._common_features))
+
+        # size before
+        n_pos, n_neg, n_common = check_feature_size()
+
         if feature_type == 'pos':
-            self._pos_features.update(features)
+            commons = {f for f in features if (f in self._neg_features)}
+            self._pos_features.update({f for f in features if not (f in commons)})
         elif feature_type == 'neg':
-            self._neg_features.update(features)
+            commons = {f for f in features if (f in self._pos_features)}
+            self._neg_features.update({f for f in features if not (f in commons)})
         elif feature_type == 'common':
-            self._common_features.update(features)
+            commons = features
         else:
             raise ValueError('Feature type was wrong. Choice = [pos, neg, common]')
+        self._common_features.update(commons)
+
+        # size after
+        n_pos_, n_neg_, n_common_ = check_feature_size()
+
+        if self.verbose:
+            message = 'pos={} -> {}, neg={} -> {}, common={} -> {}'.format(
+                n_pos, n_pos_, n_neg, n_neg_, n_common, n_common_)
+            print('[Noun Extractor] features appended. {}'.format(message))
 
     def train_extract(self, sentences, minimum_noun_score=0.3,
         min_count=1, min_eojeol_count=1, reset_lrgraph=True):
@@ -126,7 +146,10 @@ class LRNounExtractor_v2:
         raise NotImplemented
 
     def extract_domain_pos_features(self, append_extracted_features=True,
-        noun_candidates=None, minimum_noun_score=0.3):
+        noun_candidates=None, known_ignore_features=None,
+        min_noun_score=0.3, min_noun_frequency=100,
+        min_pos_score=0.3, min_pos_feature_frequency=1000,
+        min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5):
 
         if self.verbose:
             print('[Noun Extractor] batch prediction for extracting pos feature')
@@ -135,15 +158,15 @@ class LRNounExtractor_v2:
             noun_candidates = self._noun_candidates_from_positive_features()
 
         prediction_scores = self._batch_prediction_order_by_word_length(
-            noun_candidates, minimum_noun_score)
+            noun_candidates, min_noun_score)
         self.lrgraph.reset_lrgraph()
 
         self._pos_features_extracted = extract_domain_pos_features(
             prediction_scores, self.lrgraph,
-            self._pos_features, known_ignore_features=None,
-            min_noun_score=0.3, min_noun_frequency=100,
-            min_pos_score=0.3, min_pos_feature_frequency=1000,
-            min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5
+            self._pos_features, known_ignore_features,
+            min_noun_score, min_noun_frequency,
+            min_pos_score, min_pos_feature_frequency,
+            min_num_of_unique_lastchar, min_entropy_of_lastchar
         )
 
         self._append_features('pos', self._pos_features_extracted)
@@ -188,13 +211,9 @@ class LRNounExtractor_v2:
         if self.verbose:
             print('[Noun Extractor] {} nouns ({} compounds) with min count={}'.format(
                 len(nouns), len(compounds), min_count), flush=True)
-
-            coverage = '%.2f' % (100 * self._num_of_covered_eojeols
-                / self._num_of_eojeols)
-            print('[Noun Extractor] {} % eojeols are covered'.format(coverage), flush=True)
-
-        if self.verbose:
             print('[Noun Extractor] flushing ... ', flush=True, end='')
+
+        self._check_covered_eojeols(nouns)
 
         self._nouns = nouns
         if reset_lrgraph:
@@ -203,6 +222,9 @@ class LRNounExtractor_v2:
             self.lrgraph.reset_lrgraph()
         if self.verbose:
             print('done. mem={} Gb'.format('%.3f'%get_process_memory()))
+            coverage = '%.2f' % (100 * self._num_of_covered_eojeols
+                / self._num_of_eojeols)
+            print('[Noun Extractor] {} % eojeols are covered'.format(coverage), flush=True)
 
         nouns_ = {noun:NounScore(score[1], score[0]) for noun, score in nouns.items()}
         return nouns_
