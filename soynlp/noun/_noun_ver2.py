@@ -473,6 +473,18 @@ class LRNounExtractor_v2:
                         method, n_before, n_after))
         return nouns
 
+    def _check_covered_eojeols(self, nouns):
+
+        def get_r_from_origin(l):
+            return self.lrgraph._lr_origin.get(l, {}).items()
+
+        for noun in nouns:
+            for r, count in get_r_from_origin(noun):
+                if ((r == '') or
+                    (r in self._pos_features) or
+                    (r in self._common_features)):
+                    self._num_of_covered_eojeols += count
+
 def _postprocess_detaching_features(nouns, features):
     removals = set()
     for word in nouns:
