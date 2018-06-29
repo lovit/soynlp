@@ -24,6 +24,7 @@ def extract_domain_pos_features(prediction_scores, lrgraph,
     pos_candidates = {r:count for r, count in pos_candidates.items() 
                       if count >= min_pos_feature_frequency}
 
+    # add known pos features for unknown feature prediction
     domain_pos_features = {r:None for r in known_pos_features}
 
     # from shorter to longer
@@ -39,6 +40,10 @@ def extract_domain_pos_features(prediction_scores, lrgraph,
 
         if score >= min_pos_score and freq >= min_pos_feature_frequency:
             domain_pos_features[r] = (score, freq)
+
+    # remove known features
+    domain_pos_features = {r:score for r, score in domain_pos_features.items()
+                           if not (r in known_pos_features)}
 
     return domain_pos_features
 
