@@ -19,7 +19,7 @@ def get_process_memory():
 
 def check_dirs(filepath):
     dirname = os.path.dirname(filepath)
-    if dirname and not os.path.exists(dirname):
+    if dirname and dirname == '.' and not os.path.exists(dirname):
         os.makedirs(dirname)
         print('created {}'.format(dirname))
 
