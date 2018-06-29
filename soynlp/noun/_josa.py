@@ -4,7 +4,8 @@ def extract_domain_pos_features(prediction_scores, lrgraph,
     known_pos_features, known_ignore_features=None,
     min_noun_score=0.3, min_noun_frequency=100,
     min_pos_score=0.3, min_pos_feature_frequency=1000,
-    min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5):
+    min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5,
+    min_noun_entropy=2.0):
 
     nouns = {noun for noun, score in prediction_scores.items()
              if ((score[0] >= min_noun_score) 
@@ -38,7 +39,14 @@ def extract_domain_pos_features(prediction_scores, lrgraph,
             min_pos_score, min_pos_feature_frequency,
             min_num_of_unique_lastchar, min_entropy_of_lastchar)
 
-        if score >= min_pos_score and freq >= min_pos_feature_frequency:
+        # noun entropy
+        noun_sum = sum((c for l, c in features if l in nouns))
+        noun_entropy = [c/noun_sum for l, c in features if l in nouns]
+        noun_entropy = sum([-math.log(p) * p for p in noun_entropy])
+
+        if ((score >= min_pos_score) and
+            (freq >= min_pos_feature_frequency) and
+            (noun_entropy >= min_noun_entropy)):
             domain_pos_features[r] = (score, freq)
 
     # remove known features

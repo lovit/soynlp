@@ -149,7 +149,8 @@ class LRNounExtractor_v2:
         noun_candidates=None, known_ignore_features=None,
         min_noun_score=0.3, min_noun_frequency=100,
         min_pos_score=0.3, min_pos_feature_frequency=1000,
-        min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5):
+        min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5,
+        min_noun_entropy=1.5):
 
         if self.verbose:
             print('[Noun Extractor] batch prediction for extracting pos feature')
@@ -166,7 +167,8 @@ class LRNounExtractor_v2:
             self._pos_features, known_ignore_features,
             min_noun_score, min_noun_frequency,
             min_pos_score, min_pos_feature_frequency,
-            min_num_of_unique_lastchar, min_entropy_of_lastchar
+            min_num_of_unique_lastchar, min_entropy_of_lastchar,
+            min_noun_entropy
         )
 
         self._append_features('pos', self._pos_features_extracted)
