@@ -146,7 +146,7 @@ class LRNounExtractor_v2:
         raise NotImplemented
 
     def extract_domain_pos_features(self, append_extracted_features=True,
-        noun_candidates=None, known_ignore_features=None,
+        noun_candidates=None, ignore_features=None,
         min_noun_score=0.3, min_noun_frequency=100,
         min_pos_score=0.3, min_pos_feature_frequency=1000,
         min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5,
@@ -164,7 +164,7 @@ class LRNounExtractor_v2:
 
         self._pos_features_extracted = extract_domain_pos_features(
             prediction_scores, self.lrgraph,
-            self._pos_features, known_ignore_features,
+            self._pos_features, ignore_features,
             min_noun_score, min_noun_frequency,
             min_pos_score, min_pos_feature_frequency,
             min_num_of_unique_lastchar, min_entropy_of_lastchar,

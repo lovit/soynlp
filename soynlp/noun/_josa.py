@@ -1,23 +1,23 @@
 import math
 
 def extract_domain_pos_features(prediction_scores, lrgraph,
-    known_pos_features, known_ignore_features=None,
+    known_pos_features, ignore_features=None,
     min_noun_score=0.3, min_noun_frequency=100,
     min_pos_score=0.3, min_pos_feature_frequency=1000,
     min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5,
-    min_noun_entropy=2.0):
+    min_noun_entropy=1.5):
 
     nouns = {noun for noun, score in prediction_scores.items()
              if ((score[0] >= min_noun_score) 
                  and (score[1] >= min_noun_frequency))}
 
-    if known_ignore_features is None:
-        known_ignore_features = {}
+    if ignore_features is None:
+        ignore_features = {}
 
     pos_candidates = {}
     for noun in nouns:
         for r, count in lrgraph.get_r(noun, -1):
-            if (r in known_pos_features) or (r in known_ignore_features):
+            if (r in known_pos_features) or (r in ignore_features):
                 continue
             pos_candidates[r] = pos_candidates.get(r, 0) + count
 
