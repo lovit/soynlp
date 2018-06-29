@@ -3,7 +3,7 @@ import math
 def extract_domain_pos_features(prediction_scores, lrgraph,
     known_pos_features, known_ignore_features=None,
     min_noun_score=0.3, min_noun_frequency=100,
-    min_pos_score=0.3, min_pos_feature_frequency=30,
+    min_pos_score=0.3, min_pos_feature_frequency=1000,
     min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5):
 
     nouns = {noun for noun, score in prediction_scores.items()
