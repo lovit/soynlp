@@ -17,6 +17,12 @@ def get_process_memory():
     process = psutil.Process(os.getpid())
     return process.memory_info().rss / (1024 ** 3)
 
+def check_dirs(filepath):
+    dirname = os.path.dirname(filepath)
+    if dirname and not os.path.exists(dirname):
+        os.makedirs(dirname)
+        print('created {}'.format(dirname))
+
 def sort_by_alphabet(filepath):
     if sys.version.split('.')[0] == '2':
         with open(filepath) as f:
