@@ -6,6 +6,7 @@ from soynlp.utils import EojeolCounter
 from soynlp.utils import LRGraph
 from soynlp.utils import get_process_memory
 from soynlp.tokenizer import MaxScoreTokenizer
+from ._josa import extract_domain_pos_features
 
 NounScore = namedtuple('NounScore', 'frequency score')
 
@@ -13,7 +14,7 @@ class LRNounExtractor_v2:
     def __init__(self, l_max_length=10, r_max_length=9, predictor_headers=None,
         verbose=True, min_num_of_features=1, max_count_when_noun_is_eojeol=30,
         eojeol_counter_filtering_checkpoint=0, extract_compound=True,
-        extract_determiner=False, extract_josa=False, postprocessing=None):
+        extract_pos_feature=False, extract_determiner=False, postprocessing=None):
 
         self.l_max_length = l_max_length
         self.r_max_length = r_max_length
@@ -23,6 +24,8 @@ class LRNounExtractor_v2:
         self.max_count_when_noun_is_eojeol = max_count_when_noun_is_eojeol
         self.eojeol_counter_filtering_checkpoint = eojeol_counter_filtering_checkpoint
         self.extract_compound = extract_compound
+        self.extract_pos_feature = extract_pos_feature
+        self.extract_determiner = extract_determiner
 
         if not postprocessing:
             postprocessing = ['detaching_features']
@@ -81,6 +84,16 @@ class LRNounExtractor_v2:
         self._neg_features = neg
         self._common_features = common
 
+    def _append_features(self, feature_type, features):
+        if feature_type == 'pos':
+            self._pos_features.update(features)
+        elif feature_type == 'neg':
+            self._neg_features.update(features)
+        elif feature_type == 'common':
+            self._common_features.update(features)
+        else:
+            raise ValueError('Feature type was wrong. Choice = [pos, neg, common]')
+
     def train_extract(self, sentences, minimum_noun_score=0.3,
         min_count=1, min_eojeol_count=1, reset_lrgraph=True):
 
@@ -112,8 +125,31 @@ class LRNounExtractor_v2:
     def _extract_determiner(self):
         raise NotImplemented
 
-    def _extract_josa(self):
-        raise NotImplemented
+    def extract_domain_pos_features(self, append_extracted_features=True,
+        noun_candidates=None, minimum_noun_score=0.3):
+
+        if self.verbose:
+            print('[Noun Extractor] batch prediction for extracting pos feature')
+
+        if not noun_candidates:
+            noun_candidates = self._noun_candidates_from_positive_features()
+
+        prediction_scores = self._batch_prediction_order_by_word_length(
+            noun_candidates, minimum_noun_score)
+        self.lrgraph.reset_lrgraph()
+
+        self._pos_features_extracted = extract_domain_pos_features(
+            prediction_scores, self.lrgraph,
+            self._pos_features, known_ignore_features=None,
+            min_noun_score=0.3, min_noun_frequency=100,
+            min_pos_score=0.3, min_pos_feature_frequency=1000,
+            min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5
+        )
+
+        self._append_features('pos', self._pos_features_extracted)
+        if self.verbose:
+            print('[Noun Extractor] {} pos features were extracted'.format(
+                len(self._pos_features_extracted)))
 
     def extract(self, minimum_noun_score=0.3, min_count=1, reset_lrgraph=True):
 
@@ -122,6 +158,10 @@ class LRNounExtractor_v2:
 
         # base prediction
         noun_candidates = self._noun_candidates_from_positive_features()
+
+        if self.extract_pos_feature:
+            self.extract_domain_pos_features(noun_candidates)
+
         prediction_scores = self._batch_prediction_order_by_word_length(
             noun_candidates, minimum_noun_score)
 
@@ -407,7 +447,7 @@ class LRNounExtractor_v2:
                 nouns = _postprocess_detaching_features(nouns, self._pos_features)
                 n_after = len(nouns)
                 if self.verbose:
-                    print('[NounExtractor] postprocessing {} : {} -> {}'.format(
+                    print('[Noun Extractor] postprocessing {} : {} -> {}'.format(
                         method, n_before, n_after))
         return nouns
 
