@@ -253,7 +253,7 @@ class LRNounExtractor_v2:
             if self._exist_longer_pos(word, r): # ignore
                 continue
             if self._exist_longer_neg(word, r): # negative -다고
-                neg += freq
+                # neg += freq
                 continue
             if r in self._common_features:
                 common += freq
