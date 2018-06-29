@@ -2,6 +2,7 @@ from collections import defaultdict
 from collections import namedtuple
 import os
 
+from soynlp.utils import check_dirs
 from soynlp.utils import EojeolCounter
 from soynlp.utils import LRGraph
 from soynlp.utils import get_process_memory
@@ -14,7 +15,8 @@ class LRNounExtractor_v2:
     def __init__(self, l_max_length=10, r_max_length=9, predictor_headers=None,
         verbose=True, min_num_of_features=1, max_count_when_noun_is_eojeol=30,
         eojeol_counter_filtering_checkpoint=0, extract_compound=True,
-        extract_pos_feature=False, extract_determiner=False, postprocessing=None):
+        extract_pos_feature=False, extract_determiner=False, postprocessing=None,
+        logpath=None):
 
         self.l_max_length = l_max_length
         self.r_max_length = r_max_length
@@ -26,6 +28,7 @@ class LRNounExtractor_v2:
         self.extract_compound = extract_compound
         self.extract_pos_feature = extract_pos_feature
         self.extract_determiner = extract_determiner
+        self.logpath = logpath
 
         if not postprocessing:
             postprocessing = ['detaching_features']
@@ -468,7 +471,9 @@ class LRNounExtractor_v2:
         for method in self.postprocessing:
             if method == 'detaching_features':
                 n_before = len(nouns)
-                nouns = _postprocess_detaching_features(nouns, self._pos_features)
+                logheader = '## Ignore noun candidates from detaching pos features\n'
+                nouns = _postprocess_detaching_features(
+                    nouns, self._pos_features, self.logpath, logheader)
                 n_after = len(nouns)
                 if self.verbose:
                     print('[Noun Extractor] postprocessing {} : {} -> {}'.format(
@@ -487,7 +492,7 @@ class LRNounExtractor_v2:
                     (r in self._common_features)):
                     self._num_of_covered_eojeols += count
 
-def _postprocess_detaching_features(nouns, features):
+def _postprocess_detaching_features(nouns, features, logpath=None, logheader=None):
     removals = set()
     for word in nouns:
         if len(word) <= 2:
@@ -496,7 +501,17 @@ def _postprocess_detaching_features(nouns, features):
             if (word[:e] in nouns) and (word[e:] in features):
                 removals.add(word)
                 break
-    ## debug code ##
-    # print(sorted(removals, key=lambda x:-nouns[x][1])[:50])
+
+    # write log for debug
+    if logpath:
+        check_dirs(logpath)
+        if not logheader:
+            logheader = '## Ignored noun candidates from detaching features\n'
+        with open(logpath, 'w', encoding='utf-8') as f:
+            f.write(logheader)
+            for word in sorted(removals):
+                f.write('{}\n'.format(word))
+            f.write('\n')
+
     nouns_ = {word:score for word, score in nouns.items() if (word in removals) == False}
     return nouns_
