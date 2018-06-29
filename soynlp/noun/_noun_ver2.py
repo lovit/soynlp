@@ -196,7 +196,8 @@ class LRNounExtractor_v2:
 
         # debug code
         if debug:
-            print(pos, common, neg, unk, end)
+            print('pos={}, common={}, neg={}, unk={}, end={}'.format(
+                pos, common, neg, unk, end))
 
         features_ = self._get_nonempty_features(word, features)
         if len(features_) > self.min_num_of_features:        
