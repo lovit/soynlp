@@ -29,6 +29,8 @@ class LRNounExtractor_v2:
         self.extract_pos_feature = extract_pos_feature
         self.extract_determiner = extract_determiner
         self.logpath = logpath
+        if logpath:
+            check_dirs(logpath)
 
         if not postprocessing:
             postprocessing = ['detaching_features']
@@ -192,6 +194,12 @@ class LRNounExtractor_v2:
 
         prediction_scores = self._batch_prediction_order_by_word_length(
             noun_candidates, minimum_noun_score)
+
+        if self.logpath:
+            with open(self.logpath+'_prediction_score.log', 'w', encoding='utf-8') as f:
+                f.write('noun score frequency\n')
+                for word, score in sorted(prediction_scores.items(), key=lambda x:-x[1]):
+                    f.write('{} {} {}\n'.format(word, score[0], score[1]))
 
         # E = N*J+ or N*Posi+
         if self.extract_compound:
@@ -473,7 +481,7 @@ class LRNounExtractor_v2:
                 n_before = len(nouns)
                 logheader = '## Ignore noun candidates from detaching pos features\n'
                 nouns = _postprocess_detaching_features(
-                    nouns, self._pos_features, self.logpath, logheader)
+                    nouns, self._pos_features, self.logpath+'_postprocessing.log', logheader)
                 n_after = len(nouns)
                 if self.verbose:
                     print('[Noun Extractor] postprocessing {} : {} -> {}'.format(
@@ -504,10 +512,9 @@ def _postprocess_detaching_features(nouns, features, logpath=None, logheader=Non
 
     # write log for debug
     if logpath:
-        check_dirs(logpath)
         if not logheader:
             logheader = '## Ignored noun candidates from detaching features\n'
-        with open(logpath, 'w', encoding='utf-8') as f:
+        with open(logpath, 'a', encoding='utf-8') as f:
             f.write(logheader)
             for word in sorted(removals):
                 f.write('{}\n'.format(word))
