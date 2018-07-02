@@ -7,7 +7,7 @@ josapath += '/frequent_enrolled_josa.txt'
 with open(josapath, encoding='utf-8') as f:
     josaset = {word.strip() for word in f if word}
 
-min_num_of_josa = 10
+min_num_of_josa = 5
 
 def write_log(path, header, words):
     check_dirs(path)
