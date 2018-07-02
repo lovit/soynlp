@@ -8,6 +8,8 @@ from soynlp.utils import LRGraph
 from soynlp.utils import get_process_memory
 from soynlp.tokenizer import MaxScoreTokenizer
 from ._josa import extract_domain_pos_features
+from ._noun_postprocessing import detaching_features
+from ._noun_postprocessing import ignore_features
 
 NounScore = namedtuple('NounScore', 'frequency score')
 
@@ -483,15 +485,15 @@ class LRNounExtractor_v2:
 
             if method == 'detaching_features':
                 logheader = '## Ignore noun candidates from detaching pos features\n'
-                nouns = _postprocess_detaching_features(
-                    nouns, self._pos_features, self.logpath+'_postprocessing.log', logheader)
+                nouns, removals = detaching_features(nouns,
+                    self._pos_features, self.logpath+'_postprocessing.log', logheader)
 
             elif method == 'ignore_features':
                 features = {f for f in self._pos_features}
                 # features.update(self._neg_features)
                 features.update(self._common_features)
-                nouns = _postprocessing_ignore_features(
-                    nouns, features, self.logpath+'_postprocessing.log')
+                nouns, removals = ignore_features(nouns,
+                    features, self.logpath+'_postprocessing.log')
 
         n_after = len(nouns)
         if self.verbose:
@@ -511,45 +513,3 @@ class LRNounExtractor_v2:
                     (r in self._pos_features) or
                     (r in self._common_features)):
                     self._num_of_covered_eojeols += count
-
-def _postprocess_detaching_features(nouns, features, logpath=None, logheader=None):
-    removals = set()
-    for word in nouns:
-        if len(word) <= 2:
-            continue
-        for e in range(2, len(word)):
-            if (word[:e] in nouns) and (word[e:] in features):
-                removals.add(word)
-                break
-
-    # write log for debug
-    if logpath:
-        if not logheader:
-            logheader = '## Ignored noun candidates from detaching features\n'
-        with open(logpath, 'a', encoding='utf-8') as f:
-            f.write(logheader)
-            for word in sorted(removals):
-                f.write('{}\n'.format(word))
-            f.write('\n')
-
-    nouns_ = {word:score for word, score in nouns.items() if (word in removals) == False}
-    return nouns_
-
-def _postprocessing_ignore_features(nouns, features, logpath=None, logheader=None):
-    removals = set()
-    for word in nouns:
-        if word in features:
-            removals.add(word)
-
-    # write log for debug
-    if logpath:
-        if not logheader:
-            logheader = '## Ignored noun candidates these are same with features\n'
-        with open(logpath, 'a', encoding='utf-8') as f:
-            f.write(logheader)
-            for word in sorted(removals):
-                f.write('{}\n'.format(word))
-            f.write('\n')
-
-    nouns_ = {word:score for word, score in nouns.items() if (word in removals) == False}
-    return nouns_
