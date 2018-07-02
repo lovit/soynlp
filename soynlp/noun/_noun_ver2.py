@@ -266,12 +266,6 @@ class LRNounExtractor_v2:
             # the remained lrgraph is predicate (root - ending) graph
             self.lrgraph.reset_lrgraph()
 
-        if self.verbose:
-            print('done. mem={} Gb'.format('%.3f'%get_process_memory()))
-            coverage = '%.2f' % (100 * self._num_of_covered_eojeols
-                / self._num_of_eojeols)
-            print('[Noun Extractor] {} % eojeols are covered'.format(coverage), flush=True)
-
         nouns_ = {noun:NounScore(score[1], score[0]) for noun, score in nouns.items()}
         return nouns_
 
@@ -487,7 +481,6 @@ class LRNounExtractor_v2:
 
                 # eojeol coverage
                 self.lrgraph.remove_eojeol(word)
-                self._num_of_covered_eojeols += count
 
         if self.verbose:
             print('\r[Noun Extractor] checked compounds. discovered {} compounds'.format(
@@ -573,12 +566,31 @@ class LRNounExtractor_v2:
 
     def _check_covered_eojeols(self, nouns):
 
-        def get_r_from_origin(l):
-            return self.lrgraph._lr_origin.get(l, {}).items()
+        self.lrgraph.reset_lrgraph()
 
-        for noun in nouns:
-            for r, count in get_r_from_origin(noun):
-                if ((r == '') or
+        noun_candidates = self._noun_candidates_from_positive_features()
+
+        n = len(noun_candidates)
+        for i, (word, _) in enumerate(noun_candidates):
+
+            if self.verbose and i % 1000 == 999:
+                percentage = '%.3f' % (100 * (i+1) / n)
+                print('\r[Noun Extractor] flushing ...  {} %'.format(
+                    percentage), flush=True, end='')
+
+            if not (word in nouns):
+                continue
+
+            for r, count in self.lrgraph.get_r(word, -1):
+                if (r == '' or
                     (r in self._pos_features) or
                     (r in self._common_features)):
+                    self.lrgraph.remove_eojeol(word+r, count)
                     self._num_of_covered_eojeols += count
+
+        if self.verbose:
+            print('\r[Noun Extractor] flushing was done. mem={} Gb{}'.format(
+                '%.3f' % get_process_memory(), ' '*20), flush=True)
+            coverage = '%.2f' % (100 * self._num_of_covered_eojeols
+                / self._num_of_eojeols)
+            print('[Noun Extractor] {} % eojeols are covered'.format(coverage), flush=True)
