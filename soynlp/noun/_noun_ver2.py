@@ -200,6 +200,8 @@ class LRNounExtractor_v2:
         noun_candidates = self._noun_candidates_from_positive_features()
 
         if self.extract_pos_feature:
+            if self.verbose:
+                print('[Noun Extractor] extract and append pos features')
             self.extract_domain_pos_features(noun_candidates)
 
         prediction_scores = self._batch_prediction_order_by_word_length(
