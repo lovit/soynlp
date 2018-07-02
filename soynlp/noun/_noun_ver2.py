@@ -10,6 +10,7 @@ from soynlp.tokenizer import MaxScoreTokenizer
 from ._josa import extract_domain_pos_features
 from ._noun_postprocessing import detaching_features
 from ._noun_postprocessing import ignore_features
+from ._noun_postprocessing import check_N_is_NJ
 
 NounScore = namedtuple('NounScore', 'frequency score')
 
@@ -31,17 +32,24 @@ class LRNounExtractor_v2:
         self.extract_pos_feature = extract_pos_feature
         self.extract_determiner = extract_determiner
         self.logpath = logpath
+
         if logpath:
             check_dirs(logpath)
 
         if not postprocessing:
-            postprocessing = ['detaching_features', 'ignore_features']
+            postprocessing = [
+                'detaching_features',
+                'ignore_features',
+                'ignore_NJ'
+            ]
         elif isinstance(postprocessing) == str:
             postprocessing = [postprocessing]
+
         self.postprocessing = postprocessing
 
         if not predictor_headers:
             predictor_headers = self._set_default_predictor_header()
+
         self._load_predictor(predictor_headers)
 
     @property
@@ -479,23 +487,31 @@ class LRNounExtractor_v2:
 
     def _post_processing(self, nouns, prediction_scores, compounds):
 
+        logpath = self.logpath+'_postprocessing.log'
+
         n_before = len(nouns)
 
         for method in self.postprocessing:
 
             if method == 'detaching_features':
+
                 logheader = '## Ignore noun candidates from detaching pos features\n'
                 nouns, removals = detaching_features(nouns,
-                    self._pos_features, self.logpath+'_postprocessing.log', logheader)
+                    self._pos_features, logpath, logheader)
 
             elif method == 'ignore_features':
+
                 features = {f for f in self._pos_features}
                 # features.update(self._neg_features)
                 features.update(self._common_features)
-                nouns, removals = ignore_features(nouns,
-                    features, self.logpath+'_postprocessing.log')
+                nouns, removals = ignore_features(nouns, features, logpath)
+
+            elif method == 'ignore_NJ':
+
+                nouns, removals = check_N_is_NJ(nouns, self.lrgraph, logpath)
 
         n_after = len(nouns)
+
         if self.verbose:
             print('[Noun Extractor] postprocessing {} : {} -> {}'.format(
                 method, n_before, n_after))
