@@ -534,7 +534,12 @@ class LRNounExtractor_v2:
             print('[Noun Extractor] postprocessing {} : {} -> {}'.format(
                 method, n_before, n_after))
 
-        logpath = self.logpath+'_postprocessing.log'
+        logpath = self.logpath+'_postprocessing.log' if self.logpath else None
+
+        # initialize
+        if logpath:
+            with open(logpath, 'w', encoding='utf-8') as f:
+                f.write('')
 
         for method in self.postprocessing:
 
