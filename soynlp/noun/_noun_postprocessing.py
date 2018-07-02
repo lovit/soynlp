@@ -47,3 +47,6 @@ def ignore_features(nouns, features, logpath=None, logheader=None):
 
     nouns_ = {word:score for word, score in nouns.items() if (word in removals) == False}
     return nouns_, removals
+
+with open('frequent_enrolled_josa.txt', encoding='utf-8') as f:
+    enrolled_josa = {word.strip() for word in f if word}
