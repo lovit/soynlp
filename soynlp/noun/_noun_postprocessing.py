@@ -18,6 +18,7 @@ def detaching_features(nouns, features, logpath=None, logheader=None):
             continue
         for e in range(2, len(word)):
             l, r = word[:e], word[e:]
+            # Skip a syllable word such as 고양이, 이력서
             if len(r) <= 1:
                 continue
             if (l in nouns) and (r in features):
