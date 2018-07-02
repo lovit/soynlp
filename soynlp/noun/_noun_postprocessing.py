@@ -12,7 +12,7 @@ min_num_of_josa = 5
 def write_log(path, header, words):
     check_dirs(path)
     with open(path, 'a', encoding='utf-8') as f:
-        f.write('{}\n'.format(header))
+        f.write('\n{}\n'.format(header))
         for word in sorted(words):
             f.write('{}\n'.format(word))
 
@@ -23,7 +23,7 @@ def _select_true_nouns(nouns, removals):
 def detaching_features(nouns, features, logpath=None, logheader=None):
 
     if not logheader:
-        logheader = '## Ignored noun candidates from detaching features\n'
+        logheader = '## Ignored noun candidates from detaching features'
 
     removals = set()
 
@@ -53,7 +53,7 @@ def detaching_features(nouns, features, logpath=None, logheader=None):
 def ignore_features(nouns, features, logpath=None, logheader=None):
 
     if not logheader:
-        logheader = '## Ignored noun candidates these are same with features\n'
+        logheader = '## Ignored noun candidates these are same with features'
 
     removals = set()
 
@@ -70,7 +70,7 @@ def ignore_features(nouns, features, logpath=None, logheader=None):
 def check_N_is_NJ(nouns, lrgraph, logpath=None, logheader=None):
 
     if not logheader:
-        logheader = '## Ignored true N+J\n'
+        logheader = '## Ignored true N+J'
 
     removals = set()
     for word in nouns:
