@@ -33,7 +33,7 @@ class LRNounExtractor_v2:
             check_dirs(logpath)
 
         if not postprocessing:
-            postprocessing = ['detaching_features']
+            postprocessing = ['detaching_features', 'ignore_features']
         elif isinstance(postprocessing) == str:
             postprocessing = [postprocessing]
         self.postprocessing = postprocessing
@@ -198,7 +198,7 @@ class LRNounExtractor_v2:
         if self.logpath:
             with open(self.logpath+'_prediction_score.log', 'w', encoding='utf-8') as f:
                 f.write('noun score frequency\n')
-                for word, score in sorted(prediction_scores.items(), key=lambda x:-x[1]):
+                for word, score in sorted(prediction_scores.items(), key=lambda x:-x[1][1]):
                     f.write('{} {} {}\n'.format(word, score[0], score[1]))
 
         # E = N*J+ or N*Posi+
@@ -476,16 +476,28 @@ class LRNounExtractor_v2:
         return None
 
     def _post_processing(self, nouns, prediction_scores, compounds):
+
+        n_before = len(nouns)
+
         for method in self.postprocessing:
+
             if method == 'detaching_features':
-                n_before = len(nouns)
                 logheader = '## Ignore noun candidates from detaching pos features\n'
                 nouns = _postprocess_detaching_features(
                     nouns, self._pos_features, self.logpath+'_postprocessing.log', logheader)
-                n_after = len(nouns)
-                if self.verbose:
-                    print('[Noun Extractor] postprocessing {} : {} -> {}'.format(
-                        method, n_before, n_after))
+
+            elif method == 'ignore_features':
+                features = {f for f in self._pos_features}
+                # features.update(self._neg_features)
+                features.update(self._common_features)
+                nouns = _postprocessing_ignore_features(
+                    nouns, features, self.logpath+'_postprocessing.log')
+
+        n_after = len(nouns)
+        if self.verbose:
+            print('[Noun Extractor] postprocessing {} : {} -> {}'.format(
+                method, n_before, n_after))
+
         return nouns
 
     def _check_covered_eojeols(self, nouns):
@@ -514,6 +526,25 @@ def _postprocess_detaching_features(nouns, features, logpath=None, logheader=Non
     if logpath:
         if not logheader:
             logheader = '## Ignored noun candidates from detaching features\n'
+        with open(logpath, 'a', encoding='utf-8') as f:
+            f.write(logheader)
+            for word in sorted(removals):
+                f.write('{}\n'.format(word))
+            f.write('\n')
+
+    nouns_ = {word:score for word, score in nouns.items() if (word in removals) == False}
+    return nouns_
+
+def _postprocessing_ignore_features(nouns, features, logpath=None, logheader=None):
+    removals = set()
+    for word in nouns:
+        if word in features:
+            removals.add(word)
+
+    # write log for debug
+    if logpath:
+        if not logheader:
+            logheader = '## Ignored noun candidates these are same with features\n'
         with open(logpath, 'a', encoding='utf-8') as f:
             f.write(logheader)
             for word in sorted(removals):
