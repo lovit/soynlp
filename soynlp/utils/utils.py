@@ -5,6 +5,8 @@ import psutil
 import sys
 from collections import defaultdict
 
+installpath = os.path.dirname(os.path.realpath(__file__))
+
 def get_available_memory():
     """It returns remained memory as percentage"""
 
