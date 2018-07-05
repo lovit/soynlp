@@ -37,7 +37,7 @@ class Lemmatizer:
             candidates.update(self._lemma_candidate(l, r, self._predefined))
         return candidates
 
-def _lemma_candidate(l, r, predefined):
+def _lemma_candidate(l, r, predefined=None):
     candidates = {(l, r)}
 
     l_last = decompose(l[-1])
