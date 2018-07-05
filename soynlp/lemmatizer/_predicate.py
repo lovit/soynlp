@@ -20,7 +20,8 @@ from soynlp.utils.utils import installpath
 
 class EomiExtractor:
 
-    def __init__(self, nouns, noun_pos_features=None, roots=None, verbose=True):
+    def __init__(self, nouns, noun_pos_features=None, roots=None,
+        eomis=None, verbose=True):
 
         if not noun_pos_features:
             noun_pos_features = self._load_default_noun_pos_features()
@@ -28,9 +29,13 @@ class EomiExtractor:
         if not roots:
             roots = self._load_default_roots()
 
-        self.nouns = nouns
-        self.pos_features = noun_pos_features
-        self.roots = roots
+        if not eomis:
+            eomis = self._load_default_eomis()
+
+        self._nouns = nouns
+        self._pos_features = noun_pos_features
+        self._roots = roots
+        self._eomis = eomis
         self.verbose = verbose
         self.lrgraph = None
 
@@ -40,7 +45,7 @@ class EomiExtractor:
             pos_features = {word.split()[0] for word in f}
         return pos_features
 
-    def _load_default_roots(self):
+    def _load_default_roots(self, min_count=100):
         dirs = '%s/lemmatizer/dictionary/default/Root' % installpath
         paths = ['%s/Adjective.txt', '%s/Verb.txt']
         paths = [p % dirs for p in paths]
@@ -48,8 +53,22 @@ class EomiExtractor:
         for path in paths:
             with open(path, encoding='utf-8') as f:
                 for line in f:
-                    roots.add(line.split()[0])
+                    word, count = line.split()
+                    if int(count) < min_count:
+                        continue
+                    roots.add(word)
         return roots
+
+    def _load_default_eomis(self, min_count=20):
+        path = '%s/lemmatizer/dictionary/default/Eomi/Eomi.txt' % installpath
+        eomis = set()
+        with open(path, encoding='utf-8') as f:
+            for line in f:
+                word, count = line.split()
+                if int(count) < min_count:
+                    continue
+                eomis.add(word)
+        return eomis
 
     @property
     def is_trained(self):
