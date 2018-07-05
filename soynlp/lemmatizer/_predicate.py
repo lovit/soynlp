@@ -139,6 +139,43 @@ class EomiExtractor:
             print('[Eomi Extractor] has been trained. mem={} Gb'.format(
                 '%.3f' % get_process_memory()))
 
+    def extract(self, minimum_eomi_score=0.3, min_count=10, reset_lrgraph=True):
+
+        # reset covered eojeol count
+        self._num_of_covered_eojeols = 0
+
+        # base prediction
+        eomi_candidates = self._eomi_candidates_from_roots()
+
+    def _eomi_candidates_from_roots(self, condition=None):
+
+        def satisfy(word, e):
+            return word[-e:] == condition
+
+        # noun candidates from positive featuers such as Josa
+        R_from_L = {}
+
+        for root in self._roots:
+
+            for l in _conjugate_root(root):
+
+                for r, c in self.lrgraph.get_r(l, -1):
+
+                    # candidates filtering for debugging
+                    # condition is last chars in R
+                    if not condition:
+                        R_from_L[r] = R_from_L.get(r,0) + c
+                        continue
+
+                    # for debugging
+                    if satisfy(r, len(condition)):
+                        R_from_L[r] = R_from_L.get(r,0) + c
+
+        # sort by length of word
+        R_from_L = sorted(R_from_L.items(), key=lambda x:-len(x[0]))
+
+        return R_from_L
+
 def predict_r(r, minimum_r_score=0.3, debug=False):
     raise NotImplemented
 
