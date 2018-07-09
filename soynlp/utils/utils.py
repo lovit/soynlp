@@ -5,6 +5,9 @@ import psutil
 import sys
 from collections import defaultdict
 
+installpath = os.path.sep.join(
+    os.path.dirname(os.path.realpath(__file__)).split(os.path.sep)[:-1])
+
 def get_available_memory():
     """It returns remained memory as percentage"""
 
@@ -200,8 +203,11 @@ class EojeolCounter:
         return self._counter.items()
 
     def to_lrgraph(self, l_max_length=10, r_max_length=9):
+        return (self._counter, l_max_length, r_max_length)
+
+    def _to_lrgraph(self, counter, l_max_length=10, r_max_length=9):
         _lrgraph = defaultdict(lambda: defaultdict(int))
-        for eojeol, count in self._counter.items():
+        for eojeol, count in counter.items():
             for e in range(1, min(l_max_length, len(eojeol)) + 1):
                 l, r = eojeol[:e], eojeol[e:]
                 if len(r) > r_max_length:

@@ -34,112 +34,112 @@ class Lemmatizer:
         for i in range(1, len(word) + 1):
             l = word[:i]
             r = word[i:]
-            candidates.update(self._candidates(l, r))
+            candidates.update(self._lemma_candidate(l, r, self._predefined))
         return candidates
 
-    def _candidates(self, l, r):
-        candidates = {(l, r)}
+def _lemma_candidate(l, r, predefined):
+    candidates = {(l, r)}
 
-        l_last = decompose(l[-1])
-        l_last_ = compose(l_last[0], l_last[1], ' ')
-        r_first = decompose(r[0]) if r else ('', '', '')
-        r_first_ = compose(r_first[0], r_first[1], ' ') if r else ' '
+    l_last = decompose(l[-1])
+    l_last_ = compose(l_last[0], l_last[1], ' ')
+    r_first = decompose(r[0]) if r else ('', '', '')
+    r_first_ = compose(r_first[0], r_first[1], ' ') if r else ' '
 
-        # ㄷ 불규칙 활용: 깨달 + 아 -> 깨닫 + 아
-        if l_last[2] == 'ㄹ' and r_first[0] == 'ㅇ':
-            l_root = l[:-1] + compose(l_last[0], l_last[1], 'ㄷ')
-            candidates.add((l_root, r))
+    # ㄷ 불규칙 활용: 깨달 + 아 -> 깨닫 + 아
+    if l_last[2] == 'ㄹ' and r_first[0] == 'ㅇ':
+        l_root = l[:-1] + compose(l_last[0], l_last[1], 'ㄷ')
+        candidates.add((l_root, r))
 
-        # 르 불규칙 활용: 굴 + 러 -> 구르 + 어
-        if (l_last[2] == 'ㄹ') and (r_first_ == '러' or r_first_ == '라'):
-            l_root = l[:-1] + compose(l_last[0], l_last[1], ' ') + '르'
-            r_canon = compose('ㅇ', r_first[1], r_first[2]) + r[1:]
-            candidates.add((l_root, r_canon))
+    # 르 불규칙 활용: 굴 + 러 -> 구르 + 어
+    if (l_last[2] == 'ㄹ') and (r_first_ == '러' or r_first_ == '라'):
+        l_root = l[:-1] + compose(l_last[0], l_last[1], ' ') + '르'
+        r_canon = compose('ㅇ', r_first[1], r_first[2]) + r[1:]
+        candidates.add((l_root, r_canon))
 
-        # ㅂ 불규칙 활용: 더러 + 워서 -> 더럽 + 어서
-        if (l_last[2] == ' ') and (r_first_ == '워' or r_first_ == '와'):
-            l_root = l[:-1] + compose(l_last[0], l_last[1], 'ㅂ')
-            r_canon = compose('ㅇ', 'ㅏ' if r_first_ == '와' else 'ㅓ', r_first[2]) + r[1:]
-            candidates.add((l_root, r_canon))
+    # ㅂ 불규칙 활용: 더러 + 워서 -> 더럽 + 어서
+    if (l_last[2] == ' ') and (r_first_ == '워' or r_first_ == '와'):
+        l_root = l[:-1] + compose(l_last[0], l_last[1], 'ㅂ')
+        r_canon = compose('ㅇ', 'ㅏ' if r_first_ == '와' else 'ㅓ', r_first[2]) + r[1:]
+        candidates.add((l_root, r_canon))
 
 #         # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅂ, -ㅅ)
 #         # 입 + 니다 -> 이 + ㅂ니다
-        if l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ':
-            l_root = l[:-1] + compose(l_last[0], l_last[1], ' ')
-            r_canon = l_last[2] + r
-            candidates.add((l_root, r_canon))
+    if l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ':
+        l_root = l[:-1] + compose(l_last[0], l_last[1], ' ')
+        r_canon = l_last[2] + r
+        candidates.add((l_root, r_canon))
 
 #         # ㅅ 불규칙 활용: 부 + 어 -> 붓 + 어
 #         # exception : 벗 + 어 -> 벗어
-        if (l_last[2] == ' ' and l[-1] != '벗') and (r_first[0] == 'ㅇ'):
-            l_root = l[:-1] + compose(l_last[0], l_last[1], 'ㅅ')
-            candidates.add((l_root, r))
+    if (l_last[2] == ' ' and l[-1] != '벗') and (r_first[0] == 'ㅇ'):
+        l_root = l[:-1] + compose(l_last[0], l_last[1], 'ㅅ')
+        candidates.add((l_root, r))
 
-        # 우 불규칙 활용: 똥퍼 + '' -> 똥푸 + 어
-        if l_last_ == '퍼':
-            l_root = l[:-1] + '푸'
-            r_canon = compose('ㅇ', l_last[1], l_last[2]) + r
-            candidates.add((l_root, r_canon))
+    # 우 불규칙 활용: 똥퍼 + '' -> 똥푸 + 어
+    if l_last_ == '퍼':
+        l_root = l[:-1] + '푸'
+        r_canon = compose('ㅇ', l_last[1], l_last[2]) + r
+        candidates.add((l_root, r_canon))
 
-        # 우 불규칙 활용: 줬 + 어 -> 주 + 었어
-        if l_last[1] == 'ㅝ':
-            l_root = l[:-1] + compose(l_last[0], 'ㅜ', ' ')
-            r_canon = compose('ㅇ', 'ㅓ', l_last[2]) + r
-            candidates.add((l_root, r_canon))
+    # 우 불규칙 활용: 줬 + 어 -> 주 + 었어
+    if l_last[1] == 'ㅝ':
+        l_root = l[:-1] + compose(l_last[0], 'ㅜ', ' ')
+        r_canon = compose('ㅇ', 'ㅓ', l_last[2]) + r
+        candidates.add((l_root, r_canon))
 
-        # 오 불규칙 활용: 왔 + 어 -> 오 + 았어
-        if l_last[1] == 'ㅘ':
-            l_root = l[:-1] + compose(l_last[0], 'ㅗ', ' ')
-            r_canon = compose('ㅇ', 'ㅏ', l_last[2]) + r
-            candidates.add((l_root, r_canon))
+    # 오 불규칙 활용: 왔 + 어 -> 오 + 았어
+    if l_last[1] == 'ㅘ':
+        l_root = l[:-1] + compose(l_last[0], 'ㅗ', ' ')
+        r_canon = compose('ㅇ', 'ㅏ', l_last[2]) + r
+        candidates.add((l_root, r_canon))
 
-        # ㅡ 탈락 불규칙 활용: 꺼 + '' -> 끄 + 어 / 텄 + 어 -> 트 + 었어
-        if (l_last[1] == 'ㅓ' or l_last[1] == 'ㅏ'):
-            l_root = l[:-1] + compose(l_last[0], 'ㅡ', ' ')
-            r_canon = compose('ㅇ', l_last[1], l_last[2]) + r
-            candidates.add((l_root, r_canon))
+    # ㅡ 탈락 불규칙 활용: 꺼 + '' -> 끄 + 어 / 텄 + 어 -> 트 + 었어
+    if (l_last[1] == 'ㅓ' or l_last[1] == 'ㅏ'):
+        l_root = l[:-1] + compose(l_last[0], 'ㅡ', ' ')
+        r_canon = compose('ㅇ', l_last[1], l_last[2]) + r
+        candidates.add((l_root, r_canon))
 
-        # 거라, 너라 불규칙 활용
-        # '-거라/-너라'를 어미로 취급하면 규칙 활용
-        # if (l[-1] == '가') and (r and (r[0] == '라' or r[:2] == '거라')):
-        #    # TODO
+    # 거라, 너라 불규칙 활용
+    # '-거라/-너라'를 어미로 취급하면 규칙 활용
+    # if (l[-1] == '가') and (r and (r[0] == '라' or r[:2] == '거라')):
+    #    # TODO
 
-        # 러 불규칙 활용: 이르 + 러 -> 이르다
-        # if (r_first[0] == 'ㄹ' and r_first[1] == 'ㅓ'):
-        #     if self.is_root(l):
-        #         # TODO
+    # 러 불규칙 활용: 이르 + 러 -> 이르다
+    # if (r_first[0] == 'ㄹ' and r_first[1] == 'ㅓ'):
+    #     if self.is_root(l):
+    #         # TODO
 
-        # 여 불규칙 활용
-        # 하 + 였다 -> 하 + 았다 -> 하다: '였다'를 어미로 취급하면 규칙 활용
+    # 여 불규칙 활용
+    # 하 + 였다 -> 하 + 았다 -> 하다: '였다'를 어미로 취급하면 규칙 활용
 
-        # 여 불규칙 활용 (2)
-        # 했 + 다 -> 하 + 았다 / 해 + 라니깐 -> 하 + 아라니깐 / 했 + 었다 -> 하 + 았었다
-        if l_last[0] == 'ㅎ' and l_last[1] == 'ㅐ':
-            l_root = l[:-1] + '하'
-            r_canon = compose('ㅇ', 'ㅏ', l_last[2]) + r
-            candidates.add((l_root, r_canon))
+    # 여 불규칙 활용 (2)
+    # 했 + 다 -> 하 + 았다 / 해 + 라니깐 -> 하 + 아라니깐 / 했 + 었다 -> 하 + 았었다
+    if l_last[0] == 'ㅎ' and l_last[1] == 'ㅐ':
+        l_root = l[:-1] + '하'
+        r_canon = compose('ㅇ', 'ㅏ', l_last[2]) + r
+        candidates.add((l_root, r_canon))
 
-        # ㅎ (탈락) 불규칙 활용
-        # 파라 + 면 -> 파랗 + 면
-        if (l_last[2] == ' ' or l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ'):
-            l_root = l[:-1] + compose(l_last[0], l_last[1], 'ㅎ')
-            r_canon = r if l_last[2] == ' ' else l_last[2] + r
-            candidates.add((l_root, r_canon))
+    # ㅎ (탈락) 불규칙 활용
+    # 파라 + 면 -> 파랗 + 면
+    if (l_last[2] == ' ' or l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ'):
+        l_root = l[:-1] + compose(l_last[0], l_last[1], 'ㅎ')
+        r_canon = r if l_last[2] == ' ' else l_last[2] + r
+        candidates.add((l_root, r_canon))
 
-        # ㅎ (축약) 불규칙 할용
-        # 시퍼렜 + 다 -> 시퍼렇 + 었다, 파랬 + 다 -> 파랗 + 았다
-        if (l_last[1] == 'ㅐ') or (l_last[1] == 'ㅔ'):
-            # exception : 그렇 + 아 -> 그래
-            if len(l) >= 2 and l[-2] == '그' and l_last[0] == 'ㄹ':
-                l_root = l[:-1] + '렇'
-            else:
-                l_root = l[:-1] + compose(l_last[0], 'ㅓ' if l_last[1] == 'ㅔ' else 'ㅏ', 'ㅎ')
-            r_canon = compose('ㅇ', 'ㅓ' if l_last[1] == 'ㅔ' else 'ㅏ', l_last[2]) + r
-            candidates.add((l_root, r_canon))
+    # ㅎ (축약) 불규칙 할용
+    # 시퍼렜 + 다 -> 시퍼렇 + 었다, 파랬 + 다 -> 파랗 + 았다
+    if (l_last[1] == 'ㅐ') or (l_last[1] == 'ㅔ'):
+        # exception : 그렇 + 아 -> 그래
+        if len(l) >= 2 and l[-2] == '그' and l_last[0] == 'ㄹ':
+            l_root = l[:-1] + '렇'
+        else:
+            l_root = l[:-1] + compose(l_last[0], 'ㅓ' if l_last[1] == 'ㅔ' else 'ㅏ', 'ㅎ')
+        r_canon = compose('ㅇ', 'ㅓ' if l_last[1] == 'ㅔ' else 'ㅏ', l_last[2]) + r
+        candidates.add((l_root, r_canon))
 
-        ## Pre-defined set
-        if (l, r) in self._predefined:
-            for root in self._predefined[(l, r)]:
-                candidates.add(root)
+    ## Pre-defined set
+    if predefined and (l, r) in predefined:
+        for root in predefined[(l, r)]:
+            candidates.add(root)
 
-        return candidates
+    return candidates

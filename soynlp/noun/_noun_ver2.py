@@ -8,6 +8,9 @@ from soynlp.utils import LRGraph
 from soynlp.utils import get_process_memory
 from soynlp.tokenizer import MaxScoreTokenizer
 from ._josa import extract_domain_pos_features
+from ._noun_postprocessing import detaching_features
+from ._noun_postprocessing import ignore_features
+from ._noun_postprocessing import check_N_is_NJ
 
 NounScore = namedtuple('NounScore', 'frequency score')
 
@@ -29,17 +32,24 @@ class LRNounExtractor_v2:
         self.extract_pos_feature = extract_pos_feature
         self.extract_determiner = extract_determiner
         self.logpath = logpath
+
         if logpath:
             check_dirs(logpath)
 
         if not postprocessing:
-            postprocessing = ['detaching_features']
+            postprocessing = [
+                'detaching_features',
+                'ignore_features',
+                'ignore_NJ'
+            ]
         elif isinstance(postprocessing) == str:
             postprocessing = [postprocessing]
+
         self.postprocessing = postprocessing
 
         if not predictor_headers:
             predictor_headers = self._set_default_predictor_header()
+
         self._load_predictor(predictor_headers)
 
     @property
@@ -101,14 +111,20 @@ class LRNounExtractor_v2:
 
         if feature_type == 'pos':
             commons = {f for f in features if (f in self._neg_features)}
-            self._pos_features.update({f for f in features if not (f in commons)})
+            self._pos_features.update(
+                {f for f in features if not (f in commons)})
+
         elif feature_type == 'neg':
             commons = {f for f in features if (f in self._pos_features)}
-            self._neg_features.update({f for f in features if not (f in commons)})
+            self._neg_features.update(
+                {f for f in features if not (f in commons)})
+
         elif feature_type == 'common':
             commons = features
+
         else:
             raise ValueError('Feature type was wrong. Choice = [pos, neg, common]')
+
         self._common_features.update(commons)
 
         # size after
@@ -135,11 +151,13 @@ class LRNounExtractor_v2:
             max_length=self.l_max_length + self.r_max_length,
             filtering_checkpoint=self.eojeol_counter_filtering_checkpoint,
             verbose=self.verbose)
+
         self._num_of_eojeols = eojeol_counter._count_sum
         self._num_of_covered_eojeols = 0
 
         if self.verbose:
             print('[Noun Extractor] complete eojeol counter -> lr graph')
+
         self.lrgraph = eojeol_counter.to_lrgraph(
             self.l_max_length, self.r_max_length)
 
@@ -165,18 +183,25 @@ class LRNounExtractor_v2:
 
         prediction_scores = self._batch_prediction_order_by_word_length(
             noun_candidates, min_noun_score)
+
         self.lrgraph.reset_lrgraph()
 
         self._pos_features_extracted = extract_domain_pos_features(
-            prediction_scores, self.lrgraph,
-            self._pos_features, ignore_features,
-            min_noun_score, min_noun_frequency,
-            min_pos_score, min_pos_feature_frequency,
-            min_num_of_unique_lastchar, min_entropy_of_lastchar,
+            prediction_scores,
+            self.lrgraph,
+            self._pos_features,
+            ignore_features,
+            min_noun_score,
+            min_noun_frequency,
+            min_pos_score,
+            min_pos_feature_frequency,
+            min_num_of_unique_lastchar,
+            min_entropy_of_lastchar,
             min_noun_entropy
         )
 
         self._append_features('pos', self._pos_features_extracted)
+
         if self.verbose:
             print('[Noun Extractor] {} pos features were extracted'.format(
                 len(self._pos_features_extracted)))
@@ -190,6 +215,9 @@ class LRNounExtractor_v2:
         noun_candidates = self._noun_candidates_from_positive_features()
 
         if self.extract_pos_feature:
+            if self.verbose:
+                print('[Noun Extractor] extract and append pos features')
+
             self.extract_domain_pos_features(noun_candidates)
 
         prediction_scores = self._batch_prediction_order_by_word_length(
@@ -198,7 +226,8 @@ class LRNounExtractor_v2:
         if self.logpath:
             with open(self.logpath+'_prediction_score.log', 'w', encoding='utf-8') as f:
                 f.write('noun score frequency\n')
-                for word, score in sorted(prediction_scores.items(), key=lambda x:-x[1]):
+
+                for word, score in sorted(prediction_scores.items(), key=lambda x:-x[1][1]):
                     f.write('{} {} {}\n'.format(word, score[0], score[1]))
 
         # E = N*J+ or N*Posi+
@@ -207,12 +236,14 @@ class LRNounExtractor_v2:
                 self.lrgraph._lr.items() if len(l) >= 4}
             compounds = self.extract_compounds(
                 candidates, prediction_scores, minimum_noun_score)
+
         else:
             compounds = {}
 
         # combine single nouns and compounds
         nouns = {noun:score for noun, score in prediction_scores.items()
             if score[0] >= minimum_noun_score}
+
         nouns.update(compounds)
 
         # frequency filtering
@@ -229,15 +260,11 @@ class LRNounExtractor_v2:
         self._check_covered_eojeols(nouns)
 
         self._nouns = nouns
+
         if reset_lrgraph:
             # when extracting predicates, do not reset lrgraph.
             # the remained lrgraph is predicate (root - ending) graph
             self.lrgraph.reset_lrgraph()
-        if self.verbose:
-            print('done. mem={} Gb'.format('%.3f'%get_process_memory()))
-            coverage = '%.2f' % (100 * self._num_of_covered_eojeols
-                / self._num_of_eojeols)
-            print('[Noun Extractor] {} % eojeols are covered'.format(coverage), flush=True)
 
         nouns_ = {noun:NounScore(score[1], score[0]) for noun, score in nouns.items()}
         return nouns_
@@ -275,8 +302,10 @@ class LRNounExtractor_v2:
                 pos, common, neg, unk, end))
 
         features_ = self._get_nonempty_features(word, features)
+
         if len(features_) > self.min_num_of_features:        
             return score, support
+
         else:
             # exception case
             sum_ = pos + common + neg + unk + end
@@ -348,16 +377,21 @@ class LRNounExtractor_v2:
 
         # noun candidates from positive featuers such as Josa
         N_from_J = {}
+
         for r in self._pos_features:
+
             for l, c in self.lrgraph.get_l(r, -1):
+
                 # candidates filtering for debugging
                 # condition is first chars in L
                 if not condition:
                     N_from_J[l] = N_from_J.get(l,0) + c
                     continue
+
                 # for debugging
                 if not satisfy(l, len(condition)):
                     continue
+
                 N_from_J[l] = N_from_J.get(l,0) + c
 
         # sort by length of word
@@ -386,10 +420,11 @@ class LRNounExtractor_v2:
             # remove eojeol pattern from lrgraph
             if score >= minimum_noun_score:
                 for r, count in self.lrgraph.get_r(word, -1):
-                    if r == '' or (r in self._pos_features) or (r in self._common_features):
+                    if (r == '' or
+                        (r in self._pos_features) or
+                        (r in self._common_features)):
                         self.lrgraph.remove_eojeol(word+r, count)
-                        # Do 'eojeol counting covered' in flushing step
-                        # self._num_of_covered_eojeols += count
+
         if self.verbose:
             print('\r[Noun Extractor] batch prediction was completed for {} words'.format(
                 n), flush=True)
@@ -400,6 +435,7 @@ class LRNounExtractor_v2:
 
         noun_scores = {noun:len(noun) for noun, score in prediction_scores.items()
                        if score[0] > minimum_noun_score and len(noun) > 1}
+
         self._compound_decomposer = MaxScoreTokenizer(scores=noun_scores)
 
         candidates = {l:sum(rdict.values()) for l,rdict in self.lrgraph._lr.items()
@@ -424,22 +460,27 @@ class LRNounExtractor_v2:
             compound_parts = self._parse_compound(tokens)
 
             if compound_parts:
+
                 # store compound components
                 noun = ''.join(compound_parts)
                 compounds_components[noun] = compound_parts
+
                 # cumulate count and store compound score
                 compound_score = max((prediction_scores.get(t, (0,0))[0] for t in compound_parts))
                 compounds_scores[noun] = max(compounds_scores.get(noun,0), compound_score)
                 compounds_counts[noun] = compounds_counts.get(noun,0) + count
+
                 # reduce frequency of substrings
                 for e in range(2, len(word)):
                     subword = word[:e]
+
                     if not subword in candidates:
                         continue
+
                     candidates[subword] = candidates.get(subword, 0) - count
+
                 # eojeol coverage
                 self.lrgraph.remove_eojeol(word)
-                self._num_of_covered_eojeols += count
 
         if self.verbose:
             print('\r[Noun Extractor] checked compounds. discovered {} compounds'.format(
@@ -466,59 +507,90 @@ class LRNounExtractor_v2:
         for token in tokens[:-1]:
             if token[3] <= 0:
                 return None
+
         # Noun* + Josa
         if len(tokens) >= 3 and tokens[-1][0] in self._pos_features:
             return tuple(t[0] for t in tokens[:-1])
+
         # all tokens are noun
         if tokens[-1][3] > 0:
             return tuple(t[0] for t in tokens)
+
         # else, not compound
         return None
 
     def _post_processing(self, nouns, prediction_scores, compounds):
+
+        def print_status(method, nouns, removals):
+            n_after = len(nouns)
+            n_before = n_after + len(removals)
+            print('[Noun Extractor] postprocessing {} : {} -> {}'.format(
+                method, n_before, n_after))
+
+        logpath = self.logpath+'_postprocessing.log' if self.logpath else None
+
+        # initialize
+        if logpath:
+            with open(logpath, 'w', encoding='utf-8') as f:
+                f.write('')
+
         for method in self.postprocessing:
+
             if method == 'detaching_features':
-                n_before = len(nouns)
+
                 logheader = '## Ignore noun candidates from detaching pos features\n'
-                nouns = _postprocess_detaching_features(
-                    nouns, self._pos_features, self.logpath+'_postprocessing.log', logheader)
-                n_after = len(nouns)
+                nouns, removals = detaching_features(nouns,
+                    self._pos_features, logpath, logheader)
+
                 if self.verbose:
-                    print('[Noun Extractor] postprocessing {} : {} -> {}'.format(
-                        method, n_before, n_after))
+                    print_status(method, nouns, removals)
+
+            elif method == 'ignore_features':
+
+                features = {f for f in self._pos_features}
+                # features.update(self._neg_features)
+                features.update(self._common_features)
+                nouns, removals = ignore_features(nouns, features, logpath)
+
+                if self.verbose:
+                    print_status(method, nouns, removals)
+
+            elif method == 'ignore_NJ':
+
+                nouns, removals = check_N_is_NJ(nouns, self.lrgraph, logpath)
+
+                if self.verbose:
+                    print_status(method, nouns, removals)
+
         return nouns
 
     def _check_covered_eojeols(self, nouns):
 
-        def get_r_from_origin(l):
-            return self.lrgraph._lr_origin.get(l, {}).items()
+        self.lrgraph.reset_lrgraph()
 
-        for noun in nouns:
-            for r, count in get_r_from_origin(noun):
-                if ((r == '') or
+        noun_candidates = self._noun_candidates_from_positive_features()
+
+        n = len(noun_candidates)
+        for i, (word, _) in enumerate(noun_candidates):
+
+            if self.verbose and i % 1000 == 999:
+                percentage = '%.3f' % (100 * (i+1) / n)
+                print('\r[Noun Extractor] flushing ...  {} %'.format(
+                    percentage), flush=True, end='')
+
+            if not (word in nouns):
+                continue
+
+            for r, count in self.lrgraph.get_r(word, -1):
+                if (r == '' or
                     (r in self._pos_features) or
                     (r in self._common_features)):
+                    self.lrgraph.remove_eojeol(word+r, count)
                     self._num_of_covered_eojeols += count
 
-def _postprocess_detaching_features(nouns, features, logpath=None, logheader=None):
-    removals = set()
-    for word in nouns:
-        if len(word) <= 2:
-            continue
-        for e in range(2, len(word)):
-            if (word[:e] in nouns) and (word[e:] in features):
-                removals.add(word)
-                break
-
-    # write log for debug
-    if logpath:
-        if not logheader:
-            logheader = '## Ignored noun candidates from detaching features\n'
-        with open(logpath, 'a', encoding='utf-8') as f:
-            f.write(logheader)
-            for word in sorted(removals):
-                f.write('{}\n'.format(word))
-            f.write('\n')
-
-    nouns_ = {word:score for word, score in nouns.items() if (word in removals) == False}
-    return nouns_
+        if self.verbose:
+            print('\r[Noun Extractor] flushing was done. mem={} Gb{}'.format(
+                '%.3f' % get_process_memory(), ' '*20), flush=True)
+            coverage = '%.2f' % (100 * self._num_of_covered_eojeols
+                / self._num_of_eojeols)
+            print('[Noun Extractor] {} % eojeols are covered'.format(coverage), flush=True)
