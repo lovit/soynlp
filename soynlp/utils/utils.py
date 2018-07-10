@@ -203,7 +203,7 @@ class EojeolCounter:
         return self._counter.items()
 
     def to_lrgraph(self, l_max_length=10, r_max_length=9):
-        return (self._counter, l_max_length, r_max_length)
+        return self._to_lrgraph(self._counter, l_max_length, r_max_length)
 
     def _to_lrgraph(self, counter, l_max_length=10, r_max_length=9):
         _lrgraph = defaultdict(lambda: defaultdict(int))
