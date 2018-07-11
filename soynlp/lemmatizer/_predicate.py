@@ -174,19 +174,3 @@ class EomiExtractor:
         R_from_L = sorted(R_from_L.items(), key=lambda x:-len(x[0]))
 
         return R_from_L
-
-def predict_r(r, minimum_r_score=0.3, debug=False):
-    raise NotImplemented
-
-def _predict_r(features, r):
-    raise NotImplemented
-
-def _exist_longer_l(l, r):
-    raise NotImplemented
-
-def _has_composable_l(l, r):
-    raise NotImplemented
-
-def _refine_features(features, r):
-    return [(l, count) for l, count in features if
-        (l in pos_l_features and not _exist_longer_l(l, r))]
