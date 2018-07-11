@@ -17,9 +17,9 @@ NounScore = namedtuple('NounScore', 'frequency score')
 class LRNounExtractor_v2:
     def __init__(self, l_max_length=10, r_max_length=9, predictor_headers=None,
         verbose=True, min_num_of_features=1, max_count_when_noun_is_eojeol=30,
-        eojeol_counter_filtering_checkpoint=0, extract_compound=True,
-        extract_pos_feature=False, extract_determiner=False, postprocessing=None,
-        logpath=None):
+        eojeol_counter_filtering_checkpoint=200000, min_eojeol_count=1,
+        extract_compound=True, extract_pos_feature=False,
+        extract_determiner=False, postprocessing=None, logpath=None):
 
         self.l_max_length = l_max_length
         self.r_max_length = r_max_length
@@ -28,6 +28,7 @@ class LRNounExtractor_v2:
         self.min_num_of_features = min_num_of_features
         self.max_count_when_noun_is_eojeol = max_count_when_noun_is_eojeol
         self.eojeol_counter_filtering_checkpoint = eojeol_counter_filtering_checkpoint
+        self.min_eojeol_count = min_eojeol_count
         self.extract_compound = extract_compound
         self.extract_pos_feature = extract_pos_feature
         self.extract_determiner = extract_determiner
@@ -142,12 +143,12 @@ class LRNounExtractor_v2:
 
         return self.extract(minimum_noun_score, min_count, reset_lrgraph)
 
-    def train(self, sentences, min_eojeol_count=1):
+    def train(self, sentences):
 
         if self.verbose:
             print('[Noun Extractor] counting eojeols')
 
-        eojeol_counter = EojeolCounter(sentences, min_eojeol_count,
+        eojeol_counter = EojeolCounter(sentences, self.min_eojeol_count,
             max_length=self.l_max_length + self.r_max_length,
             filtering_checkpoint=self.eojeol_counter_filtering_checkpoint,
             verbose=self.verbose)
