@@ -256,7 +256,7 @@ class EomiExtractor:
                     if l in self._pos_l:
                         self.lrgraph.remove_eojeol(l+r, count)
 
-        if verbose:
+        if self.verbose:
             print('\r[Eomi Extractor] batch prediction was completed for {} words'.format(
                 n), flush=True)
 
