@@ -35,6 +35,7 @@ class EomiExtractor:
         self._nouns = nouns
         self._pos_features = noun_pos_features
         self._roots = roots
+        self._pos_l = {l for root in roots for l in _conjugate_root(root)}
         self._eomis = eomis
         self.verbose = verbose
         self.lrgraph = None
@@ -155,21 +156,19 @@ class EomiExtractor:
         # noun candidates from positive featuers such as Josa
         R_from_L = {}
 
-        for root in self._roots:
+        for l in self._pos_l:
 
-            for l in _conjugate_root(root):
+            for r, c in self.lrgraph.get_r(l, -1):
 
-                for r, c in self.lrgraph.get_r(l, -1):
+                # candidates filtering for debugging
+                # condition is last chars in R
+                if not condition:
+                    R_from_L[r] = R_from_L.get(r,0) + c
+                    continue
 
-                    # candidates filtering for debugging
-                    # condition is last chars in R
-                    if not condition:
-                        R_from_L[r] = R_from_L.get(r,0) + c
-                        continue
-
-                    # for debugging
-                    if satisfy(r, len(condition)):
-                        R_from_L[r] = R_from_L.get(r,0) + c
+                # for debugging
+                if satisfy(r, len(condition)):
+                    R_from_L[r] = R_from_L.get(r,0) + c
 
         # sort by length of word
         R_from_L = sorted(R_from_L.items(), key=lambda x:-len(x[0]))
