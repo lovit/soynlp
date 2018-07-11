@@ -150,7 +150,8 @@ class EojeolCounter:
         _counter = {}
         for i_sent, sent in enumerate(sents):
             # filtering during eojeol counting
-            if (self.filtering_checkpoint > 0 and
+            if (self.min_count > 1 and
+                self.filtering_checkpoint > 0 and
                 i_sent > 0 and
                 i_sent % self.filtering_checkpoint == 0):
                 _counter = {k:v for k,v in _counter.items()
