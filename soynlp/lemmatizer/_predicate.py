@@ -232,7 +232,7 @@ class EomiExtractor:
             ((l in self._pos_l) and (not self._exist_longer_pos(l, r)))]
 
     def _batch_prediction_order_by_word_length(self,
-        eomi_candidates, minimum_eomi_score=0.3):
+        eomi_candidates, minimum_eomi_score=0.3, min_num_of_features=5):
 
         prediction_scores = {}
 
@@ -245,7 +245,8 @@ class EomiExtractor:
                     percentage, n), flush=True, end='')
 
             # base prediction
-            score, support = self.predict_r(r, minimum_eomi_score)
+            score, support = self.predict_r(
+                r, minimum_eomi_score, min_num_of_features)
             prediction_scores[r] = (score, support)
 
             # if their score is higher than minimum_eomi_score,
