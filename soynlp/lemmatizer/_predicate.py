@@ -174,3 +174,59 @@ class EomiExtractor:
         R_from_L = sorted(R_from_L.items(), key=lambda x:-len(x[0]))
 
         return R_from_L
+
+    def predict_r(self, r, minimum_r_score=0.3,
+        min_num_of_features=5, debug=False):
+
+        features = self.lrgraph.get_l(r, -1)
+
+        pos, neg, unk = self._predict_r(features, r)
+
+        base = pos + neg
+        score = 0 if base == 0 else (pos - neg) / base
+        support = pos + unk if score >= minimum_r_score else neg + unk
+
+        features_ = self._refine_features(features, r)
+        n_features_ = len(features_)
+
+        if debug:
+            print('pos={}, neg={}, unk={}, n_features_={}'.format(
+                pos, neg, unk, n_features_))
+
+        if n_features_ >= min_num_of_features:
+            return score, support
+        else:
+            # TODO
+            return (0, 0)
+
+    def _predict_r(self, features, r):
+
+        pos, neg, unk = 0, 0, 0
+
+        for l, freq in features:
+            if self._exist_longer_pos(l, r): # ignore
+                continue
+            if l in self._pos_l:
+                pos += freq
+            elif self._has_root_at_last(l):
+                unk += freq
+            else:
+                neg += freq
+
+        return pos, neg, unk
+
+    def _exist_longer_pos(self, l, r):
+        for i in range(1, len(r)+1):
+            if (l + r[:i]) in self._pos_l:
+                return True
+        return False
+
+    def _has_root_at_last(self, l):
+        for i in range(1, len(l)):
+            if l[-i:] in self._pos_l:
+                return True
+        return False
+
+    def _refine_features(self, features, r):
+        return [(l, count) for l, count in features if
+            ((l in self._pos_l) and (not self._exist_longer_pos(l, r)))]
