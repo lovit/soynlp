@@ -230,3 +230,33 @@ class EomiExtractor:
     def _refine_features(self, features, r):
         return [(l, count) for l, count in features if
             ((l in self._pos_l) and (not self._exist_longer_pos(l, r)))]
+
+    def _batch_prediction_order_by_word_length(self,
+        eomi_candidates, minimum_eomi_score=0.3):
+
+        prediction_scores = {}
+
+        n = len(eomi_candidates)
+        for i, (r, _) in enumerate(eomi_candidates):
+
+            if self.verbose and i % 1000 == 999:
+                percentage = '%.3f' % (100 * (i+1) / n)
+                print('\r  -- batch prediction {} % of {} words'.format(
+                    percentage, n), flush=True, end='')
+
+            # base prediction
+            score, support = self.predict_r(r, minimum_eomi_score)
+            prediction_scores[r] = (score, support)
+
+            # if their score is higher than minimum_eomi_score,
+            # remove eojeol pattern from lrgraph
+            if score >= minimum_eomi_score:
+                for l, count in self.lrgraph.get_l(r, -1):
+                    if l in self._pos_l:
+                        self.lrgraph.remove_eojeol(l+r, count)
+
+        if verbose:
+            print('\r[Eomi Extractor] batch prediction was completed for {} words'.format(
+                n), flush=True)
+
+        return prediction_scores
