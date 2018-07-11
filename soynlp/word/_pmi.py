@@ -3,7 +3,7 @@ from scipy.sparse import diags
 from scipy.sparse import dok_matrix
 from sklearn.metrics import pairwise_distances
 from soynlp.utils import get_process_memory
-from soynlp.vectorizer import sent_to_word_context_matrix
+from soynlp.vectorizer import sent_to_word_contexts_matrix
 
 def pmi(x, min_pmi=0, alpha=0.0001, verbose=False):
     # convert x to probability matrix & marginal probability 
