@@ -33,7 +33,7 @@ class EomiExtractor:
             eomis = self._load_default_eomis()
 
         self._nouns = nouns
-        self._pos_features = noun_pos_features
+        self._noun_pos_features = noun_pos_features
         self._roots = roots
         self._pos_l = {l for root in roots for l in _conjugate_root(root)}
         self._eomis = eomis
