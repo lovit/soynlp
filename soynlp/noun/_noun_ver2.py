@@ -139,7 +139,7 @@ class LRNounExtractor_v2:
     def train_extract(self, sentences, minimum_noun_score=0.3,
         min_count=1, min_eojeol_count=1, reset_lrgraph=True):
 
-        self.train(sentences, min_eojeol_count)
+        self.train(sentences)
 
         return self.extract(minimum_noun_score, min_count, reset_lrgraph)
 
