@@ -62,7 +62,7 @@ def hangle_test():
     if 1/3 != jamo_levenshtein('가나', '가남'):
         raise ValueError("jamo_levenshtein('가나', '가남') -> {}".format(jamo_levenshtein('가나', '가남')))
     
-    print('all hangle tests have been successed\n\n')
+    print('all hangle tests have been successed\n')
 
 def tokenizer_test():
     from soynlp.tokenizer import LTokenizer
@@ -92,7 +92,7 @@ def tokenizer_test():
         raise ValueError("maxscore_tokenizer.tokenize('데이터는 데이터센터의 데이데이') == {}".format(
             maxscore_tokenizer.tokenize('데이터는 데이터센터의 데이데이')))
 
-    print('all tokenizer tests have been successed\n\n')
+    print('all tokenizer tests have been successed\n')
 
 def word_extractor_test(corpus_path):
     print('WordExtractor test')
