@@ -1,3 +1,7 @@
+from collections import namedtuple
+
+NgramScore = namedtuple('NgramScore', 'frequency score')
+
 class Bigram:
     def __init__(self, sentences=None, min_count=5, verbose=True, score='count',
         filtering_checkpoint=100000, tokenizer=None, ngram_selector=None):
@@ -77,4 +81,8 @@ class Bigram:
         raise NotImplemented
 
     def _extract_by_count(self, topk=-1, threshold=10):
-        raise NotImplemented
+        bigrams = filter(lambda x:x[1] >= threshold, self._counter.items())
+        if topk > 0:
+            bigrams = sorted(bigrams, key=lambda x:-x[1])
+        bigrams = {word:NgramScore(count, count) for word, count in bigrams}
+        return bigrams
