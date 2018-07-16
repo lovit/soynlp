@@ -9,11 +9,18 @@ class Bigram:
             Scoring method. choice in ['count', 'pmi', 'mikolov']
         """
 
-        self._min_count = min_count
-        self._verbose = verbose
-        self._filtering_checkpoint = filtering_checkpoint
-        self._tokenizer = tokenizer
-        self._ngram_selector = ngram_selector
+        if tokenizer is None:
+            tokenizer = lambda x:x.split()
+
+        if ngram_selector is None:
+            ngram_selector = lambda x:x
+
+        self.min_count = min_count
+        self.verbose = verbose
+        self.score = score
+        self.filtering_checkpoint = filtering_checkpoint
+        self.tokenizer = tokenizer
+        self.ngram_selector = ngram_selector
         self._counter = None
 
     @property
@@ -30,15 +37,15 @@ class Bigram:
 
         for i_sent, sent in enumerate(sentences):
 
-            if self._filtering_checkpoint > 0 and i_sent % filtering_checkpoint == 0:
+            if self.filtering_checkpoint > 0 and i_sent % self.filtering_checkpoint == 0:
                 self._counter = {bigram:count for bigram, count
-                    in self._counter.items() if count >= self._min_count}
+                    in self._counter.items() if count >= self.min_count}
 
-            if self._verbose and i_sent % 3000 == 0:
+            if self.verbose and i_sent % 3000 == 0:
                 print('\r[Bigram Extractor] scanning {} bigrams from {} sents'.format(
                     len(self._counter), i_sent), end='', flush=True)
 
-            words = self._tokenizer(sent)
+            words = self.tokenizer(sent)
             if len(words) <= 1:
                 continue
 
@@ -47,22 +54,27 @@ class Bigram:
                 self._counter[bigram] = self._counter.get(bigram, 0) + 1
 
         self._counter = {bigram:count for bigram, count
-            in self._counter.items() if count >= self._min_count}
+            in self._counter.items() if count >= self.min_count}
 
         self._unigram = {}
         for bigram, count in self._counter.items():
             for unigram in bigram:
                 self._unigram[unigram] = self._unigram.get(unigram, 0) + 1
 
-        if self._verbose:
+        if self.verbose:
             print('\r[Bigram Extractor] scanning {} unigrams, {} bigrams from {} sents'.format(
                 len(self._unigram), len(self._counter), i_sent), flush=True)
 
-    def extract(self):
+    def extract(self, topk=-1, threshold=0):
+        if self.score == 'count':
+            return self._extract_by_count(topk, threshold)
+        elif self.score == 'pmi':
+            return self._extract_by_pmi(topk, threshold)
+
         raise NotImplemented
 
-    def _extract_pmi(self, threshold=0):
+    def _extract_by_pmi(self, topk=-1, threshold=0):
         raise NotImplemented
 
-    def _extract_count(self, threshold=10):
+    def _extract_by_count(self, topk=-1, threshold=10):
         raise NotImplemented
