@@ -1,6 +1,7 @@
 import sys
-sys.path.append('../')
-from _conjugation import conjugate
+sys.path.insert(0, '../')
+import soynlp
+from soynlp.lemmatizer import conjugate
 
 def main():
     testset = [
