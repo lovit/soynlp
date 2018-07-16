@@ -113,6 +113,7 @@ def word_extractor_test(corpus_path):
 def noun_extractor_test(corpus_path):
     from soynlp import DoublespaceLineCorpus
     from soynlp.noun import LRNounExtractor
+    from soynlp.noun import LRNounExtractor_v2
     from soynlp.noun import NewsNounExtractor
     corpus = DoublespaceLineCorpus(corpus_path, num_doc=1000)
     
@@ -135,6 +136,18 @@ def noun_extractor_test(corpus_path):
     topwords = sorted(newsnoun_scores, key=lambda x: -newsnoun_scores[x].score * newsnoun_scores[x].frequency)[:20]
     for word in topwords:
         print('word = {}, score = {}'.format(word, newsnoun_scores[word].score))
+    print('noun extractor test has been done\n\n')
+
+    # LRNounExtractor_v2
+    print('\nNounExtractor_v2 test\n{}'.format('-'*40))
+    noun_extractor_v2 = LRNounExtractor_v2()
+    noun_scores_v2 = noun_extractor_v2.train_extract(corpus)
+    noun_scores_v2 = {noun:score for noun, score in noun_scores_v2.items() if len(noun) > 1}
+
+    print('\n{}\n{} words are extracted\ntop 20 frequency * score'.format('-'*30, len(noun_scores_v2)))
+    topwords = sorted(noun_scores_v2, key=lambda x: -noun_scores_v2[x].score * noun_scores_v2[x].frequency)[:20]
+    for word in topwords:
+        print('word = {}, score = {}'.format(word, noun_scores_v2[word].score))
     print('noun extractor test has been done\n\n')
 
 def pos_tagger_test():
