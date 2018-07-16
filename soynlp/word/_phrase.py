@@ -1,4 +1,5 @@
 from collections import namedtuple
+from math import log
 
 NgramScore = namedtuple('NgramScore', 'frequency score')
 
@@ -78,7 +79,21 @@ class Bigram:
         raise NotImplemented
 
     def _extract_by_pmi(self, topk=-1, threshold=0):
-        raise NotImplemented
+
+        def score(bigram, count, N):
+            base = self._unigram[bigram[0]] * self._unigram[bigram[1]]
+            return 0 if base == 0 else log(N * count / base)
+
+        N = 2 * sum(self._counter.values())
+        pmis = {}
+        for bigram, count in self._counter.items():
+            pmi = score(bigram, count, N)
+            if pmi >= threshold:
+                pmis[bigram] = pmi
+
+        bigrams = {word:NgramScore(count, pmis[word]) for word, count
+                   in self._counter.items() if word in pmis}
+        return bigrams
 
     def _extract_by_count(self, topk=-1, threshold=10):
         bigrams = filter(lambda x:x[1] >= threshold, self._counter.items())
