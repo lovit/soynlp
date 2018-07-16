@@ -1,0 +1,149 @@
+all hangle tests have been successed
+
+all tokenizer tests have been successed
+
+WordExtractor test
+training was done. used memory 0.104 Gb
+ cohesion probabilities ... (1 in 14479)all cohesion probabilities was computed. # words = 13698
+all branching entropies was computed # words = 24668
+all accessor variety was computed # words = 24668
+top 20 left frequency * forward cohesion words
+word = 20, cohesion = 0.6965883668903803
+word = 연합뉴스, cohesion = 0.8976573091979871
+word = 있다, cohesion = 0.6076576576576577
+word = 서울, cohesion = 0.7769289533995416
+word = 201, cohesion = 0.5102418604467153
+word = 북한, cohesion = 0.8620037807183365
+word = 20일, cohesion = 0.4750485669272115
+word = 기자, cohesion = 0.39728591483387926
+word = 2016, cohesion = 0.5402903340476038
+word = 말했다, cohesion = 0.8370178029141373
+word = 밝혔다, cohesion = 0.8880865885136363
+word = 것으로, cohesion = 0.6592118985564233
+word = 미국, cohesion = 0.530373831775701
+word = 10, cohesion = 0.3036
+word = 열린, cohesion = 0.5627118644067797
+word = 했다, cohesion = 0.8235294117647058
+word = 오전, cohesion = 0.3815413891531874
+word = 함께, cohesion = 0.9265536723163842
+word = 외교, cohesion = 0.5391705069124424
+word = 운영, cohesion = 0.609375
+word extractor test has been done
+
+
+LRNounExtractor test
+----------------------------------------
+used default noun predictor; Sejong corpus predictor
+used noun_predictor_sejong
+All 2398 r features was loaded
+scanning completed
+(L,R) has (10273, 5432) tokens
+building lr-graph: ---------------------------------------- (0.000 %)building lr-graph: #--------------------------------------- (2.500 %)building lr-graph completed------------------------------
+2506 words are extracted
+top 20 frequency * score
+word = 연합뉴스, score = 0.5693571739130434
+word = 기자, score = 0.9895379999999999
+word = 20일, score = 0.9992192631578949
+word = 지난, score = 0.995316
+word = 북한, score = 0.8829807692307692
+word = 오전, score = 0.9996780000000001
+word = 미국, score = 0.7724786649746193
+word = 제공, score = 0.9160304814814814
+word = 한국, score = 0.8518414964539007
+word = 위해, score = 0.997334
+word = 관련, score = 0.9818151764705881
+word = 19일, score = 0.9997940000000001
+word = 국회, score = 0.9997106907216494
+word = 외교, score = 0.9686825
+word = 이번, score = 0.9996281904761904
+word = 조사, score = 0.9398240289855073
+word = 운영, score = 0.9108936833333334
+word = 공동, score = 0.9997723333333334
+word = 함께, score = 0.9928503636363636
+word = 문제, score = 0.8056903441558443
+
+NewsNounExtractor test
+----------------------------------------
+used default noun predictor; Sejong corpus based logistic predictor
+/mnt/lovit/git/soynlp/soynlp
+scan vocabulary ... 
+done (Lset, Rset, Eojeol) = (70349, 38979, 40437)
+extracting 77 nouns using verb/adjective dictionary ... 1000 / 4901extracting 167 nouns using verb/adjective dictionary ... 2000 / 4901extracting 238 nouns using verb/adjective dictionary ... 3000 / 4901extracting 293 nouns using verb/adjective dictionary ... 4000 / 4901extracted 335 nouns using verb/adjective dictionarypredicting noun score ... 1000 / 16586predicting noun score ... 2000 / 16586predicting noun score ... 3000 / 16586predicting noun score ... 4000 / 16586predicting noun score ... 5000 / 16586predicting noun score ... 6000 / 16586predicting noun score ... 7000 / 16586predicting noun score ... 8000 / 16586predicting noun score ... 9000 / 16586predicting noun score ... 10000 / 16586predicting noun score ... 11000 / 16586predicting noun score ... 12000 / 16586predicting noun score ... 13000 / 16586predicting noun score ... 14000 / 16586predicting noun score ... 15000 / 16586predicting noun score ... 16000 / 16586predicting noun score was done                                        
+before postprocessing 16586
+_noun_scores_ 4623
+finding NJsubJ (대학생(으)+로), NsubJ (떡볶+(이)), NVsubE (사기(당)+했다) ... donechecking hardrules ... 1000 / 4623checking hardrules ... 2000 / 4623checking hardrules ... 3000 / 4623checking hardrules ... 4000 / 4623checking hardrules ... done
+after postprocessing 3153
+extracting 3 compounds from eojeols ... 1000 / 4901extracting 7 compounds from eojeols ... 2000 / 4901extracting 12 compounds from eojeols ... 3000 / 4901extracting 24 compounds from eojeols ... 4000 / 4901extracted 38 compounds from eojeols
+------------------------------
+3340 words are extracted
+top 20 frequency * score
+word = 연합뉴스, score = 0.5693571739130434
+word = 20일, score = 0.9992192631578949
+word = 지난, score = 0.995316
+word = 오전, score = 0.9996780000000001
+word = 북한, score = 0.8829807692307692
+word = 미국, score = 0.7747653115577888
+word = 제공, score = 0.9160304814814814
+word = 한국, score = 0.8518414964539007
+word = 관련, score = 0.9818151764705881
+word = 19일, score = 0.9997940000000001
+word = 국회, score = 0.9997106907216494
+word = 외교, score = 0.9686825
+word = 이번, score = 0.9996281904761904
+word = 조사, score = 0.9406836857142855
+word = 운영, score = 0.9108936833333334
+word = 공동, score = 0.9997723333333334
+word = 함께, score = 0.9928503636363636
+word = 문제, score = 0.8056903441558443
+word = 현지, score = 0.9996773333333334
+word = 오후, score = 0.999838
+noun extractor test has been done
+
+
+
+NounExtractor_v2 test
+----------------------------------------
+[Noun Extractor] use default predictors
+[Noun Extractor] num features: pos=1260, neg=1173, common=12
+[Noun Extractor] counting eojeols
+[EojeolCounter] n eojeol = 40060 from 1000 sents. mem=0.189 Gb                    
+[Noun Extractor] complete eojeol counter -> lr graph
+[Noun Extractor] has been trained. mem=0.222 Gb
+  -- batch prediction 6.183 % of 16173 words  -- batch prediction 12.366 % of 16173 words  -- batch prediction 18.549 % of 16173 words  -- batch prediction 24.733 % of 16173 words  -- batch prediction 30.916 % of 16173 words  -- batch prediction 37.099 % of 16173 words  -- batch prediction 43.282 % of 16173 words  -- batch prediction 49.465 % of 16173 words  -- batch prediction 55.648 % of 16173 words  -- batch prediction 61.831 % of 16173 words  -- batch prediction 68.015 % of 16173 words  -- batch prediction 74.198 % of 16173 words  -- batch prediction 80.381 % of 16173 words  -- batch prediction 86.564 % of 16173 words  -- batch prediction 92.747 % of 16173 words  -- batch prediction 98.930 % of 16173 words[Noun Extractor] batch prediction was completed for 16173 words
+  -- check compound 5.23 %  -- check compound 10.46 %  -- check compound 15.69 %  -- check compound 20.93 %  -- check compound 26.16 %  -- check compound 31.40 %  -- check compound 36.63 %  -- check compound 41.86 %  -- check compound 47.10 %  -- check compound 52.33 %  -- check compound 57.56 %  -- check compound 62.80 %  -- check compound 68.03 %  -- check compound 73.26 %  -- check compound 78.50 %  -- check compound 83.73 %  -- check compound 88.96 %  -- check compound 94.20 %  -- check compound 99.43 %[Noun Extractor] checked compounds. discovered 1750 compounds
+[Noun Extractor] postprocessing detaching_features : 7654 -> 7651
+[Noun Extractor] postprocessing ignore_features : 7651 -> 7626
+[Noun Extractor] postprocessing ignore_NJ : 7626 -> 7111
+[Noun Extractor] 7111 nouns (1750 compounds) with min count=1
+[Noun Extractor] flushing ... [Noun Extractor] flushing ...  6.183 %[Noun Extractor] flushing ...  12.366 %[Noun Extractor] flushing ...  18.549 %[Noun Extractor] flushing ...  24.733 %[Noun Extractor] flushing ...  30.916 %[Noun Extractor] flushing ...  37.099 %[Noun Extractor] flushing ...  43.282 %[Noun Extractor] flushing ...  49.465 %[Noun Extractor] flushing ...  55.648 %[Noun Extractor] flushing ...  61.831 %[Noun Extractor] flushing ...  68.015 %[Noun Extractor] flushing ...  74.198 %[Noun Extractor] flushing ...  80.381 %[Noun Extractor] flushing ...  86.564 %[Noun Extractor] flushing ...  92.747 %[Noun Extractor] flushing ...  98.930 %[Noun Extractor] flushing was done. mem=0.250 Gb                    
+[Noun Extractor] 57.64 % eojeols are covered
+
+------------------------------
+6931 words are extracted
+top 20 frequency * score
+word = 연합뉴스, score = 1.0
+word = 20일, score = 1.0
+word = 미국, score = 1.0
+word = 오전, score = 1.0
+word = 북한, score = 1.0
+word = 제공, score = 1.0
+word = 19일, score = 1.0
+word = 관련, score = 1.0
+word = 이날, score = 1.0
+word = 국회, score = 1.0
+word = 20, score = 0.4
+word = 한미, score = 1.0
+word = 경찰, score = 1.0
+word = 한국, score = 0.9416058394160584
+word = 올해, score = 1.0
+word = 이번, score = 1.0
+word = 문제, score = 0.9869281045751634
+word = 조사, score = 1.0
+word = 장관, score = 1.0
+word = 대표, score = 0.9861111111111112
+noun extractor test has been done
+
+
+all pos tagger tests have been successed
+
+
