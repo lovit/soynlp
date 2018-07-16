@@ -1,7 +1,7 @@
 import sys
-sys.path.append('../')
-
-from _conjugation import conjugate
+sys.path.insert(0, '../')
+import soynlp
+from soynlp.lemmatizer import _conjugate_stem
 
 """
 푸르 -> {'푸르', '푸릅', '푸릈', '푸를', '풀', '푸른'}
@@ -50,7 +50,7 @@ def main():
     }
     
     for stem in testset:
-        print('{} -> {}'.format(stem, conjugate_stem(stem)))
+        print('{} -> {}'.format(stem, _conjugate_stem(stem)))
 
 if __name__ == '__main__':
     main()
