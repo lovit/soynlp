@@ -24,7 +24,7 @@ class Lemmatizer:
             l, r = word[:i], word[i:]
             if check_if_r_is_known and not self.is_surfacial_eomi(r):
                 continue
-            for stem, ending in self._candidates(l, r):
+            for stem, ending in _lemma_candidate(l, r, self._predefined):
                 if self.is_stem(stem):
                     candidates.add((stem, ending))
         return candidates
