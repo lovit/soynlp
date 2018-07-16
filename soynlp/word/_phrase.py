@@ -75,7 +75,8 @@ class Bigram:
             return self._extract_by_count(topk, threshold)
         elif self.score == 'pmi':
             return self._extract_by_pmi(topk, threshold)
-
+        elif self.score == 'mikolov':
+            return self._extract_by_mikolov(topk, threshold)
         raise NotImplemented
 
     def _extract_by_pmi(self, topk=-1, threshold=0):
@@ -100,4 +101,21 @@ class Bigram:
         if topk > 0:
             bigrams = sorted(bigrams, key=lambda x:-x[1])
         bigrams = {word:NgramScore(count, count) for word, count in bigrams}
+        return bigrams
+
+    def _extract_by_mikolov(self, topk=-1, threshold=0):
+
+        def score(bigram, count, N):
+            base = self._unigram[bigram[0]] * self._unigram[bigram[1]]
+            return 0 if base == 0 else (count - self.min_count) / base
+
+        N = 2 * sum(self._counter.values())
+        scores = {}
+        for bigram, count in self._counter.items():
+            s = score(bigram, count, N)
+            if s >= threshold:
+                scores[bigram] = s
+
+        bigrams = {word:NgramScore(count, scores[word]) for word, count
+                   in self._counter.items() if word in scores}
         return bigrams
