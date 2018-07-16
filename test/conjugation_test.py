@@ -23,8 +23,8 @@ def main():
         ('하', '았다'), ('하', '었다') # 여 불규칙 (2)
     ]
 
-    for root, eomi in testset:
-        print('{} + {} -> {}'.format(root, eomi, conjugate(root, eomi)))
+    for stem, eomi in testset:
+        print('{} + {} -> {}'.format(stem, eomi, conjugate(stem, eomi)))
 
 if __name__ == '__main__':
     main()

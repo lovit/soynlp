@@ -1,15 +1,15 @@
 """ TERM DEFINITION
 (l, r) : L and R position subwords
-root : root of Adjective and Verb
+stem : stem of Adjective and Verb
 ending : suffix, canonical form of ending
 
-roots : set of root including Adjectives and Verbs
-composable_roots : roots that can be compounded with other prefix
+stems : set of stem including Adjectives and Verbs
+composable_stems : stems that can be compounded with other prefix
     - [] + 하다 : 덕질+하다, 냐옹+하다, 냐옹+하냥
 endings : set of ending
-pos_l_features : canonical form set of roots (L subwords)
-pos_composable_l_features : canonical form set of composable roots (L subwords)
-lrgraph : L-R graph including [Root + Ending], Adverbs, 
+pos_l_features : canonical form set of stems (L subwords)
+pos_composable_l_features : canonical form set of composable stems (L subwords)
+lrgraph : L-R graph including [stem + Ending], Adverbs, 
           and maybe some Noun + Josa
 """
 
@@ -20,22 +20,22 @@ from soynlp.utils.utils import installpath
 
 class EomiExtractor:
 
-    def __init__(self, nouns, noun_pos_features=None, roots=None,
+    def __init__(self, nouns, noun_pos_features=None, stems=None,
         eomis=None, verbose=True):
 
         if not noun_pos_features:
             noun_pos_features = self._load_default_noun_pos_features()
 
-        if not roots:
-            roots = self._load_default_roots()
+        if not stems:
+            stems = self._load_default_stems()
 
         if not eomis:
             eomis = self._load_default_eomis()
 
         self._nouns = nouns
         self._noun_pos_features = noun_pos_features
-        self._roots = roots
-        self._pos_l = {l for root in roots for l in _conjugate_root(root)}
+        self._stems = stems
+        self._pos_l = {l for stem in stems for l in _conjugate_stem(stem)}
         self._eomis = eomis
         self.verbose = verbose
         self.lrgraph = None
@@ -46,19 +46,19 @@ class EomiExtractor:
             pos_features = {word.split()[0] for word in f}
         return pos_features
 
-    def _load_default_roots(self, min_count=100):
-        dirs = '%s/lemmatizer/dictionary/default/Root' % installpath
+    def _load_default_stems(self, min_count=100):
+        dirs = '%s/lemmatizer/dictionary/default/stem' % installpath
         paths = ['%s/Adjective.txt', '%s/Verb.txt']
         paths = [p % dirs for p in paths]
-        roots = set()
+        stems = set()
         for path in paths:
             with open(path, encoding='utf-8') as f:
                 for line in f:
                     word, count = line.split()
                     if int(count) < min_count:
                         continue
-                    roots.add(word)
-        return roots
+                    stems.add(word)
+        return stems
 
     def _load_default_eomis(self, min_count=20):
         path = '%s/lemmatizer/dictionary/default/Eomi/Eomi.txt' % installpath
@@ -146,9 +146,9 @@ class EomiExtractor:
         self._num_of_covered_eojeols = 0
 
         # base prediction
-        eomi_candidates = self._eomi_candidates_from_roots()
+        eomi_candidates = self._eomi_candidates_from_stems()
 
-    def _eomi_candidates_from_roots(self, condition=None):
+    def _eomi_candidates_from_stems(self, condition=None):
 
         def satisfy(word, e):
             return word[-e:] == condition
@@ -208,7 +208,7 @@ class EomiExtractor:
                 continue
             if l in self._pos_l:
                 pos += freq
-            elif self._has_root_at_last(l):
+            elif self._has_stem_at_last(l):
                 unk += freq
             else:
                 neg += freq
@@ -221,7 +221,7 @@ class EomiExtractor:
                 return True
         return False
 
-    def _has_root_at_last(self, l):
+    def _has_stem_at_last(self, l):
         for i in range(1, len(l)):
             if l[-i:] in self._pos_l:
                 return True

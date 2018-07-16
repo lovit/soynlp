@@ -4,7 +4,7 @@ sys.path.append('../')
 from _lemmatizer import Lemmatizer
 
 def main():
-    test_roots = {
+    test_stems = {
         '깨닫', '불', '묻', '눋', '겯', '믿', '묻', '뜯', # ㄷ 불규칙
         '구르', '무르', '마르', '누르', '나르', '모르', '이르', # 르 불규칙
         '아니꼽', '우습', '더럽', '아름답', '잡', '뽑', '곱', '돕', # ㅂ 불규칙
@@ -61,7 +61,7 @@ def main():
         ('그래', ''),
     ]
     
-    lemmatizer = Lemmatizer(test_roots, test_eomis)
+    lemmatizer = Lemmatizer(test_stems, test_eomis)
     for l,r in testset:
         print('({}, {}) -> {}'.format(l,r,lemmatizer.lemmatize(l+r)))
 

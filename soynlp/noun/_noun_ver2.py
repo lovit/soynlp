@@ -264,7 +264,7 @@ class LRNounExtractor_v2:
 
         if reset_lrgraph:
             # when extracting predicates, do not reset lrgraph.
-            # the remained lrgraph is predicate (root - ending) graph
+            # the remained lrgraph is predicate (stem - ending) graph
             self.lrgraph.reset_lrgraph()
 
         nouns_ = {noun:NounScore(score[1], score[0]) for noun, score in nouns.items()}

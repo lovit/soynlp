@@ -1,5 +1,6 @@
 import sys
 sys.path.append('../')
+
 from _conjugation import conjugate
 
 """
@@ -48,8 +49,8 @@ def main():
         '푸', '푸르', '하'
     }
     
-    for root in testset:
-        print('{} -> {}'.format(root, conjugate_root(root)))
+    for stem in testset:
+        print('{} -> {}'.format(stem, conjugate_stem(stem)))
 
 if __name__ == '__main__':
     main()
