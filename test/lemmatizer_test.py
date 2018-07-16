@@ -1,7 +1,8 @@
 # -*- encoding:utf8 -*-
 import sys
-sys.path.append('../')
-from _lemmatizer import Lemmatizer
+sys.path.insert(0, '../')
+import soynlp
+from soynlp.lemmatizer import Lemmatizer
 
 def main():
     test_stems = {
@@ -61,7 +62,7 @@ def main():
         ('그래', ''),
     ]
     
-    lemmatizer = Lemmatizer(test_stems, test_eomis)
+    lemmatizer = Lemmatizer(stems=test_stems, surfacial_eomis=test_eomis)
     for l,r in testset:
         print('({}, {}) -> {}'.format(l,r,lemmatizer.lemmatize(l+r)))
 
