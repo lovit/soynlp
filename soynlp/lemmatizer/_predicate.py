@@ -17,6 +17,7 @@ from soynlp.utils import LRGraph
 from soynlp.utils import get_process_memory
 from soynlp.utils import EojeolCounter
 from soynlp.utils.utils import installpath
+from ._stem import extract_domain_stem
 
 class EomiExtractor:
 
@@ -267,3 +268,65 @@ class EomiExtractor:
                 n), flush=True)
 
         return prediction_scores
+
+    def extract_domain_stem(self, append_extracted_stem=True,
+        eomi_candidates=None, ignore_L=None,
+        min_eomi_score=0.3, min_eomi_frequency=100,
+        min_stem_score=0.3, min_stem_frequency=100,
+        min_num_of_unique_firstchar=4, min_entropy_of_firstchar=0.5,
+        min_stem_entropy=1.5):
+
+        if self.verbose:
+            print('[Eomi Extractor] batch prediction for extracting stem')
+
+        if not eomi_candidates:
+            eomi_candidates = self._eomi_candidates_from_stems()
+
+        # TODO: min_num_of_features -> init argument
+        prediction_scores = self._batch_prediction_order_by_word_length(
+            eomi_candidates, min_eomi_score, min_num_of_features=5)
+
+        self.lrgraph.reset_lrgraph()
+
+        self._stems_extracted, self._pos_l_extracted = extract_domain_stem(
+            prediction_scores,
+            self.lrgraph,
+            self._pos_l,
+            ignore_L,
+            min_eomi_score,
+            min_eomi_frequency,
+            min_stem_score,
+            min_stem_frequency,
+            min_num_of_unique_firstchar,
+            min_entropy_of_firstchar,
+            min_stem_entropy
+        )
+
+        if append_extracted_stem:
+            self._append_features('stems', self._stems_extracted)
+            self._append_features('pos_l', self._pos_l_extracted)
+
+        if self.verbose:
+            print('[Eomi Extractor] {} stems ({} L) were extracted'.format(
+                len(self._stems_extracted), len(self._pos_l_extracted)))
+
+    def _append_features(self, feature_type, features):
+
+        def check_size():
+            return (len(self._stems), len(self._pos_l))
+
+        # size before
+        n_stems, n_pos_l = check_size()
+
+        if feature_type == 'stems':
+            self._stems.update(features)
+        elif feature_type == 'pos_l':
+            self._pos_l.update(features)
+
+        # size after
+        n_stems_, n_pos_l_ = check_size()
+
+        if self.verbose:
+            message = 'stems={} -> {}, L={} -> {}'.format(
+                n_stems, n_pos_l, n_stems_, n_pos_l_)
+            print('[Eomi Extractor] stems appended. {}'.format(message))
