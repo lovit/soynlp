@@ -208,6 +208,8 @@ class EomiExtractor:
                 continue
             if l in self._pos_l:
                 pos += freq
+            elif self._is_aNoun_Verb(l):
+                pos += freq
             elif self._has_stem_at_last(l):
                 unk += freq
             else:
@@ -220,6 +222,9 @@ class EomiExtractor:
             if (l + r[:i]) in self._pos_l:
                 return True
         return False
+
+    def _is_aNoun_Verb(self, l):
+        return (l[0] in self._nouns) and (l[1:] in self._pos_l)
 
     def _has_stem_at_last(self, l):
         for i in range(1, len(l)):
@@ -253,7 +258,8 @@ class EomiExtractor:
             # remove eojeol pattern from lrgraph
             if score >= minimum_eomi_score:
                 for l, count in self.lrgraph.get_l(r, -1):
-                    if l in self._pos_l:
+                    if ((l in self._pos_l) or
+                        self._is_aNoun_Verb(l)):
                         self.lrgraph.remove_eojeol(l+r, count)
 
         if self.verbose:
