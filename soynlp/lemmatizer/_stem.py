@@ -29,7 +29,7 @@ def extract_domain_stem(prediction_scores, lrgraph, known_stem_L,
     # from shorter to longer
     for l in sorted(L_candidates, key=lambda x:len(x)):
 
-        if (l in known_stem_L) or (l in R) or len(l) == 1:
+        if (l in known_stem_L) or (l in R) or (len(l) == 1) or (l[-1] == '다'):
             continue
 
         features = _get_R_features(l, lrgraph)
