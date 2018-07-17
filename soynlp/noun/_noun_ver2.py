@@ -201,7 +201,8 @@ class LRNounExtractor_v2:
             min_noun_entropy
         )
 
-        self._append_features('pos', self._pos_features_extracted)
+        if append_extracted_features:
+            self._append_features('pos', self._pos_features_extracted)
 
         if self.verbose:
             print('[Noun Extractor] {} pos features were extracted'.format(
