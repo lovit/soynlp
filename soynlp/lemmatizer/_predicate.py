@@ -47,7 +47,7 @@ class EomiExtractor:
         return pos_features
 
     def _load_default_stems(self, min_count=100):
-        dirs = '%s/lemmatizer/dictionary/default/stem' % installpath
+        dirs = '%s/lemmatizer/dictionary/default/Stem' % installpath
         paths = ['%s/Adjective.txt', '%s/Verb.txt']
         paths = [p % dirs for p in paths]
         stems = set()
