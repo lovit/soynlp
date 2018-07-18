@@ -158,7 +158,6 @@ class EomiExtractor:
         R_from_L = {}
 
         for l in self._pos_l:
-
             for r, c in self.lrgraph.get_r(l, -1):
 
                 # candidates filtering for debugging
@@ -170,9 +169,6 @@ class EomiExtractor:
                 # for debugging
                 if satisfy(r, len(condition)):
                     R_from_L[r] = R_from_L.get(r,0) + c
-
-        # sort by length of word
-        R_from_L = sorted(R_from_L.items(), key=lambda x:-len(x[0]))
 
         return R_from_L
 
@@ -237,13 +233,13 @@ class EomiExtractor:
         return [(l, count) for l, count in features if
             ((l in self._pos_l) and (not self._exist_longer_pos(l, r)))]
 
-    def _batch_prediction_order_by_word_length(self,
+    def _batch_predicting_eomis(self,
         eomi_candidates, minimum_eomi_score=0.3, min_num_of_features=5):
 
         prediction_scores = {}
 
         n = len(eomi_candidates)
-        for i, (r, _) in enumerate(eomi_candidates):
+        for i, r in enumerate(sorted(eomi_candidates, key=lambda x:-len(x))):
 
             if self.verbose and i % 1000 == 999:
                 percentage = '%.3f' % (100 * (i+1) / n)
@@ -283,7 +279,7 @@ class EomiExtractor:
             eomi_candidates = self._eomi_candidates_from_stems()
 
         # TODO: min_num_of_features -> init argument
-        prediction_scores = self._batch_prediction_order_by_word_length(
+        prediction_scores = self._batch_predicting_eomis(
             eomi_candidates, min_eomi_score, min_num_of_features=5)
 
         self.lrgraph.reset_lrgraph()
