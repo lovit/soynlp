@@ -182,7 +182,7 @@ class LRNounExtractor_v2:
         if not noun_candidates:
             noun_candidates = self._noun_candidates_from_positive_features()
 
-        prediction_scores = self._batch_prediction_order_by_word_length(
+        prediction_scores = self._batch_predicting_nouns(
             noun_candidates, min_noun_score)
 
         self.lrgraph.reset_lrgraph()
@@ -222,7 +222,7 @@ class LRNounExtractor_v2:
 
             self.extract_domain_pos_features(noun_candidates)
 
-        prediction_scores = self._batch_prediction_order_by_word_length(
+        prediction_scores = self._batch_predicting_nouns(
             noun_candidates, minimum_noun_score)
 
         if self.logpath:
@@ -382,7 +382,6 @@ class LRNounExtractor_v2:
         N_from_J = {}
 
         for r in self._pos_features:
-
             for l, c in self.lrgraph.get_l(r, -1):
 
                 # candidates filtering for debugging
@@ -397,18 +396,15 @@ class LRNounExtractor_v2:
 
                 N_from_J[l] = N_from_J.get(l,0) + c
 
-        # sort by length of word
-        N_from_J = sorted(N_from_J.items(), key=lambda x:-len(x[0]))
-
         return N_from_J
 
-    def _batch_prediction_order_by_word_length(self,
+    def _batch_predicting_nouns(self,
         noun_candidates, minimum_noun_score=0.3):
 
         prediction_scores = {}
 
         n = len(noun_candidates)
-        for i, (word, _) in enumerate(noun_candidates):
+        for i, word in enumerate(sorted(noun_candidates, key=lambda x:-len(x))):
 
             if self.verbose and i % 1000 == 999:
                 percentage = '%.3f' % (100 * (i+1) / n)
@@ -574,7 +570,7 @@ class LRNounExtractor_v2:
         noun_candidates = self._noun_candidates_from_positive_features()
 
         n = len(noun_candidates)
-        for i, (word, _) in enumerate(noun_candidates):
+        for i, word in enumerate(sorted(noun_candidates, key=lambda x:-len(x))):
 
             if self.verbose and i % 1000 == 999:
                 percentage = '%.3f' % (100 * (i+1) / n)
