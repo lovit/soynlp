@@ -23,11 +23,22 @@ def extract_domain_stem(prediction_scores, lrgraph, known_stem_L,
     L_candidates = {l:count for l, count in L_candidates.items()
         if count >= min_L_frequency}
 
+    L_extracted = _batch_predicting_L(
+        L_candidates, lrgraph, known_stem_L, R,
+        min_L_score, min_L_frequency,
+        min_num_of_unique_firstchar, min_stem_entropy)
+
+    stems = _to_stem(L_extracted)
+    return stems, L_extracted
+
+def _batch_predicting_L(L_candidates, lrgraph, known_stem_L, R, min_L_score,
+    min_L_frequency, min_num_of_unique_firstchar, min_stem_entropy):
+
     # add known L for unknown L prediction
     L_extracted = {l:None for l in known_stem_L}
 
-    # from shorter to longer
-    for l in sorted(L_candidates, key=lambda x:len(x)):
+    # from longer to shorter
+    for l in sorted(L_candidates, key=lambda x:-len(x)):
 
         if (l in known_stem_L) or (l in R) or (len(l) == 1) or (l[-1] == '다'):
             continue
@@ -51,8 +62,7 @@ def extract_domain_stem(prediction_scores, lrgraph, known_stem_L,
     L_extracted = {l:score for l, score in L_extracted.items()
                    if not (l in known_stem_L)}
 
-    stems = _to_stem(L_extracted)
-    return stems, L_extracted
+    return L_extracted
 
 def _get_R_features(l, lrgraph):
     features = lrgraph.get_r(l, -1)
