@@ -22,6 +22,8 @@ def extract_domain_stem(lrgraph, L, R, L_ignore=None,
         min_score_of_L, min_frequency_of_L, min_num_of_unique_R_char,
         min_entropy_of_R_char, min_entropy_of_R)
 
+    # L_extracted = _post_processing(L_extract, L, R)
+
     stems = _to_stem(L_extracted)
     return stems, L_extracted
 
@@ -120,6 +122,32 @@ def _entropy(counts):
     entropy = [v/sum_ for v in counts]
     entropy = -1 * sum((p * math.log(p) for p in entropy))
     return entropy
+
+def _post_processing(L_extracted, L, R):
+    def is_stem_and_eomi(l):
+        n = len(l)
+        for i in range(1, n):
+            if not ((l[:i] in L) or (l[:i] in L_extracted)):
+                continue
+            for j in range(i+1, n+1):
+                if l[i:j] in R:
+                    return True
+        return False
+
+    def exist_subword(l):
+        for i in range(2, len(l)):
+            if l[:i] in L_extracted:
+                return True
+        return False
+
+    removals = set()
+    for l in sorted(L_extracted, key=lambda x:len(x)):
+        if is_stem_and_eomi(l) or exist_subword(l):
+            removals.add(l)
+    extracteds = {l:score for l, score in L_extracted.items()
+                  if not (l in removals)}
+
+    return extracteds, removals
 
 def _to_stem(L_extracted):
     # TODO
