@@ -1,8 +1,8 @@
 import math
 
 def extract_domain_stem(lrgraph, L, R, L_ignore=None,
-    min_L_score=0.7, min_L_frequency=100, min_num_of_unique_firstchar=10,
-    min_entropy_of_firstchar=0.5, min_stem_entropy=1.5):
+    min_score_of_L=0.7, min_frequency_of_L=100, min_num_of_unique_R_char=10,
+    min_entropy_of_R_char=0.5, min_entropy_of_R=1.5):
 
     if L_ignore is None:
         L_ignore = {}
@@ -16,18 +16,18 @@ def extract_domain_stem(lrgraph, L, R, L_ignore=None,
 
     # 1st. frequency filtering
     L_candidates = {l:count for l, count in L_candidates.items()
-        if count >= min_L_frequency}
+        if count >= min_frequency_of_L}
 
-    L_extracted = _batch_predicting_L(
-        lrgraph, L, R, L_candidates,
-        min_L_score, min_L_frequency,
-        min_num_of_unique_firstchar, min_stem_entropy)
+    L_extracted = _batch_predicting_L(lrgraph, L, R, L_candidates,
+        min_score_of_L, min_frequency_of_L, min_num_of_unique_R_char,
+        min_entropy_of_R_char, min_entropy_of_R)
 
     stems = _to_stem(L_extracted)
     return stems, L_extracted
 
-def _batch_predicting_L(lrgraph, L, R, L_candidates, min_L_score,
-    min_L_frequency, min_num_of_unique_firstchar, min_stem_entropy):
+def _batch_predicting_L(lrgraph, L, R, L_candidates, min_score_of_L,
+    min_frequency_of_L, min_num_of_unique_R_char,
+    min_entropy_of_R_char, min_entropy_of_R):
 
     # add known L for unknown L prediction
     L_extracted = {l:None for l in L}
@@ -39,8 +39,8 @@ def _batch_predicting_L(lrgraph, L, R, L_candidates, min_L_score,
             continue
 
         features = _get_R_features(l, lrgraph)
-        score, freq = predict(l, features, L_extracted, R, min_L_score,
-            min_L_frequency, min_num_of_unique_firstchar, min_stem_entropy)
+        score, freq = predict(l, features, L_extracted, R, min_score_of_L,
+            min_frequency_of_L, min_num_of_unique_R_char, min_entropy_of_R_char)
 
         # Stem 에 맞게 변형
 #         # noun entropy
@@ -48,7 +48,7 @@ def _batch_predicting_L(lrgraph, L, R, L_candidates, min_L_score,
 #         noun_entropy = [c/noun_sum for l, c in features if l in nouns]
 #         noun_entropy = sum([-math.log(p) * p for p in noun_entropy])
 
-        if (score < min_L_score) or (freq < min_L_frequency):
+        if (score < min_score_of_L) or (freq < min_frequency_of_L):
             continue
 
         L_extracted[l] = (score, freq)
@@ -63,19 +63,21 @@ def _get_R_features(l, lrgraph):
     features = lrgraph.get_r(l, -1)
     return [feature for feature in features if feature[0]]
 
-def predict(l, features, L_extracted, R, min_L_score,
-    min_L_frequency, min_num_of_unique_firstchar, min_L_entropy):
+def predict(l, features, L_extracted, R, min_score_of_L,
+    min_frequency_of_L, min_num_of_unique_R_char, min_entropy_of_R_char):
 
-    n_unique, entropy = _first_character_criterions(features)
-    if ((n_unique < min_num_of_unique_firstchar) or
-        (entropy < min_L_entropy)):
+    R_char = _count_first_chars(features)
+    unique_R_char = len(R_char)
+    entropy_of_R_char = _entropy(R_char)
+    if ((unique_R_char < min_num_of_unique_R_char) or
+        (entropy_of_R_char < min_entropy_of_R_char)):
         return (0, 0)
 
     pos, neg, unk = _predict(l, features, L_extracted, R)
     score = (pos - neg) / (pos + neg) if (pos + neg) > 0 else 0
-    freq = pos if score >= min_L_score else neg + unk
+    freq = pos if score >= min_score_of_L else neg + unk
 
-    if freq < min_L_frequency:
+    if freq < min_frequency_of_L:
         return (0, freq)
     else:
         return (score, freq)
@@ -106,17 +108,22 @@ def _exist_longer_eomi(l, r, R):
             return True
     return False
 
-def _first_character_criterions(rcount):
+def _count_first_chars(rcount):
     counter = {}
     for r, count in rcount:
-        first = r[-1]
-        counter[first] = counter.get(first, 0) + count
+        if not r:
+            continue
+        char = r[0]
+        counter[char] = counter.get(char, 0) + count
+    return counter
 
-    n_unique = len(counter)
-    n_sum = sum(counter.values())
-    entropy = [freq/n_sum for freq in counter.values()]
+def _entropy(d):
+    if not d or len(d) == 1:
+        return 0
+    sum_ = sum(d.values())
+    entropy = [v/sum_ for v in d.values()]
     entropy = -1 * sum((p * math.log(p) for p in entropy))
-    return n_unique, entropy
+    return entropy
 
 def _to_stem(L_extracted):
     # TODO

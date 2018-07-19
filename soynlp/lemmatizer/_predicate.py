@@ -268,9 +268,9 @@ class EomiExtractor:
     def extract_domain_stem(self, append_extracted_stem=True,
         eomi_candidates=None, L_ignore=None,
         min_eomi_score=0.3, min_eomi_frequency=100,
-        min_L_score=0.3, min_L_frequency=100,
-        min_num_of_unique_firstchar=4, min_entropy_of_firstchar=0.5,
-        min_stem_entropy=1.5):
+        min_score_of_L=0.7, min_frequency_of_L=100,
+        min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
+        min_entropy_of_R=1.5):
 
         if self.verbose:
             print('[Eomi Extractor] batch prediction for extracting stem')
@@ -293,11 +293,11 @@ class EomiExtractor:
             self._pos_l,
             R,
             L_ignore,
-            min_L_score,
-            min_L_frequency,
-            min_num_of_unique_firstchar,
-            min_entropy_of_firstchar,
-            min_stem_entropy
+            min_score_of_L,
+            min_frequency_of_L,
+            min_num_of_unique_R_char,
+            min_entropy_of_R_char,
+            min_entropy_of_R
         )
 
         if append_extracted_stem:
