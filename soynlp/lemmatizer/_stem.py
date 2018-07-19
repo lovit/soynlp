@@ -42,11 +42,7 @@ def _batch_predicting_L(lrgraph, L, R, L_candidates, min_score_of_L,
         score, freq = predict(l, features, L_extracted, R, min_score_of_L,
             min_frequency_of_L, min_num_of_unique_R_char, min_entropy_of_R_char)
 
-        # Stem 에 맞게 변형
-#         # noun entropy
-#         noun_sum = sum((c for l, c in features if l in nouns))
-#         noun_entropy = [c/noun_sum for l, c in features if l in nouns]
-#         noun_entropy = sum([-math.log(p) * p for p in noun_entropy])
+        entropy_of_R = _entropy([v for _, v in features])
 
         if (score < min_score_of_L) or (freq < min_frequency_of_L):
             continue
@@ -68,7 +64,7 @@ def predict(l, features, L_extracted, R, min_score_of_L,
 
     R_char = _count_first_chars(features)
     unique_R_char = len(R_char)
-    entropy_of_R_char = _entropy(R_char)
+    entropy_of_R_char = _entropy(tuple(R_char.values()))
     if ((unique_R_char < min_num_of_unique_R_char) or
         (entropy_of_R_char < min_entropy_of_R_char)):
         return (0, 0)
@@ -117,11 +113,11 @@ def _count_first_chars(rcount):
         counter[char] = counter.get(char, 0) + count
     return counter
 
-def _entropy(d):
-    if not d or len(d) == 1:
+def _entropy(counts):
+    if not counts or len(counts) == 1:
         return 0
-    sum_ = sum(d.values())
-    entropy = [v/sum_ for v in d.values()]
+    sum_ = sum(counts)
+    entropy = [v/sum_ for v in counts]
     entropy = -1 * sum((p * math.log(p) for p in entropy))
     return entropy
 
