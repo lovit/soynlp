@@ -22,55 +22,55 @@ class Dictionary:
                 self.load(pos_dict)
             else:
                 raise ValueError('dictionary file does not exist')
-    
+
     def _check_max_length(self, pos_dict):
         return max((len(word) for words in pos_dict.values() for word in words))
-    
+
     def get_pos(self, word):
         tags = []
         for pos, words in self.pos_dict.items():
             if word in words:
                 tags.append(pos)
         return tags
-    
+
     def word_is_tag(self, word, tag):
         return word in self.pos_dict.get(tag, {})
-    
+
     def add_words(self, tag, words, force=False):
         words = self._type_check(words)
-        
+
         if not force and not (tag in self.pos_dict):
             message = 'Check your tag or use add_words(tag, words, force=True)'.format(tag)
             raise ValueError(message)
-            
+
         max_length = max((len(word) for word in words))
         if self.max_length < max_length:
             self.max_length = max_length
-        
+
         if not (tag in self.pos_dict):
             dictionary = words
         else:
             dictionary = self.pos_dict.get(tag, {})
             dictionary.update(words)
         self.pos_dict[tag] = dictionary
-    
+
     def remove_words(self, tag, words=None):
         if not (tag in self.pos_dict):
             raise ValueError('tag {} does not exist'.format(tag))
-        
+
         if words == None:
             self.pos_dict.pop(tag)
             return
-        
+
         words = self._type_check(words)
         dictionary = self.pos_dict[tag]
         dictionary -= words
-        
+
     def _type_check(self, words):
         if isinstance(words, str):
             words = set(words.split())
         return words
-    
+
     def load(self, filename):
         if sys.version_info.major == 2:
             with open(filename) as fp:
