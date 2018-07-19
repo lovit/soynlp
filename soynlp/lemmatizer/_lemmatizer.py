@@ -67,15 +67,15 @@ def _lemma_candidate(l, r, predefined=None):
         r_canon = compose('ㅇ', 'ㅏ' if r_first_ == '와' else 'ㅓ', r_first[2]) + r_end
         add_lemma(l_stem, r_canon)
 
-#         # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅂ, -ㅅ)
-#         # 입 + 니다 -> 이 + ㅂ니다
+    # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅂ, -ㅅ)
+    # 입 + 니다 -> 이 + ㅂ니다
     if l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ':
         l_stem = l_front + compose(l_last[0], l_last[1], ' ')
         r_canon = l_last[2] + r
         add_lemma(l_stem, r_canon)
 
-#         # ㅅ 불규칙 활용: 부 + 어 -> 붓 + 어
-#         # exception : 벗 + 어 -> 벗어
+    # ㅅ 불규칙 활용: 부 + 어 -> 붓 + 어
+    # exception : 벗 + 어 -> 벗어
     if (l_last[2] == ' ' and l[-1] != '벗') and (r_first[0] == 'ㅇ'):
         l_stem = l_front + compose(l_last[0], l_last[1], 'ㅅ')
         add_lemma(l_stem, r)
