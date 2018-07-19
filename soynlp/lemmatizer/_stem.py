@@ -1,21 +1,16 @@
 import math
 
-def extract_domain_stem(prediction_scores, lrgraph, known_stem_L,
-    ignore_L=None, min_eomi_score=0.5, min_eomi_frequency=100,
+def extract_domain_stem(lrgraph, L, R, L_ignore=None,
     min_L_score=0.7, min_L_frequency=100, min_num_of_unique_firstchar=10,
     min_entropy_of_firstchar=0.5, min_stem_entropy=1.5):
 
-    R = {r for r, score in prediction_scores.items()
-         if ((score[0] >= min_eomi_score)
-             and (score[1] >= min_eomi_frequency))}
-
-    if ignore_L is None:
-        ignore_L = {}
+    if L_ignore is None:
+        L_ignore = {}
 
     L_candidates = {}
     for r in R:
         for l, count in lrgraph.get_l(r, -1):
-            if (l in known_stem_L) or (l in ignore_L):
+            if (l in L) or (l in L_ignore):
                 continue
             L_candidates[l] = L_candidates.get(l, 0) + count
 
@@ -24,23 +19,23 @@ def extract_domain_stem(prediction_scores, lrgraph, known_stem_L,
         if count >= min_L_frequency}
 
     L_extracted = _batch_predicting_L(
-        L_candidates, lrgraph, known_stem_L, R,
+        lrgraph, L, R, L_candidates,
         min_L_score, min_L_frequency,
         min_num_of_unique_firstchar, min_stem_entropy)
 
     stems = _to_stem(L_extracted)
     return stems, L_extracted
 
-def _batch_predicting_L(L_candidates, lrgraph, known_stem_L, R, min_L_score,
+def _batch_predicting_L(lrgraph, L, R, L_candidates, min_L_score,
     min_L_frequency, min_num_of_unique_firstchar, min_stem_entropy):
 
     # add known L for unknown L prediction
-    L_extracted = {l:None for l in known_stem_L}
+    L_extracted = {l:None for l in L}
 
     # from longer to shorter
     for l in sorted(L_candidates, key=lambda x:-len(x)):
 
-        if (l in known_stem_L) or (l in R) or (len(l) == 1) or (l[-1] == '다'):
+        if (l in L) or (l in R) or (len(l) == 1) or (l[-1] == '다'):
             continue
 
         features = _get_R_features(l, lrgraph)
@@ -53,14 +48,14 @@ def _batch_predicting_L(L_candidates, lrgraph, known_stem_L, R, min_L_score,
 #         noun_entropy = [c/noun_sum for l, c in features if l in nouns]
 #         noun_entropy = sum([-math.log(p) * p for p in noun_entropy])
 
-        if ((score >= min_L_score)
-            and (freq >= min_L_frequency)):
-#             and (noun_entropy >= min_noun_entropy)):
-            L_extracted[l] = (score, freq)
+        if (score < min_L_score) or (freq < min_L_frequency):
+            continue
+
+        L_extracted[l] = (score, freq)
 
     # remove known L
     L_extracted = {l:score for l, score in L_extracted.items()
-                   if not (l in known_stem_L)}
+                   if not (l in L)}
 
     return L_extracted
 
@@ -90,7 +85,7 @@ def _predict(l, features, L_extracted, R):
     for r, freq in features:
         if r in R:
             pos += freq
-        elif _is_PredicateEomi(r, L_extracted, R):
+        elif _r_is_PredicateEomi(r, L_extracted, R):
             neg += freq
         elif _exist_longer_eomi(l, r, R):
             neg += freq
@@ -98,7 +93,7 @@ def _predict(l, features, L_extracted, R):
             unk += freq
     return pos, neg, unk
 
-def _is_PredicateEomi(r, L, R):
+def _r_is_PredicateEomi(r, L, R):
     n = len(r)
     for i in range(1, n):
         if (r[:i] in L) and (r[i:] in R):

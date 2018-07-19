@@ -266,7 +266,7 @@ class EomiExtractor:
         return prediction_scores
 
     def extract_domain_stem(self, append_extracted_stem=True,
-        eomi_candidates=None, ignore_L=None,
+        eomi_candidates=None, L_ignore=None,
         min_eomi_score=0.3, min_eomi_frequency=100,
         min_L_score=0.3, min_L_frequency=100,
         min_num_of_unique_firstchar=4, min_entropy_of_firstchar=0.5,
@@ -282,15 +282,17 @@ class EomiExtractor:
         prediction_scores = self._batch_predicting_eomis(
             eomi_candidates, min_eomi_score, min_num_of_features=5)
 
+        R = {r for r, score in prediction_scores.items()
+             if ((score[0] >= min_eomi_score)
+                 and (score[1] >= min_eomi_frequency))}
+
         self.lrgraph.reset_lrgraph()
 
         self._stems_extracted, self._pos_l_extracted = extract_domain_stem(
-            prediction_scores,
             self.lrgraph,
             self._pos_l,
-            ignore_L,
-            min_eomi_score,
-            min_eomi_frequency,
+            R,
+            L_ignore,
             min_L_score,
             min_L_frequency,
             min_num_of_unique_firstchar,
