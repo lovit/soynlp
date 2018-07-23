@@ -333,14 +333,7 @@ class EomiExtractor:
                 n_stems, n_pos_l, n_stems_, n_pos_l_)
             print('[Eomi Extractor] stems appended. {}'.format(message))
 
-    def extract_predicator(self, eojeols=None, minimum_eomi_score=0.3,
-        minimum_stem_score=0.3, min_count=10, reset_lrgraph=True):
-
-        # if self.extract_eomi:
-            # TODO
-
-        # if self.extract_stem:
-            # TODO
+    def _predicator_lemma_candidates(self, eojeols=None,  min_count=10):
 
         if not eojeols:
             eojeols = {l:rdict.get('', 0) for l, rdict in self.lrgraph._lr.items()}
@@ -357,29 +350,31 @@ class EomiExtractor:
                    if all_character_are_complete_korean(eojeol)]
 
         n_eojeols = len(eojeols)
-
         lemmas = {}
-        n_except = 0
+
         for i_eojeol, eojeol in enumerate(eojeols):
-            if n_except > 10:
-                break
+
+            if self.verbose and i_eojeol % 1000 == 0:
+                print('\r[Eomi Extractor] lemma candidates ... {} %'.format(
+                    '%.3f'% (100 * i_eojeol / n_eojeols)), end='', flush=True)
+
             n = len(eojeol)
             lemma_candidates = set()
+
             for i in range(1, n+1):
                 l, r = eojeol[:i], eojeol[i:]
-                try:
-                    lemma_candidates.update(_lemma_candidate(l, r))
-                except Exception as e:
-                    print(e)
-                    print(l, r, end='\n\n')
-                    n_except += 1
-                    break
-            lemma_candidates_ = []
-            for l, r in lemma_candidates:
-                if (l in self._stems) and (r in self._eomis):
-                    lemma_candidates_.append((l, r))
-            if lemma_candidates_:
-                lemmas[eojeol] = lemma_candidates_
-            # TODO: evaluation lemma of (stem, eomi)
+                for stem, eomi in _lemma_candidate(l, r):
+                    if (stem in self._stems) and (eomi, self._eomis):
+                        lemma_candidates.add((stem, eomi, 'Both'))
+                    elif (stem in self._stems):
+                        lemma_candidates.add((stem, eomi, 'Only stem'))
+                    elif (eomi in self._eomis):
+                        lemma_candidates.add((stem, eomi, 'Only eomi'))
+
+            if lemma_candidates:
+                lemmas[eojeol] = lemma_candidates
+
+        if self.verbose:
+            print('\r[Eomi Extractor] lemma candidates was done     ', flush=True)
 
         return lemmas
