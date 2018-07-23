@@ -333,6 +333,20 @@ class EomiExtractor:
                 n_stems, n_pos_l, n_stems_, n_pos_l_)
             print('[Eomi Extractor] stems appended. {}'.format(message))
 
+    def extract_predicator(self, eojeols=None, minimum_eomi_score=0.3,
+        minimum_stem_score=0.3, min_count=10, reset_lrgraph=True):
+
+        #if self.extract_stem:
+        # TODO
+
+        # if self.extract_eomi:
+        # TODO
+
+        lemmas = self._predicator_lemma_candidates(eojeols, min_count)
+        # TODO
+        # evaluation
+        return lemmas
+
     def _predicator_lemma_candidates(self, eojeols=None,  min_count=10):
 
         if not eojeols:
