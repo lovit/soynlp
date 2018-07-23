@@ -17,12 +17,13 @@ from soynlp.utils import LRGraph
 from soynlp.utils import get_process_memory
 from soynlp.utils import EojeolCounter
 from soynlp.utils.utils import installpath
+from soynlp.lemmatizer import _lemma_candidate
 from ._stem import extract_domain_stem
 
 class EomiExtractor:
 
     def __init__(self, nouns, noun_pos_features=None, stems=None,
-        eomis=None, verbose=True):
+        eomis=None, extract_eomi=False, extract_stem=False, verbose=True):
 
         if not noun_pos_features:
             noun_pos_features = self._load_default_noun_pos_features()
@@ -39,6 +40,8 @@ class EomiExtractor:
         self._pos_l = {l for stem in stems for l in _conjugate_stem(stem)}
         self._eomis = eomis
         self.verbose = verbose
+        self.extract_eomi = extract_eomi
+        self.extract_stem = extract_stem
         self.lrgraph = None
 
     def _load_default_noun_pos_features(self):
@@ -328,3 +331,29 @@ class EomiExtractor:
             message = 'stems={} -> {}, L={} -> {}'.format(
                 n_stems, n_pos_l, n_stems_, n_pos_l_)
             print('[Eomi Extractor] stems appended. {}'.format(message))
+
+    def extract_predicator(self, minimum_eomi_score=0.3,
+        minimum_stem_score=0.3, min_count=10, reset_lrgraph=True):
+
+        # if self.extract_eomi:
+            # TODO
+
+        # if self.extract_stem:
+            # TODO
+
+        eojeols = {} # Eojeol initialization
+        n_eojeols = len(eojeols)
+
+        for i_eojeol, eojeol in enumerate(eojeols):
+            n = len(eojeol)
+            candidates = set()
+            for i in range(1, n+1):
+                l, r = eojeol[:i], eojeol[i:]
+                candidates.update(_lemma_candidate(l, r))
+            candidates_ = []
+            for l, r in candidates:
+                if (l in self._stems) and (r in self._eomis):
+                    candidates_.append((l, r))
+            # TODO: evaluation lemma of (stem, eomi)
+
+        raise NotImplemented
