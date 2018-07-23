@@ -94,6 +94,9 @@ def character_is_korean(c):
     i = to_base(c)
     return (kor_begin <= i <= kor_end) or (jaum_begin <= i <= jaum_end) or (moum_begin <= i <= moum_end)
 
+def character_is_complete_korean(c):
+    return (kor_begin <= to_base(c) <= kor_end)
+
 def character_is_jaum(c):
     return (jaum_begin <= to_base(c) <= jaum_end)
 
