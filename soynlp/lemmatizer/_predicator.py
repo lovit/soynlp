@@ -393,7 +393,7 @@ class PredicatorExtractor:
             for i in range(1, n+1):
                 l, r = eojeol[:i], eojeol[i:]
                 for stem, eomi in _lemma_candidate(l, r):
-                    if (stem in self._stems) and (eomi, self._eomis):
+                    if (stem in self._stems) and (eomi in self._eomis):
                         lemma_candidates.add((stem, eomi, 'Both'))
                     elif (stem in self._stems):
                         lemma_candidates.add((stem, eomi, 'Only stem'))
