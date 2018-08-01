@@ -232,7 +232,7 @@ def _conjugate_stem(stem):
     # ㅎ 탈락과 ㅎ 유지 모두 맞음
 
     # 이었 -> 였 규칙활용
-    if l_last[1] == 'ㅣ' and l_last[2] == 'ㅆ':
+    if l_last[1] == 'ㅣ' and l_last[2] == ' ':
         candidates.add(stem[:-1] + compose(l_last[0], 'ㅕ', 'ㅆ'))
 
     return candidates
