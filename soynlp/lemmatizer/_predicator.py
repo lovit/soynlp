@@ -21,7 +21,7 @@ from soynlp.utils.utils import installpath
 from soynlp.lemmatizer import _lemma_candidate
 from ._stem import extract_domain_stem
 
-class EomiExtractor:
+class PredicatorExtractor:
 
     def __init__(self, nouns, noun_pos_features=None, stems=None,
         eomis=None, extract_eomi=False, extract_stem=False, verbose=True):
