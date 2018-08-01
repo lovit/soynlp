@@ -76,6 +76,15 @@ class PredicatorExtractor:
                 eomis.add(word)
         return eomis
 
+    def _print(self, message, replace=False, newline=True):
+        header = '[Predicator Extractor]'
+        if replace:
+            print('\r{} {}'.format(header, message),
+                  end='\n' if newline else '', flush=True)
+        else:
+            print('{} {}'.format(header, message),
+                  end='\n' if newline else '', flush=True)
+
     @property
     def is_trained(self):
         return self.lrgraph
@@ -86,7 +95,8 @@ class PredicatorExtractor:
         check = filtering_checkpoint > 0
 
         if self.verbose:
-            print('[Eomi Extractor] counting eojeols', end='')
+            message = 'counting eojeols'
+            self._print(message, replace=False, newline=False)
 
         # Eojeol counting
         counter = {}
@@ -106,9 +116,9 @@ class PredicatorExtractor:
                 }
 
             if self.verbose and i_sent % 100000 == 99999:
-                message = '\r[Eomi Extractor] n eojeol = {} from {} sents. mem={} Gb{}'.format(
+                message = 'n eojeol = {} from {} sents. mem={} Gb{}'.format(
                     len(counter), i_sent + 1, '%.3f' % get_process_memory(), ' '*20)
-                print(message, flush=True, end='')
+                self._print(message, replace=True, newline=False)
 
             for eojeol in sent.split():
 
@@ -120,9 +130,9 @@ class PredicatorExtractor:
                 counter[eojeol] = counter.get(eojeol, 0) + 1
 
         if self.verbose:
-            message = '\r[Eomi Extractor] counting eojeols was done. {} eojeols, mem={} Gb{}'.format(
+            message = 'counting eojeols was done. {} eojeols, mem={} Gb{}'.format(
                 len(counter), '%.3f' % get_process_memory(), ' '*20)
-            print(message)
+            self._print(message, replace=True, newline=True)
 
         counter = {
             eojeol:count for eojeol, count in counter.items()
@@ -133,7 +143,8 @@ class PredicatorExtractor:
         self._num_of_covered_eojeols = 0
 
         if self.verbose:
-            print('[Eomi Extractor] complete eojeol counter -> lr graph')
+            message = 'complete eojeol counter -> lr graph'
+            self._print(message, replace=False, newline=True)
 
         self.lrgraph = EojeolCounter()._to_lrgraph(
             counter,
@@ -142,8 +153,9 @@ class PredicatorExtractor:
         )
 
         if self.verbose:
-            print('[Eomi Extractor] has been trained. mem={} Gb'.format(
-                '%.3f' % get_process_memory()))
+            message = 'has been trained. mem={} Gb'.format(
+                '%.3f' % get_process_memory())
+            self._print(message, replace=False, newline=True)
 
     def extract(self, minimum_eomi_score=0.3, min_count=10, reset_lrgraph=True):
 
@@ -247,8 +259,8 @@ class PredicatorExtractor:
 
             if self.verbose and i % 1000 == 999:
                 percentage = '%.3f' % (100 * (i+1) / n)
-                print('\r  -- batch prediction {} % of {} words'.format(
-                    percentage, n), flush=True, end='')
+                message = '  -- batch prediction {} % of {} words'.format(percentage, n)
+                self._print(message, replace=True, newline=False)
 
             # base prediction
             score, support = self.predict_r(
@@ -264,8 +276,8 @@ class PredicatorExtractor:
                         self.lrgraph.remove_eojeol(l+r, count)
 
         if self.verbose:
-            print('\r[Eomi Extractor] batch prediction was completed for {} words'.format(
-                n), flush=True)
+            message = 'batch prediction was completed for {} words'.format(n)
+            self._print(message, replace=True, newline=True)
 
         return prediction_scores
 
@@ -277,7 +289,8 @@ class PredicatorExtractor:
         min_entropy_of_R=1.5):
 
         if self.verbose:
-            print('[Eomi Extractor] batch prediction for extracting stem')
+            message = 'batch prediction for extracting stem'
+            self._print(message, replace=False, newline=True)
 
         if not eomi_candidates:
             eomi_candidates = self._eomi_candidates_from_stems()
@@ -309,8 +322,9 @@ class PredicatorExtractor:
             self._append_features('pos_l', self._pos_l_extracted)
 
         if self.verbose:
-            print('[Eomi Extractor] {} stems ({} L) were extracted'.format(
-                len(self._stems_extracted), len(self._pos_l_extracted)))
+            message = '{} stems ({} L) were extracted'.format(
+                len(self._stems_extracted), len(self._pos_l_extracted))
+            self._print(message, replace=False, newline=True)
 
     def _append_features(self, feature_type, features):
 
@@ -329,9 +343,9 @@ class PredicatorExtractor:
         n_stems_, n_pos_l_ = check_size()
 
         if self.verbose:
-            message = 'stems={} -> {}, L={} -> {}'.format(
+            message = 'stems appended: stems={} -> {}, L={} -> {}'.format(
                 n_stems, n_pos_l, n_stems_, n_pos_l_)
-            print('[Eomi Extractor] stems appended. {}'.format(message))
+            self._print(message, replace=False, newline=True)
 
     def extract_predicator(self, eojeols=None, minimum_eomi_score=0.3,
         minimum_stem_score=0.3, min_count=10, reset_lrgraph=True):
@@ -369,8 +383,9 @@ class PredicatorExtractor:
         for i_eojeol, eojeol in enumerate(eojeols):
 
             if self.verbose and i_eojeol % 1000 == 0:
-                print('\r[Eomi Extractor] lemma candidates ... {} %'.format(
-                    '%.3f'% (100 * i_eojeol / n_eojeols)), end='', flush=True)
+                perc = '%.3f'% (100 * i_eojeol / n_eojeols)
+                message = 'lemma candidates ... {} %'.format(perc)
+                self._print(message, replace=True, newline=False)
 
             n = len(eojeol)
             lemma_candidates = set()
@@ -389,6 +404,7 @@ class PredicatorExtractor:
                 lemmas[eojeol] = lemma_candidates
 
         if self.verbose:
-            print('\r[Eomi Extractor] lemma candidates was done     ', flush=True)
+            message = 'lemma candidating was done     '
+            self._print(message, replace=True, newline=True)
 
         return lemmas
