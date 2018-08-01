@@ -1,8 +1,8 @@
 class EomiExtractor:
 
-    def __init__(self, lrgraph, surfacial_stem, nouns, verbose=True):
+    def __init__(self, lrgraph, stem_surface, nouns, verbose=True):
         self.lrgraph = lrgraph
-        self._pos_l = surfacial_stem
+        self._stem_surface = stem_surface
         self._nouns = nouns
         self.verbose = verbose
 
@@ -15,12 +15,12 @@ class EomiExtractor:
             print('{} {}'.format(header, message),
                   end='\n' if newline else '', flush=True)
 
-    def predict_r(self, r, minimum_r_score=0.3,
+    def predict(self, r, minimum_r_score=0.3,
         min_num_of_features=5, debug=False):
 
         features = self.lrgraph.get_l(r, -1)
 
-        pos, neg, unk = self._predict_r(features, r)
+        pos, neg, unk = self._predict(features, r)
 
         base = pos + neg
         score = 0 if base == 0 else (pos - neg) / base
@@ -39,14 +39,14 @@ class EomiExtractor:
             # TODO
             return (0, 0)
 
-    def _predict_r(self, features, r):
+    def _predict(self, features, r):
 
         pos, neg, unk = 0, 0, 0
 
         for l, freq in features:
             if self._exist_longer_pos(l, r): # ignore
                 continue
-            if l in self._pos_l:
+            if l in self._stem_surface:
                 pos += freq
             elif self._is_aNoun_Verb(l):
                 pos += freq
@@ -59,22 +59,22 @@ class EomiExtractor:
 
     def _exist_longer_pos(self, l, r):
         for i in range(1, len(r)+1):
-            if (l + r[:i]) in self._pos_l:
+            if (l + r[:i]) in self._stem_surface:
                 return True
         return False
 
     def _is_aNoun_Verb(self, l):
-        return (l[0] in self._nouns) and (l[1:] in self._pos_l)
+        return (l[0] in self._nouns) and (l[1:] in self._stem_surface)
 
     def _has_stem_at_last(self, l):
         for i in range(1, len(l)):
-            if l[-i:] in self._pos_l:
+            if l[-i:] in self._stem_surface:
                 return True
         return False
 
     def _refine_features(self, features, r):
         return [(l, count) for l, count in features if
-            ((l in self._pos_l) and (not self._exist_longer_pos(l, r)))]
+            ((l in self._stem_surface) and (not self._exist_longer_pos(l, r)))]
 
     def _eomi_candidates_from_stems(self, condition=None):
 
@@ -84,7 +84,7 @@ class EomiExtractor:
         # noun candidates from positive featuers such as Josa
         R_from_L = {}
 
-        for l in self._pos_l:
+        for l in self._stem_surface:
             for r, c in self.lrgraph.get_r(l, -1):
 
                 # candidates filtering for debugging
@@ -113,7 +113,7 @@ class EomiExtractor:
                 self._print(message, replace=True, newline=False)
 
             # base prediction
-            score, support = self.predict_r(
+            score, support = self.predict(
                 r, minimum_eomi_score, min_num_of_features)
             prediction_scores[r] = (score, support)
 
@@ -121,7 +121,7 @@ class EomiExtractor:
             # remove eojeol pattern from lrgraph
             if score >= minimum_eomi_score:
                 for l, count in self.lrgraph.get_l(r, -1):
-                    if ((l in self._pos_l) or
+                    if ((l in self._stem_surface) or
                         self._is_aNoun_Verb(l)):
                         self.lrgraph.remove_eojeol(l+r, count)
 
