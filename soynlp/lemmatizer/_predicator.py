@@ -356,12 +356,12 @@ class PredicatorExtractor:
         # if self.extract_eomi:
         # TODO
 
-        lemmas = self._predicator_lemma_candidates(eojeols, min_count)
+        lemmas = self._as_lemma_candidates(eojeols, min_count)
         # TODO
         # evaluation
         return lemmas
 
-    def _predicator_lemma_candidates(self, eojeols=None,  min_count=10):
+    def _as_lemma_candidates(self, eojeols=None,  min_count=10):
 
         if not eojeols:
             eojeols = {l:rdict.get('', 0) for l, rdict in self.lrgraph._lr.items()}
@@ -382,7 +382,7 @@ class PredicatorExtractor:
 
         for i_eojeol, eojeol in enumerate(eojeols):
 
-            if self.verbose and i_eojeol % 1000 == 0:
+            if self.verbose and i_eojeol % 5000 == 0:
                 perc = '%.3f'% (100 * i_eojeol / n_eojeols)
                 message = 'lemma candidates ... {} %'.format(perc)
                 self._print(message, replace=True, newline=False)
@@ -394,11 +394,7 @@ class PredicatorExtractor:
                 l, r = eojeol[:i], eojeol[i:]
                 for stem, eomi in _lemma_candidate(l, r):
                     if (stem in self._stems) and (eomi in self._eomis):
-                        lemma_candidates.add((stem, eomi, 'Both'))
-                    elif (stem in self._stems):
-                        lemma_candidates.add((stem, eomi, 'Only stem'))
-                    elif (eomi in self._eomis):
-                        lemma_candidates.add((stem, eomi, 'Only eomi'))
+                        lemma_candidates.add((stem, eomi))
 
             if lemma_candidates:
                 lemmas[eojeol] = lemma_candidates
