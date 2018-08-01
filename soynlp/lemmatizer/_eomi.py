@@ -7,7 +7,7 @@ class EomiExtractor:
         self.verbose = verbose
 
     def _print(self, message, replace=False, newline=True):
-        header = '[Predicator Extractor]'
+        header = '[Eomi Extractor]'
         if replace:
             print('\r{} {}'.format(header, message),
                   end='\n' if newline else '', flush=True)
@@ -15,7 +15,7 @@ class EomiExtractor:
             print('{} {}'.format(header, message),
                   end='\n' if newline else '', flush=True)
 
-    def predict(self, r, minimum_r_score=0.3,
+    def predict(self, r, minimum_score=0.3,
         min_num_of_features=5, debug=False):
 
         features = self.lrgraph.get_l(r, -1)
@@ -24,7 +24,7 @@ class EomiExtractor:
 
         base = pos + neg
         score = 0 if base == 0 else (pos - neg) / base
-        support = pos + unk if score >= minimum_r_score else neg + unk
+        support = pos + unk if score >= minimum_score else neg + unk
 
         features_ = self._refine_features(features, r)
         n_features_ = len(features_)
@@ -99,8 +99,8 @@ class EomiExtractor:
 
         return R_from_L
 
-    def _batch_predicting_eomis(self,
-        eomi_candidates, minimum_eomi_score=0.3, min_num_of_features=5):
+    def _batch_predicting_eomis(self, eomi_candidates,
+        minimum_score=0.3, min_num_of_features=5):
 
         prediction_scores = {}
 
@@ -114,12 +114,12 @@ class EomiExtractor:
 
             # base prediction
             score, support = self.predict(
-                r, minimum_eomi_score, min_num_of_features)
+                r, minimum_score, min_num_of_features)
             prediction_scores[r] = (score, support)
 
-            # if their score is higher than minimum_eomi_score,
+            # if their score is higher than minimum_score,
             # remove eojeol pattern from lrgraph
-            if score >= minimum_eomi_score:
+            if score >= minimum_score:
                 for l, count in self.lrgraph.get_l(r, -1):
                     if ((l in self._stem_surface) or
                         self._is_aNoun_Verb(l)):
