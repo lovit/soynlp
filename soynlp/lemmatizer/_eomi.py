@@ -4,10 +4,13 @@ EomiScore = namedtuple('EomiScore', 'frequency score')
 
 class EomiExtractor:
 
-    def __init__(self, lrgraph, stem_surface, nouns, verbose=True, logpath=None):
+    def __init__(self, lrgraph, stem_surface, nouns,
+        min_num_of_features=5, verbose=True, logpath=None):
+
         self.lrgraph = lrgraph
         self._stem_surface = stem_surface
         self._nouns = nouns
+        self.min_num_of_features = min_num_of_features
         self.verbose = verbose
         self.logpath = logpath
         self._eomis = None
@@ -26,7 +29,7 @@ class EomiExtractor:
                   end='\n' if newline else '', flush=True)
 
     def extract(self, condition=None, minimum_eomi_score=0.3,
-        min_num_of_features=5, min_count=1, reset_lrgraph=True):
+        min_count=1, reset_lrgraph=True):
 
         # reset covered eojeol count and extracted eomis
         self._num_of_covered_eojeols = 0
@@ -36,7 +39,7 @@ class EomiExtractor:
         candidates = self._candidates_from_stem_surfaces(condition)
 
         prediction_scores = self._batch_prediction(
-            candidates, minimum_eomi_score, min_num_of_features)
+            candidates, minimum_eomi_score, self.min_num_of_features)
 
         eomis = {eomi:score for eomi, score in prediction_scores.items()
             if (score[0] >= minimum_eomi_score) and (score[1] >= min_count)}
