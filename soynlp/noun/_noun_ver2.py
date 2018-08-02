@@ -316,7 +316,7 @@ class LRNounExtractor_v2:
                 return 0, support
 
             # exception. frequent nouns may have various positive R such as Josa
-            if ((end > self.max_count_when_noun_is_eojeol) and (neg >= pos) ):
+            if ((end > self.max_count_when_noun_is_eojeol) and (pos >= neg) ):
                 return score, support
 
             if (common > 0 or pos > 0) and (end / sum_ >= 0.3) and (common >= neg):
