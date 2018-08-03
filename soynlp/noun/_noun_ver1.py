@@ -152,9 +152,9 @@ class LRNounExtractor:
         return nouns
     
     def _get_r_features(self, word):
-        features = self.lrgraph.get(word, {})
+        features = self.lrgraph.get_r(word, -1)
         # remove empty str r only in features
-        features = {k:v for k,v in features.items() if k}
+        features = [feature for feature in features if feature[0]]
         return features
     
     def _get_subword_score(self, word, minimum_noun_score, nouns):
@@ -208,7 +208,7 @@ class LRNounExtractor:
         norm = 0
         unknown = 0
         
-        for r, freq in features.items():
+        for r, freq in features:
             if r in self.coefficient:
                 if not exist_longer_r_feature(r, word):  
                     score += freq * self.coefficient[r]
