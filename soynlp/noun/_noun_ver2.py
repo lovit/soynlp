@@ -419,10 +419,13 @@ class LRNounExtractor_v2:
             # remove eojeol pattern from lrgraph
             if score >= minimum_noun_score:
                 for r, count in self.lrgraph.get_r(word, -1):
-                    if (r == '' or
-                        (r in self._pos_features) or
-                        (r in self._common_features)):
-                        self.lrgraph.remove_eojeol(word+r, count)
+                    # remove all eojeols that including word at left-side.
+                    # we have to assume that pos, neg features are incomplete
+                    self.lrgraph.remove_eojeol(word+r, count)
+                    # if (r == '' or
+                    #    (r in self._pos_features) or
+                    #    (r in self._common_features)):
+                    #    self.lrgraph.remove_eojeol(word+r, count)
 
         if self.verbose:
             print('\r[Noun Extractor] batch prediction was completed for {} words'.format(
@@ -580,12 +583,20 @@ class LRNounExtractor_v2:
             if not (word in nouns):
                 continue
 
-            for r, count in self.lrgraph.get_r(word, -1):
-                if (r == '' or
-                    (r in self._pos_features) or
-                    (r in self._common_features)):
+            if len(word) > 1:
+                for r, count in self.lrgraph.get_r(word, -1):
+                    # remove all eojeols that including word at left-side.
+                    # we have to assume that pos, neg features are incomplete
                     self.lrgraph.remove_eojeol(word+r, count)
                     self._num_of_covered_eojeols += count
+            else:
+                # a syllable noun is exception; remove only N + pos feature
+                if (r == '' or
+                   (r in self._pos_features) or
+                   (r in self._common_features)):
+                    self.lrgraph.remove_eojeol(word+r, count)
+                    self._num_of_covered_eojeols += count
+
 
         if self.verbose:
             print('\r[Noun Extractor] flushing was done. mem={} Gb{}'.format(
