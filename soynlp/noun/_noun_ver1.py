@@ -191,9 +191,9 @@ class LRNounExtractor:
 
     def _predict(self, features, word):
         
-        def exist_longer_r_feature(features, word):
+        def exist_longer_r_feature(word, r):
             for e in range(len(word)-1, -1, -1):
-                suffix = word[e:] + features
+                suffix = word[e:] + r
                 if suffix in self.coefficient: 
                     return True
             return False
@@ -210,7 +210,7 @@ class LRNounExtractor:
         
         for r, freq in features:
             if r in self.coefficient:
-                if not exist_longer_r_feature(r, word):  
+                if not exist_longer_r_feature(word, r):
                     score += freq * self.coefficient[r]
                     norm += freq
             else:
