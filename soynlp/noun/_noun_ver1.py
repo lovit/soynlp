@@ -3,6 +3,7 @@
 from collections import defaultdict, namedtuple
 import sys
 from soynlp.word import WordExtractor
+from soynlp.utils import LRGraph
 
 NounScore = namedtuple('NounScore', 'frequency score known_r_ratio')
 
@@ -63,7 +64,8 @@ class LRNounExtractor:
 
     def train(self, sents, min_count=5):
         wordset_l, wordset_r = self._scan_vocabulary(sents)
-        self.lrgraph = self._build_lrgraph(sents, wordset_l, wordset_r)
+        lrgraph = self._build_lrgraph(sents, wordset_l, wordset_r)
+        self.lrgraph = LRGraph(lrgraph)
         self.words = wordset_l
     
     def _scan_vocabulary(self, sents, min_count=5):
