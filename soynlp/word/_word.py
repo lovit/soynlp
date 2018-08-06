@@ -52,18 +52,24 @@ class WordExtractor:
         if sents:
             self.train(sents)
         
-    def train(self, sents, num_for_pruning = 0):
+    def train(self, sents, num_for_pruning = 0, cumulate=True):
         def prune_extreme_case():
             self.L = defaultdict(lambda: 0, {w:f for w,f in self.L.items() if f >= self.min_count})
             self.R = defaultdict(lambda: 0, {w:f for w,f in self.R.items() if f >= self.min_count})
         def prune_extreme_case_a():
             self._aL = defaultdict(lambda: 0, {w:f for w,f in self._aL.items() if f > 1})
             self._aR = defaultdict(lambda: 0, {w:f for w,f in self._aR.items() if f > 1})
-            
-        self.L = defaultdict(lambda: 0)
-        self.R = defaultdict(lambda: 0)
-        self._aL = defaultdict(lambda: 0)
-        self._aR = defaultdict(lambda: 0)
+
+        if cumulate:
+            self.L = defaultdict(int, self.L)
+            self.R = defaultdict(int, self.R)
+            self._aL = defaultdict(int, self._aL)
+            self._aR = defaultdict(int, self._aR)
+        else:
+            self.L = defaultdict(int)
+            self.R = defaultdict(int)
+            self._aL = defaultdict(int)
+            self._aR = defaultdict(int)
 
         for num_sent, sent in enumerate(sents):
             if sys.version_info.major == 2:
@@ -85,18 +91,18 @@ class WordExtractor:
             for left_word, word, right_word in zip([words[-1]]+words[:-1], words, words[1:]+[words[0]]):
                 self._aL['%s %s' % (word, right_word[0])] += 1
                 self._aR['%s %s' % (left_word[-1], word)] += 1
-                
+
                 word_len = len(word)
                 for i in range(1, min(self.right_max_length + 1, word_len)):
                     self._aL['%s %s' % (word[-i:], right_word[0])] += 1
                 for i in range(1, min(self.left_max_length + 1, word_len)):
                     self._aR['%s %s' % (left_word[-1], word[:i])] += 1
-                    
+
             if (num_for_pruning > 0) and ( num_sent % num_for_pruning == 0):
                 prune_extreme_case()
             if (self.verbose > 0) and ( num_sent % self.verbose == 0):
                 sys.stdout.write('\rtraining ... (%d in %d sents) use memory %.3f Gb' % (num_sent, len(sents), get_process_memory()))
-                
+
         prune_extreme_case()
         prune_extreme_case_a()
         if (self.verbose > 0):
