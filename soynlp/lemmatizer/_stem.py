@@ -1,35 +1,47 @@
 import math
 
-def extract_domain_stem(lrgraph, L, R, L_ignore=None,
-    min_score_of_L=0.7, min_frequency_of_L=100, min_num_of_unique_R_char=10,
-    min_entropy_of_R_char=0.5, min_entropy_of_R=1.5):
+class StemExtractor:
 
-    if L_ignore is None:
-        L_ignore = {}
+    def __init__(self, lrgraph, L, R, min_num_of_unique_R_char=10,
+        min_entropy_of_R_char=0.5, min_entropy_of_R=1.5):
 
-    L_candidates = {}
-    for r in R:
-        for l, count in lrgraph.get_l(r, -1):
-            if (l in L) or (l in L_ignore):
-                continue
-            L_candidates[l] = L_candidates.get(l, 0) + count
+        self.lrgraph = lrgraph
+        self.L = L
+        self.R = R
+        self.min_num_of_unique_R_char = min_num_of_unique_R_char
+        self.min_entropy_of_R_char = min_entropy_of_R_char
+        self.min_entropy_of_R = min_entropy_of_R
 
-    # 1st. frequency filtering
-    L_candidates = {l:count for l, count in L_candidates.items()
-        if count >= min_frequency_of_L}
+    def extract(self, L_ignore=None, minimum_stem_score=0.7,
+        minimum_frequency=100):
 
-    L_extracted = _batch_predicting_L(lrgraph, L, R, L_candidates,
-        min_score_of_L, min_frequency_of_L, min_num_of_unique_R_char,
-        min_entropy_of_R_char, min_entropy_of_R)
+        if L_ignore is None:
+            L_ignore = {}
 
-    # L_extracted = _post_processing(L_extract, L, R)
+        L_candidates = {}
+        for r in self.R:
+            for l, count in self.lrgraph.get_l(r, -1):
+                if (l in self.L) or (l in L_ignore):
+                    continue
+                L_candidates[l] = L_candidates.get(l, 0) + count
 
-    stems = _to_stem(L_extracted)
-    return stems, L_extracted
+        # 1st. frequency filtering
+        L_candidates = {l:count for l, count in L_candidates.items()
+            if count >= minimum_frequency}
 
-def _batch_predicting_L(lrgraph, L, R, L_candidates, min_score_of_L,
-    min_frequency_of_L, min_num_of_unique_R_char,
-    min_entropy_of_R_char, min_entropy_of_R):
+        L_extracted = _batch_predicting_L(self.lrgraph, self.L, self.R,
+            L_candidates, minimum_stem_score, minimum_frequency,
+            self.min_num_of_unique_R_char, self.min_entropy_of_R_char,
+            self.min_entropy_of_R)
+
+        # L_extracted = _post_processing(L_extract, L, R)
+
+        stems = _to_stem(L_extracted)
+        return stems, L_extracted
+
+def _batch_predicting_L(lrgraph, L, R, L_candidates, minimum_stem_score,
+    minimum_frequency, min_num_of_unique_R_char, min_entropy_of_R_char,
+    min_entropy_of_R):
 
     # add known L for unknown L prediction
     L_extracted = {l:None for l in L}
@@ -37,16 +49,20 @@ def _batch_predicting_L(lrgraph, L, R, L_candidates, min_score_of_L,
     # from longer to shorter
     for l in sorted(L_candidates, key=lambda x:-len(x)):
 
-        if (l in L) or (l in R) or (len(l) == 1) or (l[-1] == '다'):
+        if ((l in L) or
+            (l in R) or
+            (len(l) == 1) or
+            (l[-1] == '다') or
+            (l in L_extracted)):
             continue
 
         features = _get_R_features(l, lrgraph)
-        score, freq = predict(l, features, L_extracted, R, min_score_of_L,
-            min_frequency_of_L, min_num_of_unique_R_char, min_entropy_of_R_char)
+        score, freq = predict(l, features, L_extracted, R, minimum_stem_score,
+            minimum_frequency, min_num_of_unique_R_char, min_entropy_of_R_char)
 
         entropy_of_R = _entropy([v for _, v in features])
 
-        if (score < min_score_of_L) or (freq < min_frequency_of_L):
+        if (score < minimum_stem_score) or (freq < minimum_frequency):
             continue
 
         L_extracted[l] = (score, freq)
@@ -61,8 +77,8 @@ def _get_R_features(l, lrgraph):
     features = lrgraph.get_r(l, -1)
     return [feature for feature in features if feature[0]]
 
-def predict(l, features, L_extracted, R, min_score_of_L,
-    min_frequency_of_L, min_num_of_unique_R_char, min_entropy_of_R_char):
+def predict(l, features, L_extracted, R, minimum_stem_score,
+    minimum_frequency, min_num_of_unique_R_char, min_entropy_of_R_char):
 
     R_char = _count_first_chars(features)
     unique_R_char = len(R_char)
@@ -73,9 +89,9 @@ def predict(l, features, L_extracted, R, min_score_of_L,
 
     pos, neg, unk = _predict(l, features, L_extracted, R)
     score = (pos - neg) / (pos + neg) if (pos + neg) > 0 else 0
-    freq = pos if score >= min_score_of_L else neg + unk
+    freq = pos if score >= minimum_stem_score else neg + unk
 
-    if freq < min_frequency_of_L:
+    if freq < minimum_frequency:
         return (0, freq)
     else:
         return (score, freq)
