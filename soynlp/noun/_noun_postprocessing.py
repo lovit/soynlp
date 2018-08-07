@@ -90,3 +90,8 @@ def check_N_is_NJ(nouns, lrgraph, logpath=None, logheader=None):
 
     nouns_ = _select_true_nouns(nouns, removals)
     return nouns_, removals
+
+def ngram_nouns(nouns, sents, min_count=10, min_score=0.7, max_n=2):
+
+    ngram_nouns = {}
+    return ngram_nouns
