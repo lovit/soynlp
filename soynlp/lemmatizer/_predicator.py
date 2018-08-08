@@ -93,6 +93,12 @@ class PredicatorExtractor:
     def train(self, sentences, min_eojeol_count=2,
         filtering_checkpoint=100000):
 
+        self._train_with_sentences(sentences,
+            min_eojeol_count, filtering_checkpoint)
+
+    def _train_with_sentences(self, sentences, min_eojeol_count=2,
+        filtering_checkpoint=100000):
+
         check = filtering_checkpoint > 0
 
         if self.verbose:
