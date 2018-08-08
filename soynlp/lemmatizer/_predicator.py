@@ -177,7 +177,8 @@ class PredicatorExtractor:
                 '%.3f' % get_process_memory())
             self._print(message, replace=False, newline=True)
 
-    def extract(self, minimum_eomi_score=0.3, min_count=10, reset_lrgraph=True):
+    def extract(self, candidates=None, min_count=10, reset_lrgraph=True,
+        minimum_eomi_score=0.3, minimum_stem_score=0.3):
 
         # reset covered eojeol count
         self._num_of_covered_eojeols = 0
@@ -188,8 +189,7 @@ class PredicatorExtractor:
         if self.extract_stem:
             raise NotImplemented
 
-        # base prediction
-        eomi_candidates = self._eomi_candidates_from_stems()
+        return self._extract_predicator(candidates, min_count, reset_lrgraph)
 
     def _append_features(self, feature_type, features):
 
@@ -212,14 +212,7 @@ class PredicatorExtractor:
                 n_stems, n_pos_l, n_stems_, n_pos_l_)
             self._print(message, replace=False, newline=True)
 
-    def extract_predicator(self, eojeols=None, minimum_eomi_score=0.3,
-        minimum_stem_score=0.3, min_count=10, reset_lrgraph=True):
-
-        #if self.extract_stem:
-        # TODO
-
-        # if self.extract_eomi:
-        # TODO
+    def _extract_predicator(self, eojeols=None, min_count=10, reset_lrgraph=True):
 
         lemmas = self._as_lemma_candidates(eojeols, min_count)
         # TODO
