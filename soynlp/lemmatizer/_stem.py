@@ -53,9 +53,8 @@ class StemExtractor:
                 (l in extracted)):
                 continue
 
-            features = _get_R_features(l, self.lrgraph)
-            score, freq = predict(l, features, extracted, self.R, minimum_stem_score,
-                minimum_frequency, self.min_num_of_unique_R_char, self.min_entropy_of_R_char)
+            score, freq = self.predict(l,
+                minimum_stem_score, minimum_frequency)
 
             # no use entropy of R ?
             # entropy_of_R = _entropy([v for _, v in features])
@@ -70,41 +69,70 @@ class StemExtractor:
 
         return extracted
 
-def _get_R_features(l, lrgraph):
-    features = lrgraph.get_r(l, -1)
-    return [feature for feature in features if feature[0]]
+    def predict(self, l, minimum_stem_score=0.7, minimum_frequency=1, debug=False):
 
-def predict(l, features, L_extracted, R, minimum_stem_score,
-    minimum_frequency, min_num_of_unique_R_char, min_entropy_of_R_char):
+        features = self._get_R_features(l)
+        char_count = self._count_first_chars(features)
 
-    R_char = _count_first_chars(features)
-    unique_R_char = len(R_char)
-    entropy_of_R_char = _entropy(tuple(R_char.values()))
-    if ((unique_R_char < min_num_of_unique_R_char) or
-        (entropy_of_R_char < min_entropy_of_R_char)):
-        return (0, 0)
+        unique_of_char = len(char_count)
+        entropy_of_char = self._entropy(tuple(char_count.values()))
 
-    pos, neg, unk = _predict(l, features, L_extracted, R)
-    score = (pos - neg) / (pos + neg) if (pos + neg) > 0 else 0
-    freq = pos if score >= minimum_stem_score else neg + unk
+        pos, neg, unk = self._predict(l, features)
+        score = (pos - neg) / (pos + neg) if (pos + neg) > 0 else 0
+        freq = pos if score >= minimum_stem_score else neg + unk
 
-    if freq < minimum_frequency:
-        return (0, freq)
-    else:
-        return (score, freq)
+        if debug:
+            print('pos={}, neg={}, unk={}, n_features_={}, n_char={}, entropy_r={}'.format(
+                pos, neg, unk, len(features), unique_of_char, entropy_of_char))
 
-def _predict(l, features, L_extracted, R):
-    pos, neg, unk = 0, 0, 0
-    for r, freq in features:
-        if r in R:
-            pos += freq
-        elif _r_is_PredicateEomi(r, L_extracted, R):
-            neg += freq
-        elif _exist_longer_eomi(l, r, R):
-            neg += freq
+        if ((unique_of_char < self.min_num_of_unique_R_char) or
+            (entropy_of_char < self.min_entropy_of_R_char)):
+            return (0, 0)
+
+        if freq < minimum_frequency:
+            return (0, freq)
         else:
-            unk += freq
-    return pos, neg, unk
+            return (score, freq)
+
+    # prediction '안드로이드'
+    # stem_extractor.lrgraph.get_r('안드로이드', -1)
+    def _predict(self, l, features):
+        pos, neg, unk = 0, 0, 0
+        for r, freq in features:
+            if r in self.R:
+                pos += freq
+#             elif _r_is_PredicateEomi(r, L_extracted, R):
+#                 neg += freq
+            elif self._exist_longer_eomi(l, r):
+                neg += freq
+            else:
+                unk += freq
+        return pos, neg, unk
+
+    def _get_R_features(self, l):
+        features = self.lrgraph.get_r(l, -1)
+        return [feature for feature in features if feature[0]]
+
+    def _count_first_chars(self, features):
+        char_count = [(r[0], count) for r, count in features if r]
+        counter = {}
+        for char, count in char_count:
+            counter[char] = counter.get(char, 0) + count
+        return counter
+
+    def _entropy(self, counts):
+        if len(counts) <= 1:
+            return 0
+        sum_ = sum(counts)
+        entropy = [v/sum_ for v in counts]
+        entropy = -1 * sum((p * math.log(p) for p in entropy))
+        return entropy
+
+    def _exist_longer_eomi(self, l, r):
+        for i in range(1, len(l)+1):
+            if (l[-i:] + r) in self.R:
+                return True
+        return False
 
 def _r_is_PredicateEomi(r, L, R):
     n = len(r)
@@ -112,29 +140,6 @@ def _r_is_PredicateEomi(r, L, R):
         if (r[:i] in L) and (r[i:] in R):
             return True
     return False
-
-def _exist_longer_eomi(l, r, R):
-    for i in range(1, len(l)+1):
-        if (l[-i:] + r) in R:
-            return True
-    return False
-
-def _count_first_chars(rcount):
-    counter = {}
-    for r, count in rcount:
-        if not r:
-            continue
-        char = r[0]
-        counter[char] = counter.get(char, 0) + count
-    return counter
-
-def _entropy(counts):
-    if not counts or len(counts) == 1:
-        return 0
-    sum_ = sum(counts)
-    entropy = [v/sum_ for v in counts]
-    entropy = -1 * sum((p * math.log(p) for p in entropy))
-    return entropy
 
 def _post_processing(L_extracted, L, R):
     def is_stem_and_eomi(l):
