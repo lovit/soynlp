@@ -32,9 +32,9 @@ class StemExtractor:
         extracted = self._batch_prediction(
             candidates, minimum_stem_score, minimum_frequency)
 
-        # extracted = _post_processing(extract, self.L, self.R)
+        # extracted = self._post_processing(extracted)
 
-        stems = _to_stem(extracted)
+        stems = self._to_stem(extracted)
         return stems, extracted
 
     def _batch_prediction(self, candidates,
@@ -141,32 +141,32 @@ class StemExtractor:
                 return True
         return False
 
-def _post_processing(L_extracted, L, R):
-    def is_stem_and_eomi(l):
-        n = len(l)
-        for i in range(1, n):
-            if not ((l[:i] in L) or (l[:i] in L_extracted)):
-                continue
-            for j in range(i+1, n+1):
-                if l[i:j] in R:
+    def _post_processing(self, extracted):
+        def is_stem_and_eomi(l):
+            n = len(l)
+            for i in range(1, n):
+                if not ((l[:i] in self.L) or (l[:i] in extracted)):
+                    continue
+                for j in range(i+1, n+1):
+                    if l[i:j] in self.R:
+                        return True
+            return False
+
+        def exist_subword(l):
+            for i in range(2, len(l)):
+                if l[:i] in extracted:
                     return True
-        return False
+            return False
 
-    def exist_subword(l):
-        for i in range(2, len(l)):
-            if l[:i] in L_extracted:
-                return True
-        return False
+        removals = set()
+        for l in sorted(extracted, key=lambda x:len(x)):
+            if is_stem_and_eomi(l) or exist_subword(l):
+                removals.add(l)
+        extracted = {l:score for l, score in extracted.items()
+                     if not (l in removals)}
 
-    removals = set()
-    for l in sorted(L_extracted, key=lambda x:len(x)):
-        if is_stem_and_eomi(l) or exist_subword(l):
-            removals.add(l)
-    extracteds = {l:score for l, score in L_extracted.items()
-                  if not (l in removals)}
+        return extracted, removals
 
-    return extracteds, removals
-
-def _to_stem(L_extracted):
-    # TODO
-    return L_extracted
+    def _to_stem(self, extracted):
+        # TODO
+        return extracted
