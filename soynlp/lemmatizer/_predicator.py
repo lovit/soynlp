@@ -38,11 +38,12 @@ class PredicatorExtractor:
         self._nouns = nouns
         self._noun_pos_features = noun_pos_features
         self._stems = stems
-        self._pos_l = {l for stem in stems for l in _conjugate_stem(stem)}
         self._eomis = eomis
         self.verbose = verbose
         self.extract_eomi = extract_eomi
         self.extract_stem = extract_stem
+
+        self._surfacial_stems = {l for stem in stems for l in _conjugate_stem(stem)}
         self.lrgraph = None
 
     def _load_default_noun_pos_features(self):
@@ -162,58 +163,19 @@ class PredicatorExtractor:
         # reset covered eojeol count
         self._num_of_covered_eojeols = 0
 
+        if self.extract_eomi:
+            raise NotImplemented
+
+        if self.extract_stem:
+            raise NotImplemented
+
         # base prediction
         eomi_candidates = self._eomi_candidates_from_stems()
-
-    def extract_domain_stem(self, append_extracted_stem=True,
-        eomi_candidates=None, L_ignore=None,
-        min_eomi_score=0.3, min_eomi_frequency=100,
-        min_score_of_L=0.7, min_frequency_of_L=100,
-        min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
-        min_entropy_of_R=1.5):
-
-        if self.verbose:
-            message = 'batch prediction for extracting stem'
-            self._print(message, replace=False, newline=True)
-
-        if not eomi_candidates:
-            eomi_candidates = self._eomi_candidates_from_stems()
-
-        # TODO: min_num_of_features -> init argument
-        prediction_scores = self._batch_predicting_eomis(
-            eomi_candidates, min_eomi_score, min_num_of_features=5)
-
-        R = {r for r, score in prediction_scores.items()
-             if ((score[0] >= min_eomi_score)
-                 and (score[1] >= min_eomi_frequency))}
-
-        self.lrgraph.reset_lrgraph()
-
-        self._stems_extracted, self._pos_l_extracted = extract_domain_stem(
-            self.lrgraph,
-            self._pos_l,
-            R,
-            L_ignore,
-            min_score_of_L,
-            min_frequency_of_L,
-            min_num_of_unique_R_char,
-            min_entropy_of_R_char,
-            min_entropy_of_R
-        )
-
-        if append_extracted_stem:
-            self._append_features('stems', self._stems_extracted)
-            self._append_features('pos_l', self._pos_l_extracted)
-
-        if self.verbose:
-            message = '{} stems ({} L) were extracted'.format(
-                len(self._stems_extracted), len(self._pos_l_extracted))
-            self._print(message, replace=False, newline=True)
 
     def _append_features(self, feature_type, features):
 
         def check_size():
-            return (len(self._stems), len(self._pos_l))
+            return (len(self._stems), len(self._surfacial_stems))
 
         # size before
         n_stems, n_pos_l = check_size()
