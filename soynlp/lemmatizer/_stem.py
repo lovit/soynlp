@@ -18,60 +18,57 @@ class StemExtractor:
         if L_ignore is None:
             L_ignore = {}
 
-        L_candidates = {}
+        candidates = {}
         for r in self.R:
             for l, count in self.lrgraph.get_l(r, -1):
                 if (l in self.L) or (l in L_ignore):
                     continue
-                L_candidates[l] = L_candidates.get(l, 0) + count
+                candidates[l] = candidates.get(l, 0) + count
 
         # 1st. frequency filtering
-        L_candidates = {l:count for l, count in L_candidates.items()
+        candidates = {l:count for l, count in candidates.items()
             if count >= minimum_frequency}
 
-        L_extracted = _batch_predicting_L(self.lrgraph, self.L, self.R,
-            L_candidates, minimum_stem_score, minimum_frequency,
-            self.min_num_of_unique_R_char, self.min_entropy_of_R_char,
-            self.min_entropy_of_R)
+        extracted = self._batch_prediction(
+            candidates, minimum_stem_score, minimum_frequency)
 
-        # L_extracted = _post_processing(L_extract, L, R)
+        # extracted = _post_processing(extract, self.L, self.R)
 
-        stems = _to_stem(L_extracted)
-        return stems, L_extracted
+        stems = _to_stem(extracted)
+        return stems, extracted
 
-def _batch_predicting_L(lrgraph, L, R, L_candidates, minimum_stem_score,
-    minimum_frequency, min_num_of_unique_R_char, min_entropy_of_R_char,
-    min_entropy_of_R):
+    def _batch_prediction(self, candidates,
+        minimum_stem_score, minimum_frequency):
 
-    # add known L for unknown L prediction
-    L_extracted = {l:None for l in L}
+        # add known L for unknown L prediction
+        extracted = {l:None for l in self.L}
 
-    # from longer to shorter
-    for l in sorted(L_candidates, key=lambda x:-len(x)):
+        # from longer to shorter
+        for l in sorted(candidates, key=lambda x:-len(x)):
 
-        if ((l in L) or
-            (l in R) or
-            (len(l) == 1) or
-            (l[-1] == '다') or
-            (l in L_extracted)):
-            continue
+            if ((l in self.L) or
+                (l in self.R) or
+                (len(l) == 1) or
+                (l[-1] == '다') or
+                (l in extracted)):
+                continue
 
-        features = _get_R_features(l, lrgraph)
-        score, freq = predict(l, features, L_extracted, R, minimum_stem_score,
-            minimum_frequency, min_num_of_unique_R_char, min_entropy_of_R_char)
+            features = _get_R_features(l, self.lrgraph)
+            score, freq = predict(l, features, extracted, self.R, minimum_stem_score,
+                minimum_frequency, self.min_num_of_unique_R_char, self.min_entropy_of_R_char)
 
-        entropy_of_R = _entropy([v for _, v in features])
+            # no use entropy of R ?
+            # entropy_of_R = _entropy([v for _, v in features])
 
-        if (score < minimum_stem_score) or (freq < minimum_frequency):
-            continue
+            if (score < minimum_stem_score) or (freq < minimum_frequency):
+                continue
 
-        L_extracted[l] = (score, freq)
+            extracted[l] = (score, freq)
 
-    # remove known L
-    L_extracted = {l:score for l, score in L_extracted.items()
-                   if not (l in L)}
+        # remove known L
+        extracted = {l:score for l, score in extracted.items() if not (l in self.L)}
 
-    return L_extracted
+        return extracted
 
 def _get_R_features(l, lrgraph):
     features = lrgraph.get_r(l, -1)
