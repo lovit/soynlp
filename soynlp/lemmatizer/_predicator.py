@@ -90,11 +90,24 @@ class PredicatorExtractor:
     def is_trained(self):
         return self.lrgraph
 
-    def train(self, sentences, min_eojeol_count=2,
+    def train(self, sentences_or_lrgraph, min_eojeol_count=2,
         filtering_checkpoint=100000):
 
-        self._train_with_sentences(sentences,
-            min_eojeol_count, filtering_checkpoint)
+        if isinstance(sentences_or_lrgraph, soynlp.utils.LRGraph):
+            self._train_with_lrgraph(sentences_or_lrgraph)
+        else:
+            self._train_with_sentences(sentences_or_lrgraph,
+                min_eojeol_count, filtering_checkpoint)
+
+    def _train_with_lrgraph(self, lrgraph):
+        counter = {}
+        for l, rdict in lrgraph._lr.items():
+            for r, count in rdict.items():
+                counter[l+r] = count
+
+        self._num_of_eojeols = sum(counter.values())
+        self._num_of_covered_eojeols = 0
+        self.lrgraph = lrgraph
 
     def _train_with_sentences(self, sentences, min_eojeol_count=2,
         filtering_checkpoint=100000):
