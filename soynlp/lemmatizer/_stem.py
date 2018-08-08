@@ -101,8 +101,8 @@ class StemExtractor:
         for r, freq in features:
             if r in self.R:
                 pos += freq
-#             elif _r_is_PredicateEomi(r, L_extracted, R):
-#                 neg += freq
+            elif self._r_is_PredicateEomi(r):
+                neg += freq
             elif self._exist_longer_eomi(l, r):
                 neg += freq
             else:
@@ -128,18 +128,18 @@ class StemExtractor:
         entropy = -1 * sum((p * math.log(p) for p in entropy))
         return entropy
 
+    def _r_is_PredicateEomi(self, r):
+        n = len(r)
+        for i in range(1, n):
+            if (r[:i] in self.L) and (r[i:] in self.R):
+                return True
+        return False
+
     def _exist_longer_eomi(self, l, r):
         for i in range(1, len(l)+1):
             if (l[-i:] + r) in self.R:
                 return True
         return False
-
-def _r_is_PredicateEomi(r, L, R):
-    n = len(r)
-    for i in range(1, n):
-        if (r[:i] in L) and (r[i:] in R):
-            return True
-    return False
 
 def _post_processing(L_extracted, L, R):
     def is_stem_and_eomi(l):
