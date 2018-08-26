@@ -43,7 +43,7 @@ class PredicatorExtractor:
         self.extract_eomi = extract_eomi
         self.extract_stem = extract_stem
 
-        self._surfacial_stems = {l for stem in stems for l in _conjugate_stem(stem)}
+        self._stem_surfaces = {l for stem in stems for l in _conjugate_stem(stem)}
         self.lrgraph = None
 
     def _load_default_noun_pos_features(self):
@@ -194,7 +194,7 @@ class PredicatorExtractor:
     def _append_features(self, feature_type, features):
 
         def check_size():
-            return (len(self._stems), len(self._surfacial_stems))
+            return (len(self._stems), len(self._stem_surfaces))
 
         # size before
         n_stems, n_pos_l = check_size()
