@@ -20,6 +20,7 @@ from soynlp.utils import EojeolCounter
 from soynlp.utils.utils import installpath
 from soynlp.lemmatizer import _lemma_candidate
 from soynlp.lemmatizer import _conjugate_stem
+from ._eomi import EomiExtractor
 
 class PredicatorExtractor:
 
@@ -184,33 +185,26 @@ class PredicatorExtractor:
         self._num_of_covered_eojeols = 0
 
         if self.extract_eomi:
-            raise NotImplemented
+            eomi_extractor = EomiExtractor(
+                lrgraph = self.lrgraph,
+                stems = self._stems,
+                nouns = self._nouns,
+                min_num_of_features = 5,
+                verbose = self.verbose,
+                logpath = None
+            )
+            extracted_eomis = eomi_extractor.extract(min_count=20)
+            extracted_eomis = {eomi for eomi in extracted_eomis if not (eomi in self._eomis)}
+            self._eomis.update(extracted_eomis)
+
+            if self.verbose:
+                message = '{} eomis have been extracted'.format(len(extracted_eomis))
+            self._print(message, replace=False, newline=True)
 
         if self.extract_stem:
             raise NotImplemented
 
         return self._extract_predicator(candidates, min_count, reset_lrgraph)
-
-    def _append_features(self, feature_type, features):
-
-        def check_size():
-            return (len(self._stems), len(self._stem_surfaces))
-
-        # size before
-        n_stems, n_pos_l = check_size()
-
-        if feature_type == 'stems':
-            self._stems.update(features)
-        elif feature_type == 'pos_l':
-            self._pos_l.update(features)
-
-        # size after
-        n_stems_, n_pos_l_ = check_size()
-
-        if self.verbose:
-            message = 'stems appended: stems={} -> {}, L={} -> {}'.format(
-                n_stems, n_pos_l, n_stems_, n_pos_l_)
-            self._print(message, replace=False, newline=True)
 
     def _extract_predicator(self, eojeols=None, min_count=10, reset_lrgraph=True):
 
