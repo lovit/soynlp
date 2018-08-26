@@ -61,7 +61,7 @@ class EomiExtractor:
         lemmas = self._post_processing(lemmas)
 
         if self.logpath:
-            with open(self.logpath+'_prediction_score.log', 'w', encoding='utf-8') as f:
+            with open(self.logpath+'_eomi_prediction_score.log', 'w', encoding='utf-8') as f:
                 f.write('eomi frequency score\n')
 
                 for word, score in sorted(prediction_scores.items(), key=lambda x:-x[1][1]):
