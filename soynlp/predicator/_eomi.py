@@ -1,14 +1,16 @@
 from collections import namedtuple
+from soynlp.lemmatizer import _lemma_candidate
+from soynlp.lemmatizer import _conjugate_stem
 
 EomiScore = namedtuple('EomiScore', 'frequency score')
 
 class EomiExtractor:
 
-    def __init__(self, lrgraph, stem_surface, nouns,
+    def __init__(self, lrgraph, stem, nouns,
         min_num_of_features=5, verbose=True, logpath=None):
 
         self.lrgraph = lrgraph
-        self._stem_surface = stem_surface
+        self._stem = stem
         self._nouns = nouns
         self.min_num_of_features = min_num_of_features
         self.verbose = verbose
@@ -34,6 +36,8 @@ class EomiExtractor:
         # reset covered eojeol count and extracted eomis
         self._num_of_covered_eojeols = 0
         self._eomis = {}
+
+        self._stem_surfaces = {l for stem in stems for l in _conjugate_stem(stem)}
 
         # base prediction
         candidates = self._candidates_from_stem_surfaces(condition)
@@ -64,6 +68,8 @@ class EomiExtractor:
 
         if reset_lrgraph:
             self.lrgraph.reset_lrgraph()
+
+        del self._stem_surfaces
 
         eomis_ = {eomi:EomiScore(score[1], score[0]) for eomi, score in eomis.items()}
         return eomis_
