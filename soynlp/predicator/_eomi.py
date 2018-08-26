@@ -6,11 +6,11 @@ EomiScore = namedtuple('EomiScore', 'frequency score')
 
 class EomiExtractor:
 
-    def __init__(self, lrgraph, stem, nouns,
+    def __init__(self, lrgraph, stems, nouns,
         min_num_of_features=5, verbose=True, logpath=None):
 
         self.lrgraph = lrgraph
-        self._stem = stem
+        self._stems = stems
         self._nouns = nouns
         self.min_num_of_features = min_num_of_features
         self.verbose = verbose
@@ -37,7 +37,7 @@ class EomiExtractor:
         self._num_of_covered_eojeols = 0
         self._eomis = {}
 
-        self._stem_surfaces = {l for stem in stems for l in _conjugate_stem(stem)}
+        self._stem_surfaces = {l for stem in self._stems for l in _conjugate_stem(stem)}
 
         # base prediction
         candidates = self._candidates_from_stem_surfaces(condition)
@@ -105,7 +105,7 @@ class EomiExtractor:
         for l, freq in features:
             if self._exist_longer_pos(l, r): # ignore
                 continue
-            if l in self._stem_surface:
+            if l in self._stem_surfaces:
                 pos += freq
             elif self._is_aNoun_Verb(l):
                 pos += freq
@@ -118,22 +118,22 @@ class EomiExtractor:
 
     def _exist_longer_pos(self, l, r):
         for i in range(1, len(r)+1):
-            if (l + r[:i]) in self._stem_surface:
+            if (l + r[:i]) in self._stem_surfaces:
                 return True
         return False
 
     def _is_aNoun_Verb(self, l):
-        return (l[0] in self._nouns) and (l[1:] in self._stem_surface)
+        return (l[0] in self._nouns) and (l[1:] in self._stem_surfaces)
 
     def _has_stem_at_last(self, l):
         for i in range(1, len(l)):
-            if l[-i:] in self._stem_surface:
+            if l[-i:] in self._stem_surfaces:
                 return True
         return False
 
     def _refine_features(self, features, r):
         return [(l, count) for l, count in features if
-            ((l in self._stem_surface) and (not self._exist_longer_pos(l, r)))]
+            ((l in self._stem_surfaces) and (not self._exist_longer_pos(l, r)))]
 
     def _candidates_from_stem_surfaces(self, condition=None):
 
@@ -143,7 +143,7 @@ class EomiExtractor:
         # noun candidates from positive featuers such as Josa
         R_from_L = {}
 
-        for l in self._stem_surface:
+        for l in self._stem_surfaces:
             for r, c in self.lrgraph.get_r(l, -1):
 
                 # candidates filtering for debugging
@@ -180,7 +180,7 @@ class EomiExtractor:
             # remove eojeol pattern from lrgraph
             if score >= minimum_eomi_score:
                 for l, count in self.lrgraph.get_l(r, -1):
-                    if ((l in self._stem_surface) or
+                    if ((l in self._stem_surfaces) or
                         self._is_aNoun_Verb(l)):
                         self.lrgraph.remove_eojeol(l+r, count)
 
