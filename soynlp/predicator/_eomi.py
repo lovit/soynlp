@@ -71,7 +71,7 @@ class EomiExtractor:
 
         del self._stem_surfaces
 
-        eomis_ = {eomi:EomiScore(score[1], score[0]) for eomi, score in eomis.items()}
+        eomis_ = {eomi:EomiScore(score[0], score[1]) for eomi, score in eomis.items()}
         return eomis_
 
     def predict(self, r, minimum_eomi_score=0.3,
@@ -93,7 +93,7 @@ class EomiExtractor:
                 pos, neg, unk, n_features_))
 
         if n_features_ >= min_num_of_features:
-            return score, support
+            return support, score
         else:
             # TODO
             return (0, 0)
@@ -172,9 +172,9 @@ class EomiExtractor:
                 self._print(message, replace=True, newline=False)
 
             # base prediction
-            score, support = self.predict(
+            support, score = self.predict(
                 r, minimum_eomi_score, min_num_of_features)
-            prediction_scores[r] = (score, support)
+            prediction_scores[r] = (support, score)
 
             # if their score is higher than minimum_eomi_score,
             # remove eojeol pattern from lrgraph
