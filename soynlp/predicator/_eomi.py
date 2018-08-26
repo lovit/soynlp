@@ -55,7 +55,7 @@ class EomiExtractor:
 
         if self.logpath:
             with open(self.logpath+'_prediction_score.log', 'w', encoding='utf-8') as f:
-                f.write('eomi score frequency\n')
+                f.write('eomi frequency score\n')
 
                 for word, score in sorted(prediction_scores.items(), key=lambda x:-x[1][1]):
                     f.write('{} {} {}\n'.format(word, score[0], score[1]))
