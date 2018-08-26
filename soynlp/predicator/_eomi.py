@@ -46,7 +46,11 @@ class EomiExtractor:
             candidates, minimum_eomi_score, self.min_num_of_features)
 
         eomis = {eomi:score for eomi, score in prediction_scores.items()
-            if (score[0] >= minimum_eomi_score) and (score[1] >= min_count)}
+            if (score[0] >= min_count) and (score[1] >= minimum_eomi_score)}
+
+        if self.verbose:
+            message = 'eomi lemmatization with {} candidates'.format(len(eomis))
+            self._print(message, replace=False, newline=True)
 
         self.lrgraph.reset_lrgraph()
         lemmas, surface_to_lemmas = self._eomi_lemmatize(eomis)
