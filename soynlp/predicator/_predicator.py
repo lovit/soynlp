@@ -185,26 +185,29 @@ class PredicatorExtractor:
         self._num_of_covered_eojeols = 0
 
         if self.extract_eomi:
-            eomi_extractor = EomiExtractor(
-                lrgraph = self.lrgraph,
-                stems = self._stems,
-                nouns = self._nouns,
-                min_num_of_features = 5,
-                verbose = self.verbose,
-                logpath = None
-            )
-            extracted_eomis = eomi_extractor.extract(min_count=20)
-            extracted_eomis = {eomi for eomi in extracted_eomis if not (eomi in self._eomis)}
-            self._eomis.update(extracted_eomis)
-
-            if self.verbose:
-                message = '{} eomis have been extracted'.format(len(extracted_eomis))
-            self._print(message, replace=False, newline=True)
+            self._extract_eomi()
 
         if self.extract_stem:
             raise NotImplemented
 
         return self._extract_predicator(candidates, min_count, reset_lrgraph)
+
+    def _extract_eomi(self):
+        eomi_extractor = EomiExtractor(
+            lrgraph = self.lrgraph,
+            stems = self._stems,
+            nouns = self._nouns,
+            min_num_of_features = 5,
+            verbose = self.verbose,
+            logpath = None
+        )
+        extracted_eomis = eomi_extractor.extract(min_count=20)
+        extracted_eomis = {eomi for eomi in extracted_eomis if not (eomi in self._eomis)}
+        self._eomis.update(extracted_eomis)
+
+        if self.verbose:
+            message = '{} eomis have been extracted'.format(len(extracted_eomis))
+            self._print(message, replace=False, newline=True)
 
     def _extract_predicator(self, eojeols=None, min_count=10, reset_lrgraph=True):
 
