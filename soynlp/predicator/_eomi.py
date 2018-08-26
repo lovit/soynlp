@@ -17,7 +17,7 @@ class EomiExtractor:
 
     @property
     def is_trained(self):
-        return not self._eomis
+        return self._eomis is not None
 
     def _print(self, message, replace=False, newline=True):
         header = '[Eomi Extractor]'
