@@ -45,17 +45,20 @@ class EomiExtractor:
         prediction_scores = self._batch_prediction(
             candidates, minimum_eomi_score, self.min_num_of_features)
 
-        eomis = {eomi:score for eomi, score in prediction_scores.items()
-            if (score[0] >= min_count) and (score[1] >= minimum_eomi_score)}
+        eomi_surfaces = {eomi:score for eomi, score in prediction_scores.items()
+            if (score[1] >= minimum_eomi_score)}
 
         if self.verbose:
-            message = 'eomi lemmatization with {} candidates'.format(len(eomis))
+            message = 'eomi lemmatization with {} candidates'.format(len(eomi_surfaces))
             self._print(message, replace=False, newline=True)
 
         self.lrgraph.reset_lrgraph()
-        lemmas, surface_to_lemmas = self._eomi_lemmatize(eomis)
+        lemmas = self._eomi_lemmatize(eomi_surfaces)
 
-        return lemmas, surface_to_lemmas # debug code
+        lemmas = {eomi:score for eomi, score in lemmas.items()
+            if (score[0] >= min_count) and (score[1] >= minimum_eomi_score)}
+
+        lemmas = self._post_processing(lemmas)
 
         if self.logpath:
             with open(self.logpath+'_prediction_score.log', 'w', encoding='utf-8') as f:
@@ -64,24 +67,22 @@ class EomiExtractor:
                 for word, score in sorted(prediction_scores.items(), key=lambda x:-x[1][1]):
                     f.write('{} {} {}\n'.format(word, score[0], score[1]))
 
-        eomis = self._post_processing(eomis, prediction_scores)
-
         if self.verbose:
             message = '{} eomis extracted with min count = {}, min score = {}'.format(
-                len(eomis), min_count, minimum_eomi_score)
+                len(lemmas), min_count, minimum_eomi_score)
             self._print(message, replace=False, newline=True)
 
-        self._check_covered_eojeols(eomis)
+        self._check_covered_eojeols(lemmas) # TODO with lemma
 
-        self._eomis = eomis
+        self._eomis = lemmas
 
         if reset_lrgraph:
             self.lrgraph.reset_lrgraph()
 
         del self._stem_surfaces
 
-        eomis_ = {eomi:EomiScore(score[0], score[1]) for eomi, score in eomis.items()}
-        return eomis_
+        lemmas_ = {eomi:EomiScore(score[0], score[1]) for eomi, score in lemmas.items()}
+        return lemmas_
 
     def predict(self, r, minimum_eomi_score=0.3,
         min_num_of_features=5, debug=False):
@@ -201,31 +202,24 @@ class EomiExtractor:
 
     def _eomi_lemmatize(self, eomis):
 
-        def to_lemma(eomi_surface):
-            lemma = {}
-            for stem_surface, count in self.lrgraph.get_l(eomi_surface, -1):
-                for stem, eomi_lemma in _lemma_candidate(stem_surface, eomi_surface):
-                    if not (stem in self._stems):
-                        continue
-                    lemma[eomi_lemma] = lemma.get(eomi_lemma, 0) + count
-            # TODO: tie-breaker
-            return sorted(lemma.items(), key=lambda x:-x[1])[0]
-
         def merge_score(freq0, score0, freq1, score1):
             return (freq0 + freq1, (score0 * freq0 + score1 * freq1) / (freq0 + freq1))
 
-        surface_to_lemmas = {}
-        for eomi in eomis:
-            surface_to_lemmas[eomi] = to_lemma(eomi)
-
         lemmas = {}
-        for eomi, (frequency, score) in eomis.items():
-            lemma = surface_to_lemmas[eomi]
-            lemmas[lemma] = merge_score(frequency, score, *lemmas.get(lemma, (0, 0)))
+        for eomi, (_, score0) in eomis.items():
+            for stem_surface, count in self.lrgraph.get_l(eomi, -1):
+                try:
+                    for stem, lemma in _lemma_candidate(stem_surface, eomi):
+                        if not (stem in self._stems):
+                            continue
+                        lemmas[lemma] = merge_score(count, score0, *lemmas.get(lemma, (0, 0)))
+                # stem 이 한글이 아닌 경우 불가
+                except Exception as e:
+                    continue
 
-        return lemmas, surface_to_lemmas
+        return lemmas
 
-    def _post_processing(self, eomis, prediction_scores):
+    def _post_processing(self, eomis):
         # TODO
         # Remove E + V + E : -서가지고
 
