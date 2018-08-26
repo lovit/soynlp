@@ -19,7 +19,7 @@ from soynlp.utils import get_process_memory
 from soynlp.utils import EojeolCounter
 from soynlp.utils.utils import installpath
 from soynlp.lemmatizer import _lemma_candidate
-from ._stem import extract_domain_stem
+from soynlp.lemmatizer import _conjugate_stem
 
 class PredicatorExtractor:
 
