@@ -48,6 +48,11 @@ class EomiExtractor:
         eomis = {eomi:score for eomi, score in prediction_scores.items()
             if (score[0] >= minimum_eomi_score) and (score[1] >= min_count)}
 
+        self.lrgraph.reset_lrgraph()
+        lemmas, surface_to_lemmas = self._eomi_lemmatize(eomis)
+
+        return lemmas, surface_to_lemmas # debug code
+
         if self.logpath:
             with open(self.logpath+'_prediction_score.log', 'w', encoding='utf-8') as f:
                 f.write('eomi score frequency\n')
@@ -189,6 +194,32 @@ class EomiExtractor:
             self._print(message, replace=True, newline=True)
 
         return prediction_scores
+
+    def _eomi_lemmatize(self, eomis):
+
+        def to_lemma(eomi_surface):
+            lemma = {}
+            for stem_surface, count in self.lrgraph.get_l(eomi_surface, -1):
+                for stem, eomi_lemma in _lemma_candidate(stem_surface, eomi_surface):
+                    if not (stem in self._stems):
+                        continue
+                    lemma[eomi_lemma] = lemma.get(eomi_lemma, 0) + count
+            # TODO: tie-breaker
+            return sorted(lemma.items(), key=lambda x:-x[1])[0]
+
+        def merge_score(freq0, score0, freq1, score1):
+            return (freq0 + freq1, (score0 * freq0 + score1 * freq1) / (freq0 + freq1))
+
+        surface_to_lemmas = {}
+        for eomi in eomis:
+            surface_to_lemmas[eomi] = to_lemma(eomi)
+
+        lemmas = {}
+        for eomi, (frequency, score) in eomis.items():
+            lemma = surface_to_lemmas[eomi]
+            lemmas[lemma] = merge_score(frequency, score, *lemmas.get(lemma, (0, 0)))
+
+        return lemmas, surface_to_lemmas
 
     def _post_processing(self, eomis, prediction_scores):
         # TODO
