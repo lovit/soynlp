@@ -84,12 +84,13 @@ class StemExtractor:
         candidates = {l:count for l, count in candidates.items()
             if count >= minimum_frequency}
 
-        extracted = self._batch_prediction(
+        stem_surfaces = self._batch_prediction(
             candidates, minimum_stem_score, minimum_frequency)
 
-        self.extracted, self.removals = self._post_processing(extracted)
+        self.stem_surfaces, self.removals = self._post_processing(
+            stem_surfaces)
 
-        self.stems = self._to_stem(self.extracted)
+        self.stems = self._to_stem(self.stem_surfaces)
         return self.stems
 
     def _batch_prediction(self, candidates,
