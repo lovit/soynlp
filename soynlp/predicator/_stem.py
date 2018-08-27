@@ -18,6 +18,11 @@ class StemExtractor:
         # L : stem surfaces
         # R : eomi surfaces
         self.L, self.R = self._conjugate_stem_and_eomi(lrgraph, stems, eomis)
+        self._josa = {
+            '거나', '게', '게는', '게도', '고',
+            '고도', '고만', '는', '다', '다가',
+            '서는', '아', '은'
+        }
 
     def _print(self, message, replace=False, newline=True):
         header = '[Stem Extractor]'
@@ -121,7 +126,7 @@ class StemExtractor:
 
     def predict(self, l, minimum_stem_score=0.7, minimum_frequency=1, debug=False):
 
-        features = self._get_R_features(l)
+        features = self.lrgraph.get_r(l, -1)
         char_count = self._count_first_chars(features)
 
         unique_of_char = len(char_count)
@@ -144,12 +149,14 @@ class StemExtractor:
         else:
             return (score, freq)
 
-    # prediction '안드로이드'
-    # stem_extractor.lrgraph.get_r('안드로이드', -1)
     def _predict(self, l, features):
         pos, neg, unk = 0, 0, 0
         for r, freq in features:
-            if r in self.R:
+            if r in self._josa: # 조사로도 이용되는 어미는 skip
+                continue
+            if not r:
+                neg += freq
+            elif r in self.R:
                 pos += freq
             elif self._r_is_predicator(r):
                 neg += freq
@@ -158,10 +165,6 @@ class StemExtractor:
             else:
                 unk += freq
         return pos, neg, unk
-
-    def _get_R_features(self, l):
-        features = self.lrgraph.get_r(l, -1)
-        return [feature for feature in features if feature[0]]
 
     def _count_first_chars(self, features):
         char_count = [(r[0], count) for r, count in features if r]
