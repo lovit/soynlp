@@ -3,9 +3,9 @@
 from soynlp.hangle import compose, decompose
 
 class Lemmatizer:
-    def __init__(self, stems, surfacial_eomis, predefined=None):
+    def __init__(self, stems, endings, predefined=None):
         self._stems = stems
-        self._surfacial_eomis = surfacial_eomis
+        self._endings = endings
         self._initialize()
         if predefined:
             self._predefined.update(predefined)
@@ -15,18 +15,16 @@ class Lemmatizer:
                             '그래':('그렇다',)
                            }
 
-    def is_stem(self, w): return w in self._stems
-    def is_surfacial_eomi(self, w): return w in self._surfacial_eomis
-
-    def lemmatize(self, word, check_if_r_is_known=False):
+    def lemmatize(self, word, check_only_stem=False):
         candidates = set()
         for i in range(1, len(word)+1):
             l, r = word[:i], word[i:]
-            if check_if_r_is_known and not self.is_surfacial_eomi(r):
-                continue
             for stem, ending in _lemma_candidate(l, r, self._predefined):
-                if self.is_stem(stem):
-                    candidates.add((stem, ending))
+                if stem in self._stems:
+                    if check_only_stem:
+                        candidates.add((stem, ending))
+                    elif ending in self._endings:
+                        candidates.add((stem, ending))
         return candidates
 
     def candidates(self, word):
@@ -150,7 +148,7 @@ def _lemma_candidate(l, r, predefined=None):
         (l_last[1] == 'ㅕ') or (l_last[1] == 'ㅓ')):
 
         l_stem = l_front + compose(l_last[0], 'ㅣ', ' ')
-        r_canon = '었' + r
+        r_canon = compose('ㅇ', 'ㅓ', l_last[2])+ r
         add_lemma(l_stem, r_canon)
 
     ## Pre-defined set
