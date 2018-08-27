@@ -7,6 +7,7 @@ __copyright__ = 'Copyright 2017 Lovit'
 from . import hangle
 from . import normalizer
 from . import noun
+from . import predicator
 from . import pos
 from . import tokenizer
 from . import vectorizer
@@ -18,8 +19,15 @@ from .utils import DoublespaceLineCorpus
 
 __all__ = [
     # modules
-    'hangle', 'normalizer', 'noun', 'pos', 'tokenizer',
-    'vectorizer', 'word', 'utils',
+    'hangle',
+    'normalizer',
+    'noun',
+    'predicator',
+    'pos',
+    'tokenizer',
+    'vectorizer',
+    'word',
+    'utils',
     # for compatibility with ver <= 0.0.45
     'DoublespaceLineCorpus'
 ]

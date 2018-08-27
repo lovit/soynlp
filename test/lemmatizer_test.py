@@ -3,6 +3,7 @@ import sys
 sys.path.insert(0, '../')
 import soynlp
 from soynlp.lemmatizer import Lemmatizer
+from soynlp.lemmatizer import _lemma_candidate
 
 def main():
     test_stems = {
@@ -19,13 +20,16 @@ def main():
         '가', '노랗', '퍼렇', '놀라', # 어미 ㄴ
         '시퍼렇', '파랗',  # ㅎ 불규칙
         '먹',
-        '보', '뵈', '뵙', '그렇'
+        '보', '뵈', '뵙', '그렇',
+        '좋아지', # 이었 -> 였
+        '만지' # 지 -> 져
     }
 
     test_eomis = {
         '',
         '아', '어나다', '어', '워', '웠다', '워서', '왔다', '와주니', '었다', '었어', '았어', '데', 
-        '라', '라니까', '너라', '았다', '러', '였다', '았다', '면', '다', '거라', '고', '는', '니'
+        '라', '라니까', '너라', '았다', '러', '였다', '았다', '면', '다', '거라', '고', '는', '니', '었던', '엇어', '어서',
+        'ㄴ', 'ㅂ고'
     }
 
     testset = [
@@ -60,11 +64,15 @@ def main():
         ('뵙', '고'),
         ('뵙', '는'),
         ('그래', ''),
+        ('좋아졌', '던'),
+        ('좋아젓', '어'),
+        ('만져', '서')
     ]
     
-    lemmatizer = Lemmatizer(stems=test_stems, surfacial_eomis=test_eomis)
+    lemmatizer = Lemmatizer(stems=test_stems, endings=test_eomis)
     for l,r in testset:
         print('({}, {}) -> {}'.format(l,r,lemmatizer.lemmatize(l+r)))
+        # print(_lemma_candidate(l, r), end='\n\n')
 
 if __name__ == '__main__':
     main()
