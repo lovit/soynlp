@@ -184,11 +184,13 @@ class PredicatorExtractor:
         # reset covered eojeol count
         self._num_of_covered_eojeols = 0
 
+        # TODO link parameters
         if self.extract_eomi:
             self._extract_eomi()
 
+        # TODO link parameters
         if self.extract_stem:
-            raise NotImplemented
+            self.__extract_stem()
 
         return self._extract_predicator(candidates, min_count, reset_lrgraph)
 
@@ -207,6 +209,27 @@ class PredicatorExtractor:
 
         if self.verbose:
             message = '{} eomis have been extracted'.format(len(extracted_eomis))
+            self._print(message, replace=False, newline=True)
+
+    def _extract_stem(self):
+        stem_extractor = StemExtractor(
+            lrgraph = self.lrgraph,
+            stems = self._stems,
+            eomis = self._eomis,
+            min_num_of_unique_R_char=10,
+            min_entropy_of_R_char=0.5,
+            min_entropy_of_R=1.5
+        )
+        extracted_stems = stem_extractor.extract(
+            L_ignore=None,
+            minimum_stem_score=0.7,
+            minimum_frequency=100
+        )
+        extracted_stems = {stem for stem in extracted_stems if not (stem in self._stems)}
+        self._stems.update(extracted_stems)
+
+        if self.verbose:
+            message = '{} stems have been extracted'.format(len(extracted_stems))
             self._print(message, replace=False, newline=True)
 
     def _extract_predicator(self, eojeols=None, min_count=10, reset_lrgraph=True):
