@@ -194,6 +194,7 @@ class StemExtractor:
                 return True
         return False
 
+    # TODO check postprocessing rule
     def _post_processing(self, extracted):
         def is_stem_and_eomi(l):
             n = len(l)
