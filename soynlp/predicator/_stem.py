@@ -99,7 +99,7 @@ class StemExtractor:
             if ((l in self.L) or
                 (l in self.R) or
                 (len(l) == 1) or
-                (l[-1] == '다') or
+                (l[-1] == '다') or # Hard coding rule
                 (l in extracted)):
                 continue
 
