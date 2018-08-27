@@ -124,7 +124,8 @@ def _lemma_candidate(l, r, predefined=None):
 
     # ㅎ (탈락) 불규칙 활용
     # 파라 + 면 -> 파랗 + 면
-    if (l_last[2] == ' ' or l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ'):
+    if ((l_last[2] == ' ' or l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ') and
+        (l_last[1] == 'ㅏ' or l_last[1] == 'ㅓ')):
         l_stem = l_front + compose(l_last[0], l_last[1], 'ㅎ')
         r_canon = r if l_last[2] == ' ' else l_last[2] + r
         add_lemma(l_stem, r_canon)
