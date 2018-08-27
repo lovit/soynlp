@@ -34,9 +34,7 @@ class StemExtractor:
                   end='\n' if newline else '', flush=True)
 
     def _conjugate_stem_and_eomi(self, lrgraph, stems, eomis):
-        # replace in master branch
-        # eojeols = lrgraph.to_EojeolCounter()
-        eojeols = {l+r:count for l, rdict in lrgraph._lr.items() for r, count in rdict.items()}
+        eojeol_counter = lrgraph.to_EojeolCounter()
 
         stem_surfaces = set()
         eomi_surfaces = set()
@@ -54,7 +52,7 @@ class StemExtractor:
             for eomi in eomis:
                 try:
                     for word in conjugate(stem, eomi):
-                        if not (word in eojeols) or len(word) <= stem_len:
+                        if (eojeol_counter[word] == 0) or (len(word) <= stem_len):
                             continue
                         l, r = word[:stem_len], word[stem_len:]
                         stem_surfaces.add(l)
@@ -67,7 +65,7 @@ class StemExtractor:
                 len(stems), len(eomis))
             self._print(message, replace=True, newline=True)
 
-        del eojeols
+        del eojeol_counter
         return stem_surfaces, eomi_surfaces
 
     def extract(self, L_ignore=None, minimum_stem_score=0.7,
