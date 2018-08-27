@@ -21,6 +21,7 @@ from soynlp.utils.utils import installpath
 from soynlp.lemmatizer import _lemma_candidate
 from soynlp.lemmatizer import _conjugate_stem
 from ._eomi import EomiExtractor
+from ._stem import StemExtractor
 
 class PredicatorExtractor:
 
@@ -190,7 +191,7 @@ class PredicatorExtractor:
 
         # TODO link parameters
         if self.extract_stem:
-            self.__extract_stem()
+            self._extract_stem()
 
         return self._extract_predicator(candidates, min_count, reset_lrgraph)
 
