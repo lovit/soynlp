@@ -15,6 +15,8 @@ class StemExtractor:
         self.min_entropy_of_R = min_entropy_of_R
         self.verbose = verbose
 
+        # L : stem surfaces
+        # R : eomi surfaces
         self.L, self.R = self._conjugate_stem_and_eomi(lrgraph, stems, eomis)
 
     def _print(self, message, replace=False, newline=True):
