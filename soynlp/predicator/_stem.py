@@ -1,17 +1,42 @@
 import math
+from soynlp.lemmatizer import conjugate
 
 class StemExtractor:
 
     # TODO: L, R 을 stem, eomi 로 받아서 작업
-    def __init__(self, lrgraph, L, R, min_num_of_unique_R_char=10,
+    def __init__(self, lrgraph, stems, eomis, min_num_of_unique_R_char=10,
         min_entropy_of_R_char=0.5, min_entropy_of_R=1.5):
 
         self.lrgraph = lrgraph
-        self.L = L
-        self.R = R
+        self.stems = stems
+        self.eomis = eomis
+        self.L, self.R = self._conjugate_stem_and_eomi(lrgraph, stems, eomis)
         self.min_num_of_unique_R_char = min_num_of_unique_R_char
         self.min_entropy_of_R_char = min_entropy_of_R_char
         self.min_entropy_of_R = min_entropy_of_R
+
+    def _conjugate_stem_and_eomi(self, lrgraph, stems, eomis):
+        # replace in master branch
+        # eojeols = lrgraph.to_EojeolCounter()
+        eojeols = {l+r:count for l, rdict in lrgraph._lr.items() for r, count in rdict.items()}
+
+        stem_surfaces = set()
+        eomi_surfaces = set()
+        for stem in stems:
+            stem_len = len(stem)
+            for eomi in eomis:
+                try:
+                    for word in conjugate(stem, eomi):
+                        if not (word in eojeols) or len(word) <= stem_len:
+                            continue
+                        l, r = word[:stem_len], word[stem_len:]
+                        stem_surfaces.add(l)
+                        eomi_surfaces.add(r)
+                except:
+                    continue
+
+        del eojeols
+        return stem_surfaces, eomi_surfaces
 
     def extract(self, L_ignore=None, minimum_stem_score=0.7,
         minimum_frequency=100):
