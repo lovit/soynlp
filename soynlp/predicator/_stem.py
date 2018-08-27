@@ -4,7 +4,6 @@ from soynlp.lemmatizer import _lemma_candidate
 
 class StemExtractor:
 
-    # TODO: L, R 을 stem, eomi 로 받아서 작업
     def __init__(self, lrgraph, stems, eomis, min_num_of_unique_R_char=10,
         min_entropy_of_R_char=0.5, min_entropy_of_R=1.5, verbose=True):
 
