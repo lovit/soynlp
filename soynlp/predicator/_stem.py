@@ -5,15 +5,26 @@ class StemExtractor:
 
     # TODO: L, R 을 stem, eomi 로 받아서 작업
     def __init__(self, lrgraph, stems, eomis, min_num_of_unique_R_char=10,
-        min_entropy_of_R_char=0.5, min_entropy_of_R=1.5):
+        min_entropy_of_R_char=0.5, min_entropy_of_R=1.5, verbose=True):
 
         self.lrgraph = lrgraph
         self.stems = stems
         self.eomis = eomis
-        self.L, self.R = self._conjugate_stem_and_eomi(lrgraph, stems, eomis)
         self.min_num_of_unique_R_char = min_num_of_unique_R_char
         self.min_entropy_of_R_char = min_entropy_of_R_char
         self.min_entropy_of_R = min_entropy_of_R
+        self.verbose = verbose
+
+        self.L, self.R = self._conjugate_stem_and_eomi(lrgraph, stems, eomis)
+
+    def _print(self, message, replace=False, newline=True):
+        header = '[Stem Extractor]'
+        if replace:
+            print('\r{} {}'.format(header, message),
+                  end='\n' if newline else '', flush=True)
+        else:
+            print('{} {}'.format(header, message),
+                  end='\n' if newline else '', flush=True)
 
     def _conjugate_stem_and_eomi(self, lrgraph, stems, eomis):
         # replace in master branch
@@ -22,7 +33,13 @@ class StemExtractor:
 
         stem_surfaces = set()
         eomi_surfaces = set()
-        for stem in stems:
+
+        for i, stem in enumerate(stems):
+
+            if self.verbose and i % 100 == 0:
+                message = 'Initializing {} / {}'.format(i, len(stems))
+                self._print(message, replace=True, newline=False)
+
             stem_len = len(stem)
             for eomi in eomis:
                 try:
@@ -34,6 +51,11 @@ class StemExtractor:
                         eomi_surfaces.add(r)
                 except:
                     continue
+
+        if self.verbose:
+            message = 'Initializing was done with {} stems and {} eomis'.format(
+                len(stems), len(eomis))
+            self._print(message, replace=True, newline=True)
 
         del eojeols
         return stem_surfaces, eomi_surfaces
