@@ -84,6 +84,10 @@ class StemExtractor:
         candidates = {l:count for l, count in candidates.items()
             if count >= minimum_frequency}
 
+        if self.verbose:
+            message = 'batch prediction for {} candidates'.format(len(candidates))
+            self._print(message, replace=False, newline=True)
+
         stem_surfaces = self._batch_prediction(
             candidates, minimum_stem_score, minimum_frequency)
 
@@ -91,6 +95,12 @@ class StemExtractor:
             stem_surfaces)
 
         self.stems = self._to_stem(self.stem_surfaces)
+
+        if self.verbose:
+            message = '{} stems, {} surfacial stems, {} removals'.format(
+                len(self.stems), len(self.stem_surfaces), len(self.removals))
+            self._print(message, replace=False, newline=True)
+
         return self.stems
 
     def _batch_prediction(self, candidates,
