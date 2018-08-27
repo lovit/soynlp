@@ -194,6 +194,8 @@ class EomiExtractor:
                         self._is_aNoun_Verb(l)):
                         self.lrgraph.remove_eojeol(l+r, count)
 
+        self.lrgraph.reset_lrgraph()
+
         if self.verbose:
             message = 'batch prediction was completed for {} words'.format(n)
             self._print(message, replace=True, newline=True)
