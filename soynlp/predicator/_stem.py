@@ -87,10 +87,10 @@ class StemExtractor:
         extracted = self._batch_prediction(
             candidates, minimum_stem_score, minimum_frequency)
 
-        extracted, removals = self._post_processing(extracted)
+        self.extracted, self.removals = self._post_processing(extracted)
 
-        stems = self._to_stem(extracted)
-        return stems, extracted, removals
+        self.stems = self._to_stem(self.extracted)
+        return self.stems
 
     def _batch_prediction(self, candidates,
         minimum_stem_score, minimum_frequency):
