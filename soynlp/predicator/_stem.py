@@ -41,10 +41,13 @@ class StemExtractor:
         stem_surfaces = set()
         eomi_surfaces = set()
 
+        n_stems = len(stems)
+        n_eomis = len(eomis)
         for i, stem in enumerate(stems):
 
             if self.verbose and i % 100 == 0:
-                message = 'Initializing {} / {}'.format(i, len(stems))
+                message = 'Checking combination of {} / {} stems + {} eomis'.format(
+                    i, n_stems, n_eomis)
                 self._print(message, replace=True, newline=False)
 
             stem_len = len(stem)
