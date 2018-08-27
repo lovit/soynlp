@@ -364,6 +364,16 @@ class LRGraph:
         )
         return lr_graph
 
+    def to_EojeolCounter(self, reset_lrgraph=False):
+        lr = self._lr_origin if reset_lrgraph else self._lr
+        counter = {}
+        for l, rdict in lr.items():
+            for r, count in rdict.items():
+                counter[l+r] = count
+        eojeol_counter = EojeolCounter(None)
+        eojeol_counter._counter = counter
+        return eojeol_counter
+
     def save(self, path):
         dirname = os.path.dirname(path)
         if dirname and not os.path.exists(dirname):
