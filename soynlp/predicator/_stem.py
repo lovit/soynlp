@@ -96,6 +96,7 @@ class StemExtractor:
             stem_surfaces)
 
         self.stems = self._to_stem(self.stem_surfaces)
+        # TODO extracted 된 canonical form 이 다른 어미들과 조합되어 다르게 활용될 수 있는지 확인
 
         if self.verbose:
             message = '{} stems, {} surfacial stems, {} removals'.format(
