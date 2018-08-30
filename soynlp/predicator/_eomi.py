@@ -31,7 +31,7 @@ class EomiExtractor:
                   end='\n' if newline else '', flush=True)
 
     def extract(self, condition=None, min_eomi_score=0.3,
-        min_count=1, reset_lrgraph=True):
+        min_frequency=1, reset_lrgraph=True):
 
         # reset covered eojeol count and extracted eomis
         self._num_of_covered_eojeols = 0
@@ -56,7 +56,7 @@ class EomiExtractor:
         lemmas = self._eomi_lemmatize(eomi_surfaces)
 
         lemmas = {eomi:score for eomi, score in lemmas.items()
-            if (score[0] >= min_count) and (score[1] >= min_eomi_score)}
+            if (score[0] >= min_frequency) and (score[1] >= min_eomi_score)}
 
         lemmas = self._post_processing(lemmas)
 
@@ -68,8 +68,8 @@ class EomiExtractor:
                     f.write('{} {} {}\n'.format(word, score[0], score[1]))
 
         if self.verbose:
-            message = '{} eomis extracted with min count = {}, min score = {}'.format(
-                len(lemmas), min_count, min_eomi_score)
+            message = '{} eomis extracted with min frequency = {}, min score = {}'.format(
+                len(lemmas), min_frequency, min_eomi_score)
             self._print(message, replace=False, newline=True)
 
         self._check_covered_eojeols(lemmas) # TODO with lemma
