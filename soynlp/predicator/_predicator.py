@@ -204,7 +204,12 @@ class PredicatorExtractor:
             verbose = self.verbose,
             logpath = None
         )
-        extracted_eomis = eomi_extractor.extract(min_count=20)
+        extracted_eomis = eomi_extractor.extract(
+            condition=None,
+            minimum_eomi_score=0.3,
+            min_count=1,
+            reset_lrgraph=True
+        )
         extracted_eomis = {eomi for eomi in extracted_eomis if not (eomi in self._eomis)}
         self._eomis.update(extracted_eomis)
 
