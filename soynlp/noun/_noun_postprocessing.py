@@ -75,7 +75,7 @@ def check_N_is_NJ(nouns, lrgraph, min_num_of_josa=5, logpath=None, logheader=Non
         logheader = '## Ignored true N+J'
 
     removals = set()
-    for word in nouns:
+    for word, score in nouns.items():
 
         n = len(word)
         if n <= 2:
@@ -84,7 +84,10 @@ def check_N_is_NJ(nouns, lrgraph, min_num_of_josa=5, logpath=None, logheader=Non
         for i in range(2, n):
             l, r = word[:i], word[i:]
 
-            if not (r in josaset) or (r in suffixset):
+            if (not (r in josaset)  # R 이 조사가 아니거나
+                or (r in suffixset) # -서, -장, -이 처럼 suffix 이거나
+                or not (l in nouns) # L 이 명사가 아니거나
+                or score[0] >= nouns[l][0]): # L 의 명사 빈도수가 더 작으면
                 continue
 
             features = lrgraph._lr_origin.get(l, {})
