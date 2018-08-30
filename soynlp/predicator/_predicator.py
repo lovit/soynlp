@@ -279,9 +279,11 @@ class PredicatorExtractor:
 
             if lemma_candidates:
                 lemmas[eojeol] = lemma_candidates
+                self._num_of_covered_eojeols += eojeols[eojeol]
 
         if self.verbose:
-            message = 'lemma candidating was done     '
+            message = 'lemma candidating was done. {} % eojeols are covered'.format(
+                '%.3f' % (100 * self._num_of_covered_eojeols / self._num_of_eojeols))
             self._print(message, replace=True, newline=True)
 
         return lemmas
