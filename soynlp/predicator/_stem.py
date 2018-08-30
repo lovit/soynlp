@@ -68,8 +68,8 @@ class StemExtractor:
         del eojeol_counter
         return stem_surfaces, eomi_surfaces
 
-    def extract(self, L_ignore=None, minimum_stem_score=0.7,
-        minimum_frequency=100):
+    def extract(self, L_ignore=None, min_stem_score=0.7,
+        min_frequency=100):
 
         if L_ignore is None:
             L_ignore = {}
@@ -83,14 +83,14 @@ class StemExtractor:
 
         # 1st. frequency filtering
         candidates = {l:count for l, count in candidates.items()
-            if count >= minimum_frequency}
+            if count >= min_frequency}
 
         if self.verbose:
             message = 'batch prediction for {} candidates'.format(len(candidates))
             self._print(message, replace=False, newline=True)
 
         stem_surfaces = self._batch_prediction(
-            candidates, minimum_stem_score, minimum_frequency)
+            candidates, min_stem_score, min_frequency)
 
         self.stem_surfaces, self.removals = self._post_processing(
             stem_surfaces)
@@ -106,7 +106,7 @@ class StemExtractor:
         return self.stems
 
     def _batch_prediction(self, candidates,
-        minimum_stem_score, minimum_frequency):
+        min_stem_score, min_frequency):
 
         # add known L for unknown L prediction
         extracted = {l:None for l in self.L}
@@ -122,12 +122,12 @@ class StemExtractor:
                 continue
 
             score, freq = self.predict(l,
-                minimum_stem_score, minimum_frequency)
+                min_stem_score, min_frequency)
 
             # no use entropy of R ?
             # entropy_of_R = _entropy([v for _, v in features])
 
-            if (score < minimum_stem_score) or (freq < minimum_frequency):
+            if (score < min_stem_score) or (freq < min_frequency):
                 continue
 
             extracted[l] = (score, freq)
@@ -137,7 +137,7 @@ class StemExtractor:
 
         return extracted
 
-    def predict(self, l, minimum_stem_score=0.7, minimum_frequency=1, debug=False):
+    def predict(self, l, min_stem_score=0.7, min_frequency=1, debug=False):
 
         features = self.lrgraph.get_r(l, -1)
         char_count = self._count_first_chars(features)
@@ -147,7 +147,7 @@ class StemExtractor:
 
         pos, neg, unk = self._predict(l, features)
         score = (pos - neg) / (pos + neg) if (pos + neg) > 0 else 0
-        freq = pos if score >= minimum_stem_score else neg + unk
+        freq = pos if score >= min_stem_score else neg + unk
 
         if debug:
             print('pos={}, neg={}, unk={}, n_features_={}, n_char={}, entropy_r={}'.format(
@@ -157,7 +157,7 @@ class StemExtractor:
             (entropy_of_char < self.min_entropy_of_R_char)):
             return (0, 0)
 
-        if freq < minimum_frequency:
+        if freq < min_frequency:
             return (0, freq)
         else:
             return (score, freq)

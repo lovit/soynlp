@@ -183,7 +183,7 @@ class PredicatorExtractor:
             self._print(message, replace=False, newline=True)
 
     def extract(self, candidates=None, min_count=10, reset_lrgraph=True,
-        minimum_eomi_score=0.3, minimum_stem_score=0.3):
+        min_eomi_score=0.3, min_stem_score=0.3):
 
         # reset covered eojeol count
         self._num_of_covered_eojeols = 0
@@ -209,7 +209,7 @@ class PredicatorExtractor:
         )
         extracted_eomis = eomi_extractor.extract(
             condition=None,
-            minimum_eomi_score=0.3,
+            min_eomi_score=0.3,
             min_count=1,
             reset_lrgraph=True
         )
@@ -231,8 +231,8 @@ class PredicatorExtractor:
         )
         extracted_stems = stem_extractor.extract(
             L_ignore=None,
-            minimum_stem_score=0.7,
-            minimum_frequency=100
+            min_stem_score=0.7,
+            min_frequency=100
         )
         extracted_stems = {stem for stem in extracted_stems if not (stem in self._stems)}
         self._stems.update(extracted_stems)

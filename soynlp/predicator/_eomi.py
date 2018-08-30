@@ -30,7 +30,7 @@ class EomiExtractor:
             print('{} {}'.format(header, message),
                   end='\n' if newline else '', flush=True)
 
-    def extract(self, condition=None, minimum_eomi_score=0.3,
+    def extract(self, condition=None, min_eomi_score=0.3,
         min_count=1, reset_lrgraph=True):
 
         # reset covered eojeol count and extracted eomis
@@ -43,10 +43,10 @@ class EomiExtractor:
         candidates = self._candidates_from_stem_surfaces(condition)
 
         prediction_scores = self._batch_prediction(
-            candidates, minimum_eomi_score, self.min_num_of_features)
+            candidates, min_eomi_score, self.min_num_of_features)
 
         eomi_surfaces = {eomi:score for eomi, score in prediction_scores.items()
-            if (score[1] >= minimum_eomi_score)}
+            if (score[1] >= min_eomi_score)}
 
         if self.verbose:
             message = 'eomi lemmatization with {} candidates'.format(len(eomi_surfaces))
@@ -56,7 +56,7 @@ class EomiExtractor:
         lemmas = self._eomi_lemmatize(eomi_surfaces)
 
         lemmas = {eomi:score for eomi, score in lemmas.items()
-            if (score[0] >= min_count) and (score[1] >= minimum_eomi_score)}
+            if (score[0] >= min_count) and (score[1] >= min_eomi_score)}
 
         lemmas = self._post_processing(lemmas)
 
@@ -69,7 +69,7 @@ class EomiExtractor:
 
         if self.verbose:
             message = '{} eomis extracted with min count = {}, min score = {}'.format(
-                len(lemmas), min_count, minimum_eomi_score)
+                len(lemmas), min_count, min_eomi_score)
             self._print(message, replace=False, newline=True)
 
         self._check_covered_eojeols(lemmas) # TODO with lemma
@@ -84,7 +84,7 @@ class EomiExtractor:
         lemmas_ = {eomi:EomiScore(score[0], score[1]) for eomi, score in lemmas.items()}
         return lemmas_
 
-    def predict(self, r, minimum_eomi_score=0.3,
+    def predict(self, r, min_eomi_score=0.3,
         min_num_of_features=5, debug=False):
 
         features = self.lrgraph.get_l(r, -1)
@@ -93,7 +93,7 @@ class EomiExtractor:
 
         base = pos + neg
         score = 0 if base == 0 else (pos - neg) / base
-        support = pos + unk if score >= minimum_eomi_score else neg + unk
+        support = pos + unk if score >= min_eomi_score else neg + unk
 
         features_ = self._refine_features(features, r)
         n_features_ = len(features_)
@@ -169,7 +169,7 @@ class EomiExtractor:
         return R_from_L
 
     def _batch_prediction(self, eomi_candidates,
-        minimum_eomi_score=0.3, min_num_of_features=5):
+        min_eomi_score=0.3, min_num_of_features=5):
 
         prediction_scores = {}
 
@@ -183,12 +183,12 @@ class EomiExtractor:
 
             # base prediction
             support, score = self.predict(
-                r, minimum_eomi_score, min_num_of_features)
+                r, min_eomi_score, min_num_of_features)
             prediction_scores[r] = (support, score)
 
-            # if their score is higher than minimum_eomi_score,
+            # if their score is higher than min_eomi_score,
             # remove eojeol pattern from lrgraph
-            if score >= minimum_eomi_score:
+            if score >= min_eomi_score:
                 for l, count in self.lrgraph.get_l(r, -1):
                     if ((l in self._stem_surfaces) or
                         self._is_aNoun_Verb(l)):
