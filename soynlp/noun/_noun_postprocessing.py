@@ -1,13 +1,15 @@
 import os
 from soynlp.utils import check_dirs
 
-josapath = os.path.dirname(os.path.realpath(__file__))
-josapath += '/frequent_enrolled_josa.txt'
+filepath = os.path.dirname(os.path.realpath(__file__))
+josapath = filepath + '/frequent_enrolled_josa.txt'
+suffixpath = filepath + '/frequent_noun_suffix.txt'
 
 with open(josapath, encoding='utf-8') as f:
     josaset = {word.strip() for word in f if word}
 
-min_num_of_josa = 5
+with open(suffixpath, encoding='utf-8') as f:
+    suffixset = {word.strip() for word in f if word}
 
 def write_log(path, header, words):
     check_dirs(path)
@@ -67,7 +69,7 @@ def ignore_features(nouns, features, logpath=None, logheader=None):
     nouns_ = _select_true_nouns(nouns, removals)
     return nouns_, removals
 
-def check_N_is_NJ(nouns, lrgraph, logpath=None, logheader=None):
+def check_N_is_NJ(nouns, lrgraph, min_num_of_josa=5, logpath=None, logheader=None):
 
     if not logheader:
         logheader = '## Ignored true N+J'
@@ -75,15 +77,21 @@ def check_N_is_NJ(nouns, lrgraph, logpath=None, logheader=None):
     removals = set()
     for word in nouns:
 
-        if not (word[-1] in josaset):
+        n = len(word)
+        if n <= 2:
             continue
 
-        features = lrgraph._lr_origin.get(word, {})
-        features = [r for r in features if r in josaset]
-        n_josa = len(features)
+        for i in range(2, n):
+            l, r = word[:i], word[i:]
 
-        if n_josa < min_num_of_josa:
-            removals.add(word)
+            if not (r in josaset) or (r in suffixset):
+                continue
+
+            features = lrgraph._lr_origin.get(l, {})
+            features = [r for r in features if r in josaset]
+            n_josa = len(features)
+            if n_josa >= min_num_of_josa:
+                removals.add(word)
 
     if logpath:
         write_log(logpath, logheader, removals)
