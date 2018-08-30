@@ -1,5 +1,6 @@
 from soynlp.noun import LRNounExtractor_v2
 from soynlp.predicator import PredicatorExtractor
+from soynlp.utils import LRGraph
 
 class POSExtractor:
 
@@ -24,7 +25,9 @@ class POSExtractor:
         self._num_of_covered_eojeols = 0
 
         nouns = self._extract_nouns(sentences)
-        predicators = self._extract_predicators(sentences, nouns)
+        predicators = self._extract_predicators(self._lrgraph, nouns)
+
+        del self._lrgraph
 
         if self.verbose:
             message = '{} nouns, {} predicators were extracted'.format(
@@ -55,7 +58,10 @@ class POSExtractor:
             minimum_noun_score = 0.4,
         )
 
-        self.lrgraph = noun_extractor.lrgraph
+        self._lrgraph = LRGraph(
+            {l:{r:v for r,v in rdict.items()}
+             for l, rdict in noun_extractor.lrgraph._lr.items()}
+        )
         self._num_of_eojeols = noun_extractor._num_of_eojeols
         self._num_of_covered_eojeols = noun_extractor._num_of_covered_eojeols
 
