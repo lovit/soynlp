@@ -244,13 +244,13 @@ class LRNounExtractor_v2:
 
         # combine single nouns and compounds
         nouns = {noun:score for noun, score in prediction_scores.items()
-            if score[0] >= minimum_noun_score}
+            if score[1] >= minimum_noun_score}
 
         nouns.update(compounds)
 
         # frequency filtering
         nouns = {noun:score for noun, score in nouns.items()
-            if score[1] >= min_count}
+            if score[0] >= min_count}
 
         nouns = self._post_processing(nouns, prediction_scores, compounds)
 
@@ -268,7 +268,7 @@ class LRNounExtractor_v2:
             # the remained lrgraph is predicate (stem - ending) graph
             self.lrgraph.reset_lrgraph()
 
-        nouns_ = {noun:NounScore(score[1], score[0]) for noun, score in nouns.items()}
+        nouns_ = {noun:NounScore(score[0], score[1]) for noun, score in nouns.items()}
         return nouns_
 
     def _get_nonempty_features(self, word, features):
@@ -307,23 +307,23 @@ class LRNounExtractor_v2:
                 pos, common, neg, unk, end, n_features_))
 
         if n_features_ > self.min_num_of_features:
-            return score, support
+            return support, score
 
         else:
             # exception case
             sum_ = pos + common + neg + unk + end
             if sum_ == 0:
-                return 0, support
+                return support, 0
 
             # exception. frequent nouns may have various positive R such as Josa
             if ((end > self.max_count_when_noun_is_eojeol) and (pos >= neg) ):
-                return score, support
+                return support, score
 
             if (common > 0 or pos > 0) and (end / sum_ >= 0.3) and (common >= neg):
                 # 아이웨딩 + [('', 90), ('은', 3), ('측은', 1)] # 은 common / 대부분 단일어절 / 측은 unknown. 
                 # 아이엠텍 + [('은', 2), ('', 2)]
                 support = pos + common + end
-                return (support / sum_, support)
+                return (support, support / sum_)
 
             # 경찰국 + [(은, 1), (에, 1), (에서, 1)] -> {은, 에}
             first_chars = set()
@@ -338,7 +338,7 @@ class LRNounExtractor_v2:
 
             if len(first_chars) >= 2:
                 support = pos + common + end
-                return (support / sum_, support)
+                return (support, support / sum_)
 
             # Handling for post-processing in NounExtractor
             # Case 1.
@@ -347,7 +347,7 @@ class LRNounExtractor_v2:
             # Case 2.
             # 아이였으므로 -> 아이였으므 + [(로, 2)] (minimum r feature 적용)
             # "명사 + Unknown R" 로 후처리
-            return (0, support)
+            return (support, 0)
 
     def _predict(self, word, features):
 
@@ -412,8 +412,8 @@ class LRNounExtractor_v2:
                     percentage, n), flush=True, end='')
 
             # base prediction
-            score, support = self.predict(word, minimum_noun_score)
-            prediction_scores[word] = (score, support)
+            support, score = self.predict(word, minimum_noun_score)
+            prediction_scores[word] = (support, score)
 
             # if their score is higher than minimum_noun_score,
             # remove eojeol pattern from lrgraph
@@ -436,7 +436,7 @@ class LRNounExtractor_v2:
     def extract_compounds(self, candidates, prediction_scores, minimum_noun_score=0.3):
 
         noun_scores = {noun:len(noun) for noun, score in prediction_scores.items()
-                       if score[0] > minimum_noun_score and len(noun) > 1}
+                       if score[1] > minimum_noun_score and len(noun) > 1}
 
         self._compound_decomposer = MaxScoreTokenizer(scores=noun_scores)
 
@@ -468,7 +468,7 @@ class LRNounExtractor_v2:
                 compounds_components[noun] = compound_parts
 
                 # cumulate count and store compound score
-                compound_score = max((prediction_scores.get(t, (0,0))[0] for t in compound_parts))
+                compound_score = max((prediction_scores.get(t, (0,0))[1] for t in compound_parts))
                 compounds_scores[noun] = max(compounds_scores.get(noun,0), compound_score)
                 compounds_counts[noun] = compounds_counts.get(noun,0) + count
 
@@ -559,7 +559,7 @@ class LRNounExtractor_v2:
 
             elif method == 'ignore_NJ':
 
-                nouns, removals = check_N_is_NJ(nouns, self.lrgraph, logpath)
+                nouns, removals = check_N_is_NJ(nouns, self.lrgraph, logpath=logpath)
 
                 if self.verbose:
                     print_status(method, nouns, removals)
