@@ -128,7 +128,7 @@ class PredicatorExtractor:
 
         def contains_noun(eojeol, n):
             for e in range(2, n + 1):
-                if eojeol[:e] in self.nouns:
+                if eojeol[:e] in self._nouns:
                     return True
             return False
 
