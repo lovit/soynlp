@@ -24,7 +24,7 @@ class POSExtractor:
         self._num_of_covered_eojeols = 0
 
         nouns = self._extract_nouns(sentences)
-        predicators = self._extract_predicators(self.lrgraph, nouns)
+        predicators = self._extract_predicators(sentences, nouns)
 
         if self.verbose:
             message = '{} nouns, {} predicators were extracted'.format(
@@ -59,6 +59,8 @@ class POSExtractor:
         self._num_of_eojeols = noun_extractor._num_of_eojeols
         self._num_of_covered_eojeols = noun_extractor._num_of_covered_eojeols
 
+        self.noun_extractor = noun_extractor
+
         if self.verbose:
             message = 'noun extraction was done. {} % eojeols are covered'.format(
                 '%.2f' % (100 * self._num_of_covered_eojeols / self._num_of_eojeols))
@@ -87,6 +89,8 @@ class POSExtractor:
         )
 
         self._num_of_covered_eojeols += predicator_extractor._num_of_covered_eojeols
+
+        self.predicator_extractor = predicator_extractor
 
         if self.verbose:
             message = 'predicator extraction was done. {} % eojeols are covered (cum)'.format(
