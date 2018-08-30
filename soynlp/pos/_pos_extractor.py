@@ -61,7 +61,7 @@ class POSExtractor:
 
         if self.verbose:
             message = 'noun extraction was done. {} % eojeols are covered'.format(
-                '%.3f' % (100 * self._num_of_covered_eojeols / self._num_of_eojeols))
+                '%.2f' % (100 * self._num_of_covered_eojeols / self._num_of_eojeols))
             self._print(message, replace=True, newline=True)
 
         return nouns

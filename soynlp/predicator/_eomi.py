@@ -177,7 +177,7 @@ class EomiExtractor:
         for i, r in enumerate(sorted(eomi_candidates, key=lambda x:-len(x))):
 
             if self.verbose and i % 10000 == 9999:
-                percentage = '%.3f' % (100 * (i+1) / n)
+                percentage = '%.2f' % (100 * (i+1) / n)
                 message = '  -- batch prediction {} % of {} words'.format(percentage, n)
                 self._print(message, replace=True, newline=False)
 
