@@ -89,7 +89,7 @@ class POSExtractor:
         self._num_of_covered_eojeols += predicator_extractor._num_of_covered_eojeols
 
         if self.verbose:
-            message = 'noun extraction was done. {} % eojeols are covered (cum)'.format(
+            message = 'predicator extraction was done. {} % eojeols are covered (cum)'.format(
                 '%.2f' % (100 * self._num_of_covered_eojeols / self._num_of_eojeols))
             self._print(message, replace=True, newline=True)
 
