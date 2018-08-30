@@ -13,6 +13,7 @@ lrgraph : L-R graph including [stem + Ending], Adverbs,
           and maybe some Noun + Josa
 """
 
+from collections import namedtuple
 from soynlp.hangle import character_is_complete_korean
 from soynlp.utils import LRGraph
 from soynlp.utils import get_process_memory
@@ -22,6 +23,8 @@ from soynlp.lemmatizer import _lemma_candidate
 from soynlp.lemmatizer import _conjugate_stem
 from ._eomi import EomiExtractor
 from ._stem import StemExtractor
+
+Predicator = namedtuple('Predicator', 'frequency lemma')
 
 class PredicatorExtractor:
 
@@ -278,8 +281,9 @@ class PredicatorExtractor:
                         lemma_candidates.add((stem, eomi))
 
             if lemma_candidates:
-                lemmas[eojeol] = lemma_candidates
-                self._num_of_covered_eojeols += eojeols[eojeol]
+                count = eojeols[eojeol]
+                lemmas[eojeol] = Predicator(count, lemma_candidates)
+                self._num_of_covered_eojeols += count
 
         if self.verbose:
             message = 'lemma candidating was done. {} % eojeols are covered'.format(
