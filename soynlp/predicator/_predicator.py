@@ -183,36 +183,46 @@ class PredicatorExtractor:
             self._print(message, replace=False, newline=True)
 
     def extract(self, candidates=None, min_count=10, reset_lrgraph=True,
-        min_eomi_score=0.3, min_stem_score=0.3):
+        # Eomi extractor
+        min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
+        # Stem extractor
+        min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
+        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
 
         # reset covered eojeol count
         self._num_of_covered_eojeols = 0
 
         # TODO link parameters
         if self.extract_eomi:
-            self._extract_eomi()
+            self._extract_eomi(min_num_of_features,
+                min_eomi_score, min_eomi_frequency)
 
         # TODO link parameters
         if self.extract_stem:
-            self._extract_stem()
+            self._extract_stem(min_num_of_unique_R_char,
+                min_entropy_of_R_char, min_entropy_of_R,
+                min_stem_score, min_stem_frequency)
 
         return self._extract_predicator(candidates, min_count, reset_lrgraph)
 
-    def _extract_eomi(self):
+    def _extract_eomi(self, min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1):
+
         eomi_extractor = EomiExtractor(
             lrgraph = self.lrgraph,
             stems = self._stems,
             nouns = self._nouns,
-            min_num_of_features = 5,
+            min_num_of_features = min_num_of_features,
             verbose = self.verbose,
             logpath = None
         )
+
         extracted_eomis = eomi_extractor.extract(
             condition=None,
-            min_eomi_score=0.3,
-            min_count=1,
+            min_eomi_score = min_eomi_score,
+            min_frequency = min_eomi_frequency,
             reset_lrgraph=True
         )
+
         extracted_eomis = {eomi for eomi in extracted_eomis if not (eomi in self._eomis)}
         self._eomis.update(extracted_eomis)
 
@@ -220,20 +230,24 @@ class PredicatorExtractor:
             message = '{} eomis have been extracted'.format(len(extracted_eomis))
             self._print(message, replace=False, newline=True)
 
-    def _extract_stem(self):
+    def _extract_stem(self, min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
+        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
+
         stem_extractor = StemExtractor(
             lrgraph = self.lrgraph,
             stems = self._stems,
             eomis = self._eomis,
-            min_num_of_unique_R_char=10,
-            min_entropy_of_R_char=0.5,
-            min_entropy_of_R=1.5
+            min_num_of_unique_R_char = min_num_of_unique_R_char,
+            min_entropy_of_R_char = min_entropy_of_R_char,
+            min_entropy_of_R = min_entropy_of_R
         )
+
         extracted_stems = stem_extractor.extract(
             L_ignore=None,
-            min_stem_score=0.7,
-            min_frequency=100
+            min_stem_score = min_stem_score,
+            min_frequency = min_stem_frequency
         )
+
         extracted_stems = {stem for stem in extracted_stems if not (stem in self._stems)}
         self._stems.update(extracted_stems)
 
