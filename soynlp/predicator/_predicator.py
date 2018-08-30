@@ -247,19 +247,16 @@ class PredicatorExtractor:
 
     def _as_lemma_candidates(self, eojeols=None,  min_count=10):
 
-        if not eojeols:
-            eojeols = {l:rdict.get('', 0) for l, rdict in self.lrgraph._lr.items()}
-            eojeols = [eojeol for eojeol, count in eojeols.items()
-                       if count > min_count]
-
         def all_character_are_complete_korean(s):
             for c in s:
                 if not character_is_complete_korean(c):
                     return False
             return True
 
-        eojeols = [eojeol for eojeol in eojeols
-                   if all_character_are_complete_korean(eojeol)]
+        if not eojeols:
+            eojeols = {l:rdict.get('', 0) for l, rdict in self.lrgraph._lr.items()}
+            eojeols = {eojeol:count for eojeol, count in eojeols.items()
+                       if (count > min_count) and all_character_are_complete_korean(eojeol)}
 
         n_eojeols = len(eojeols)
         lemmas = {}
