@@ -3,7 +3,12 @@ from collections import defaultdict
 from scipy.sparse import csr_matrix
 
 def sent_to_word_contexts_matrix(sents, windows=3, min_tf=10,
-        tokenizer=lambda x:x.split(), verbose=True):
+        tokenizer=lambda x:x.split(), dynamic_weight=False, verbose=True):
+
+    """
+    :param dynamic_weight : Use dynamic weight if True.
+        co-occurrence weight = [1, (w-1)/w, (w-2)/w, ... 1/w]
+    """
 
     if verbose:
         print('Create (word, contexts) matrix')
@@ -12,7 +17,7 @@ def sent_to_word_contexts_matrix(sents, windows=3, min_tf=10,
         sents, min_tf, tokenizer, verbose)
 
     word2contexts = _word_context(
-        sents, windows, tokenizer, verbose, vocab2idx)
+        sents, windows, tokenizer, dynamic_weight, verbose, vocab2idx)
 
     x = _encode_as_matrix(word2contexts, vocab2idx, verbose)
 
@@ -52,10 +57,15 @@ def _print_status(message, i_sent, new_line=False):
         flush=True, end='\n' if new_line else ''
     )
 
-def _word_context(sents, windows, tokenizer, verbose, vocab2idx):
+def _word_context(sents, windows, tokenizer, dynamic_weight, verbose, vocab2idx):
 
     # scanning (word, context) pairs
     word2contexts = defaultdict(lambda: defaultdict(int))
+
+    if dynamic_weight:
+        weight = [(windows-i)/windows for i in range(windows)]
+    else:
+        weight = [1] * windows
 
     for i_sent, sent in enumerate(sents):
 
@@ -73,16 +83,18 @@ def _word_context(sents, windows, tokenizer, verbose, vocab2idx):
                 continue
 
             # left_contexts
-            for context in words[max(0, i-windows):i]:
-                if not (context in vocab2idx):
+            for w in range(windows):
+                j = i - (w + 1)
+                if j < 0 or not (words[j] in vocab2idx):
                     continue
-                word2contexts[word][context] += 1
+                word2contexts[word][words[j]] += weight[w]
 
             # right_contexts
-            for context in words[min(i+1, n):min(i+windows, n)+1]:
-                if not (context in vocab2idx):
+            for w in range(windows):
+                j = i + w + 1
+                if j >= n or not (words[j] in vocab2idx):
                     continue
-                word2contexts[word][context] += 1
+                word2contexts[word][words[j]] += weight[w]
 
     if verbose:
         _print_status('  - scanning (word, context) pairs', i_sent, new_line=True)
