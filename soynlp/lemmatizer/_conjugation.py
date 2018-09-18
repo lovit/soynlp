@@ -138,6 +138,8 @@ def conjugate(stem, ending):
     # 이었 -> 였 규칙활용
     if ending[0] == '었' and l_last[1] == 'ㅣ' and l_last[2] == ' ':
         candidates.add(stem[:-1] + compose(l_last[0], 'ㅕ', 'ㅆ') + ending[1:])
+        if l_last[0] == 'ㅇ':
+            candidates.add(stem + ending)
 
     if not candidates and r_first[1] != ' ':
         candidates.add(stem + ending)
