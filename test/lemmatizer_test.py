@@ -67,7 +67,9 @@ def main():
         ('좋아졌', '던'),
         ('좋아젓', '어'),
         ('만져', '서'),
-        ('였', '어')
+        ('였', '어'),
+        ('봐', ''),
+        ('본', ''),
     ]
     
     lemmatizer = Lemmatizer(stems=test_stems, endings=test_eomis)
