@@ -23,6 +23,8 @@ soynlp 에서는 substring counting 을 하는 경우가 많습니다. 빈도수
 
 index 와 idx 는 idx 로 통일합니다.
 
+숫자를 의미하는 num 과 n 은 num 으로 통일합니다.
+
 ## Setup
 
     pip install soynlp
@@ -330,6 +332,31 @@ dict 형식의 bag of words 는 decoding 이 가능합니다.
     only_text('가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜabcd123!!아핫')
     # '가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜabcd123!!아핫'
 
+## Point-wise Mutual Information (PMI)
+
+연관어 분석을 위한 co-occurrence matrix 계산과 이를 이용한 Point-wise Mutual Information (PMI) 계산을 위한 함수를 제공합니다.
+
+아래 sent_to_word_contexts_matrix 함수를 이용하여 (word, context words) matrix 를 만들 수 있습니다. x 는 scipy.sparse.csr_matrix 이며, (n_vocabs, n_vocabs) 크기입니다. idx2vocab 은 x 의 각 row, column 에 해당하는 단어가 포함된 list of str 입니다. 문장의 앞/뒤 windows 단어를 context 로 인식하며, min_tf 이상의 빈도수로 등장한 단어에 대해서만 계산을 합니다. dynamic_weight 는 context 길이에 반비례하여 weighting 을 합니다. windows 가 3 일 경우, 1, 2, 3 칸 떨어진 단어의 co-occurrence 는 1, 2/3, 1/3 으로 계산됩니다.
+
+    from soynlp.vectorizer import sent_to_word_contexts_matrix
+
+    x, idx2vocab = sent_to_word_contexts_matrix(
+        corpus,
+        windows=3,
+        min_tf=10,
+        tokenizer=tokenizer, # (default) lambda x:x.split(),
+        dynamic_weight=False,
+        verbose=True)
+
+Co-occurrence matrix 인 x 를 pmi 에 입력하면 row 와 column 을 각 축으로 PMI 가 계산됩니다. pmi_dok 은 scipy.sparse.dok_matrix 형식입니다. min_pmi 이상의 값만 저장되며, default 는 min_pmi = 0 이기 때문에 Positive PMI (PPMI) 입니다. alpha 는 PMI(x,y) = p(x,y) / ( p(x) * ( p(y) + alpha ) ) 에 입력되는 smoothing parameter 입니다. 계산 과정이 오래 걸리기 때문에 verbose = True 로 설정하면 현재의 진행 상황을 출력합니다.
+
+    from soynlp.word import pmi
+
+    pmi_dok = pmi(
+        x,
+        min_pmi=0,
+        alpha=0.0001,
+        verbose=True)
 
 ## notes
 
