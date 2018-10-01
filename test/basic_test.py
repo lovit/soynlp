@@ -236,7 +236,7 @@ def main():
     parser.add_argument('--pass_word', dest='pass_word', action='store_true')
     parser.add_argument('--pass_noun', dest='pass_noun', action='store_true')
     parser.add_argument('--pass_pos', dest='pass_pos', action='store_true')
-    parser.add_argument('--pass_pmi', dest='pass_pos', action='store_true')
+    parser.add_argument('--pass_pmi', dest='pass_pmi', action='store_true')
     
     args = parser.parse_args()
     corpus_path = args.corpus_path
