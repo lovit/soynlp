@@ -114,14 +114,14 @@ class NewsNounExtractor:
 
     def extract(self, min_noun_score=0.4, min_frequency=3,
             noun_candidates=None, min_feature_proportion=0.6):
-        
+
         self._pre_eojeol_analysis(min_frequency)
-        
+
         if not noun_candidates:
             noun_candidates = [l for l, c in self.lcount.items() if len(l) >= 2]
         noun_candidates = [l for l in noun_candidates
             if self.lcount.get(l, 0) >= min_frequency and not (l in self.r_scores)]
-        
+
         noun_scores = {}
         for i, l in enumerate(noun_candidates):
             noun_scores[l] = self.predict(l)
@@ -131,17 +131,17 @@ class NewsNounExtractor:
 
         if self.verbose:
             print('\rpredicting noun score was done{}'.format(' '*40))
-        
+
         # debug code
         print('before postprocessing', len(noun_scores))
-        
+
         noun_scores = self._postprocessing(noun_scores, min_noun_score, min_feature_proportion)
-        
+
         # debug code
         print('after postprocessing', len(noun_scores))
-        
+
         self._post_eojeol_analysis(min_frequency)
-        
+
         for noun in self.noun_dictionary:
             if not (noun in self._noun_scores_postprocessed):
                 self.noun_dictionary[noun] = self.predict(noun)
@@ -151,9 +151,9 @@ class NewsNounExtractor:
 
         del self._noun_scores_
         del self._noun_scores_postprocessed
-        
+
         return self.noun_dictionary
-    
+
     def _pre_eojeol_analysis(self, min_frequency=3, min_eojeol_proportion=0.99):
         def eojeol_to_NV(l, max_eojeol_proportion=0.5, min_noun_score=0.4):
             n = len(l)
@@ -163,8 +163,8 @@ class NewsNounExtractor:
                 if (self.predict(l)[0] >= min_noun_score) and (r in self._vdictionary):
                     return (l, r)
             return None
-        
-        candidates = {l:c for l,c in self.lcount.items() 
+
+        candidates = {l:c for l,c in self.lcount.items()
             if c >= min_frequency and (self.eojeols.get(l, 0) / c) >= min_eojeol_proportion}
 
         for i, (l, c) in enumerate(candidates.items()):
@@ -182,11 +182,11 @@ class NewsNounExtractor:
         if self.verbose:
             message = '\rextracted {} nouns using verb/adjective dictionary'
             sys.stdout.write(message.format(len(self.noun_dictionary)))
-    
+
     def _post_eojeol_analysis(self, min_frequency=3,
         min_eojeol_proportion=0.99, min_noun_score=0.4):
 
-        candidates = {l:c for l,c in self.lcount.items() 
+        candidates = {l:c for l,c in self.lcount.items()
             if c >= min_frequency and (self.eojeols.get(l, 0) / c) >= min_eojeol_proportion}
 
         begin = len(self.noun_dictionary)
@@ -195,8 +195,8 @@ class NewsNounExtractor:
                 args = (len(self.noun_dictionary) - begin, i+1, len(candidates))
                 message = '\rextracting {} compounds from eojeols ... {} / {}'
                 sys.stdout.write(message.format(*args))
-                
-            if l in self._noun_scores_postprocessed:        
+
+            if l in self._noun_scores_postprocessed:
                 continue
             if self._is_NJsubJ(l):
                 continue
@@ -231,7 +231,7 @@ class NewsNounExtractor:
 
         return NewsNounScore(score, _total, feature_proportion, eojeol_proportion, n_positive_feature, unique_positive_feature_proportion)
 #         return (score, _total, feature_proportion, eojeol_proportion, n_positive_feature, unique_positive_feature_proportion)
-    
+
     def _postprocessing(self, noun_scores, min_noun_score=0.4,
         min_feature_proportion=0.6):
 
@@ -245,7 +245,7 @@ class NewsNounExtractor:
         )
 
         print('_noun_scores_', len(self._noun_scores_))
-        
+
         if self.verbose:
             message = 'finding NJsubJ (대학생(으)+로), NsubJ (떡볶+(이)), NVsubE (사기(당)+했다) ... '
             sys.stdout.write(message)
