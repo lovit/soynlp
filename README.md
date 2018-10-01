@@ -13,7 +13,8 @@ soynlp 에서 제공하는 WordExtractor 나 NounExtractor 는 여러 개의 문
 
 ### Parameter naming
 
-soynlp=0.0.46 까지는 min_score, minimum_score, l_len_min 처럼 최소값이나 최대값을 요구하는 parameters 의 이름들에 규칙이 없었습니다.
+soynlp=0.0.46 까지는 min_score, minimum_score, l_len_min 처럼 최소값이나 최대값을 요구하는 parameters 의 이름들에 규칙이 없었습니다. 지금까지 작업하신 코드들 중에서 직접 parameters 를 설정하신 분들에게 혼란을 드릴 수 있으나, **더 늦기전에 이후에 발생할 불편함을 줄이기 위하여** 변수 명을 수정하였습니다.
+
 0.0.47 이후 minimum, maximum 의 의미가 들어가는 변수명은 min, max 로 줄여 기입합니다.
 그 뒤에 어떤 항목의 threshold parameter 인지 이름을 기입합니다. 다음과 같은 패턴으로 parameter 이름을 통일합니다.
 {min, max}_{noun, word}_{score, threshold} 등으로 이름을 통일합니다.
