@@ -11,7 +11,7 @@ class LRNounExtractor:
 
     def __init__(self, max_left_length=10, max_right_length=7,
             predictor_fnames=None, verbose=True, min_num_of_features=1):
-        
+
         self.coefficient = {}
         self.verbose = verbose
         self.max_left_length = max_left_length
@@ -20,21 +20,21 @@ class LRNounExtractor:
         self.words = None
         self._wordset_l_counter = {}
         self.min_num_of_features = min_num_of_features
-        
+
         if not predictor_fnames:
             import os
             directory = '/'.join(os.path.abspath(__file__).replace('\\', '/').split('/')[:-2])
             predictor_fnames = ['%s/trained_models/noun_predictor_sejong' % directory]
             if verbose:
                 print('used default noun predictor; Sejong corpus predictor')
-            
+
         for fname in predictor_fnames:
             if verbose:
                 print('used %s' % fname.split('/')[-1])
             self._load_predictor(fname)
         if verbose:
             print('All %d r features was loaded' % len(self.coefficient))
-        
+
     def _load_predictor(self, fname):
         try:
             if sys.version_info.major == 2:
@@ -55,10 +55,10 @@ class LRNounExtractor:
                 f.close()
         except Exception as e:
             print(e)
-    
+
     def train_extract(self, sents, min_noun_score=0.5, min_frequency=5,
             noun_candidates=None):
-        
+
         self.train(sents, min_frequency)
         return self.extract(min_noun_score, min_frequency, noun_candidates)
 
@@ -67,7 +67,7 @@ class LRNounExtractor:
         lrgraph = self._build_lrgraph(sents, wordset_l, wordset_r)
         self.lrgraph = LRGraph(lrgraph)
         self.words = wordset_l
-    
+
     def _scan_vocabulary(self, sents, min_frequency=5):
         """
         Parameters
@@ -77,12 +77,12 @@ class LRNounExtractor:
         It computes subtoken frequency first. 
         After then, it builds lr-graph with sub-tokens appeared at least min count
         """
-        
+
         _ckpt = int(len(sents) / 40)
-        
+
         wordset_l = defaultdict(lambda: 0)
         wordset_r = defaultdict(lambda: 0)
-        
+
         for i, sent in enumerate(sents):
             for token in sent.split(' '):
                 if not token:
@@ -95,21 +95,21 @@ class LRNounExtractor:
             if self.verbose and (i % _ckpt == 0):
                 args = ('#' * int(i/_ckpt), '-' * (40 - int(i/_ckpt)), 100.0 * i / len(sent), '%')
                 sys.stdout.write('\rscanning: %s%s (%.3f %s)' % args)
-        
+
         self._wordset_l_counter = {w:f for w,f in wordset_l.items() if f >= min_frequency}
         wordset_l = set(self._wordset_l_counter.keys())
         wordset_r = {w for w,f in wordset_r.items() if f >= min_frequency}
-        
+
         if self.verbose:
             print('\rscanning completed')
             print('(L,R) has (%d, %d) tokens' % (len(wordset_l), len(wordset_r)))
 
         return wordset_l, wordset_r
-    
+
     def _build_lrgraph(self, sents, wordset_l, wordset_r):
         _ckpt = int(len(sents) / 40)
         lrgraph = defaultdict(lambda: defaultdict(lambda: 0))
-        
+
         for i, sent in enumerate(sents):
             for token in sent.split():
                 if not token:
@@ -127,11 +127,11 @@ class LRNounExtractor:
             if self.verbose and (i % _ckpt == 0):
                 args = ('#' * int(i/_ckpt), '-' * (40 - int(i/_ckpt)), 100.0 * i / len(sents), '%')
                 sys.stdout.write('\rbuilding lr-graph: %s%s (%.3f %s)' % args)
-        if self.verbose:                       
+        if self.verbose:
             sys.stdout.write('\rbuilding lr-graph completed')
         lrgraph = {l:{r:f for r,f in rdict.items()} for l,rdict in lrgraph.items()}
         return lrgraph
-    
+
     def extract(self, min_noun_score=0.5, min_frequency=5, noun_candidates=None):
         if not noun_candidates:
             noun_candidates = self.words
@@ -146,17 +146,17 @@ class LRNounExtractor:
             if score[0] < min_noun_score:
                 continue
             nouns[word] = score
-            
+
         nouns = self._postprocess(nouns, min_noun_score, min_frequency)
         nouns = {word:NounScore(self._wordset_l_counter.get(word, 0), score[0], score[1]) for word, score in nouns.items()}
         return nouns
-    
+
     def _get_r_features(self, word):
         features = self.lrgraph.get_r(word, -1)
         # remove empty str r only in features
         features = [feature for feature in features if feature[0]]
         return features
-    
+
     def _get_subword_score(self, word, min_noun_score, nouns):
         subword_scores = {}
         for e in range(1, len(word)):
@@ -190,24 +190,24 @@ class LRNounExtractor:
         return score
 
     def _predict(self, features, word):
-        
+
         def exist_longer_r_feature(word, r):
             for e in range(len(word)-1, -1, -1):
                 suffix = word[e:] + r
                 if suffix in self.coefficient: 
                     return True
             return False
-        
+
         """Parameters
         ----------
             features: dict
                 예시: {을: 35, 는: 22, ...}
         """
-        
+
         score = 0
         norm = 0
         unknown = 0
-        
+
         for r, freq in features:
             if r in self.coefficient:
                 if not exist_longer_r_feature(word, r):
@@ -215,10 +215,10 @@ class LRNounExtractor:
                     norm += freq
             else:
                 unknown += freq
-        
-        return (0 if norm == 0 else score / norm, 
+
+        return (0 if norm == 0 else score / norm,
                 0 if (norm + unknown == 0) else norm / (norm + unknown))
-    
+
     def _postprocess(self, nouns, min_noun_score, min_frequency):
         removals = set()
         for word in nouns:
