@@ -14,13 +14,13 @@ hangle_number_filter = re.compile(u'[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]', re.UNICODE)
 text_filter = re.compile(u'[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\.\?\!\"\'-]', re.UNICODE)
 
 
-def repeat_normalize(sent, n_repeats=2):
-    if n_repeats > 0:
-        sent = repeatchars_pattern.sub(u'\1' * n_repeats, sent)
+def repeat_normalize(sent, num_repeats=2):
+    if num_repeats > 0:
+        sent = repeatchars_pattern.sub(u'\1' * num_repeats, sent)
     sent = doublespace_pattern.sub(' ', sent)
     return sent.strip()
 
-def emoticon_normalize(sent, n_repeats=2):
+def emoticon_normalize(sent, num_repeats=2):
     if not sent:
         return sent
     
@@ -49,7 +49,7 @@ def emoticon_normalize(sent, n_repeats=2):
         else:
             sent_.append(c)
     sent_.append(sent[-1])
-    return repeat_normalize(''.join(sent_), n_repeats)
+    return repeat_normalize(''.join(sent_), num_repeats)
 
 def only_hangle(sent):
     return doublespace_pattern.sub(' ',hangle_filter.sub(' ', sent)).strip()

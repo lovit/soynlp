@@ -10,19 +10,19 @@ repeatchars_patterns = [
     re.compile('(\w)\\1{3,}')
 ]
 
-def normalize(sentence, n_repeat=2):
+def normalize(sentence, num_repeat=2):
     tokens = sentence.split()
-    return ' '.join(_normalize_korean_token(token, n_repeat) for token in tokens)
+    return ' '.join(_normalize_korean_token(token, num_repeat) for token in tokens)
 
-def _normalize_korean_token(token, n_repeat=2):
+def _normalize_korean_token(token, num_repeat=2):
     token = _normalize_emoji(token)
-    token = _remove_repeat(token, n_repeat)
+    token = _remove_repeat(token, num_repeat)
     return token
 
-def _remove_repeat(token, n_repeat=2):
-    if n_repeat > 0:
+def _remove_repeat(token, num_repeat=2):
+    if num_repeat > 0:
         for pattern in repeatchars_patterns:
-            token = pattern.sub('\\1' * n_repeat, token)
+            token = pattern.sub('\\1' * num_repeat, token)
     return token
 
 def _normalize_emoji(token):
