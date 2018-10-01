@@ -4,14 +4,14 @@ from math import log
 NgramScore = namedtuple('NgramScore', 'frequency score')
 
 class Bigram:
-    def __init__(self, sentences=None, min_count=5, verbose=True, score='count',
+    def __init__(self, sentences=None, min_frequency=5, verbose=True, score='frequency',
         filtering_checkpoint=100000, tokenizer=None, ngram_selector=None):
 
         """
         Attribute:
         ----------
         score : str or functional
-            Scoring method. choice in ['count', 'pmi', 'mikolov']
+            Scoring method. choice in ['frequency', 'pmi', 'mikolov']
         """
 
         if tokenizer is None:
@@ -20,7 +20,7 @@ class Bigram:
         if ngram_selector is None:
             ngram_selector = lambda x:x
 
-        self.min_count = min_count
+        self.min_frequency = min_frequency
         self.verbose = verbose
         self.score = score
         self.filtering_checkpoint = filtering_checkpoint
@@ -43,8 +43,8 @@ class Bigram:
         for i_sent, sent in enumerate(sentences):
 
             if self.filtering_checkpoint > 0 and i_sent % self.filtering_checkpoint == 0:
-                self._counter = {bigram:count for bigram, count
-                    in self._counter.items() if count >= self.min_count}
+                self._counter = {bigram:freq for bigram, freq
+                    in self._counter.items() if freq >= self.min_frequency}
 
             if self.verbose and i_sent % 3000 == 0:
                 print('\r[Bigram Extractor] scanning {} bigrams from {} sents'.format(
@@ -58,11 +58,11 @@ class Bigram:
             for bigram in bigrams:
                 self._counter[bigram] = self._counter.get(bigram, 0) + 1
 
-        self._counter = {bigram:count for bigram, count
-            in self._counter.items() if count >= self.min_count}
+        self._counter = {bigram:freq for bigram, freq
+            in self._counter.items() if freq >= self.min_frequency}
 
         self._unigram = {}
-        for bigram, count in self._counter.items():
+        for bigram, freq in self._counter.items():
             for unigram in bigram:
                 self._unigram[unigram] = self._unigram.get(unigram, 0) + 1
 
@@ -71,8 +71,8 @@ class Bigram:
                 len(self._unigram), len(self._counter), i_sent), flush=True)
 
     def extract(self, topk=-1, threshold=0):
-        if self.score == 'count':
-            return self._extract_by_count(topk, threshold)
+        if self.score == 'frequency':
+            return self._extract_by_frequency(topk, threshold)
         elif self.score == 'pmi':
             return self._extract_by_pmi(topk, threshold)
         elif self.score == 'mikolov':
@@ -81,41 +81,41 @@ class Bigram:
 
     def _extract_by_pmi(self, topk=-1, threshold=0):
 
-        def score(bigram, count, N):
+        def score(bigram, freq, N):
             base = self._unigram[bigram[0]] * self._unigram[bigram[1]]
-            return 0 if base == 0 else log(N * count / base)
+            return 0 if base == 0 else log(N * freq / base)
 
         N = 2 * sum(self._counter.values())
         pmis = {}
-        for bigram, count in self._counter.items():
-            pmi = score(bigram, count, N)
+        for bigram, freq in self._counter.items():
+            pmi = score(bigram, freq, N)
             if pmi >= threshold:
                 pmis[bigram] = pmi
 
-        bigrams = {word:NgramScore(count, pmis[word]) for word, count
+        bigrams = {word:NgramScore(freq, pmis[word]) for word, freq
                    in self._counter.items() if word in pmis}
         return bigrams
 
-    def _extract_by_count(self, topk=-1, threshold=10):
+    def _extract_by_frequency(self, topk=-1, threshold=10):
         bigrams = filter(lambda x:x[1] >= threshold, self._counter.items())
         if topk > 0:
             bigrams = sorted(bigrams, key=lambda x:-x[1])
-        bigrams = {word:NgramScore(count, count) for word, count in bigrams}
+        bigrams = {word:NgramScore(freq, freq) for word, freq in bigrams}
         return bigrams
 
     def _extract_by_mikolov(self, topk=-1, threshold=0):
 
-        def score(bigram, count, N):
+        def score(bigram, freq, N):
             base = self._unigram[bigram[0]] * self._unigram[bigram[1]]
-            return 0 if base == 0 else (count - self.min_count) / base
+            return 0 if base == 0 else (freq - self.min_frequency) / base
 
         N = 2 * sum(self._counter.values())
         scores = {}
-        for bigram, count in self._counter.items():
-            s = score(bigram, count, N)
+        for bigram, freq in self._counter.items():
+            s = score(bigram, freq, N)
             if s >= threshold:
                 scores[bigram] = s
 
-        bigrams = {word:NgramScore(count, scores[word]) for word, count
+        bigrams = {word:NgramScore(freq, scores[word]) for word, freq
                    in self._counter.items() if word in scores}
         return bigrams
