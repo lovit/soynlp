@@ -333,6 +333,8 @@ dict 형식의 bag of words 는 decoding 이 가능합니다.
     only_text('가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜabcd123!!아핫')
     # '가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜabcd123!!아핫'
 
+더 자세한 설명은 [튜토리얼][normalizer_tutorial]에 있습니다.
+
 ## Point-wise Mutual Information (PMI)
 
 연관어 분석을 위한 co-occurrence matrix 계산과 이를 이용한 Point-wise Mutual Information (PMI) 계산을 위한 함수를 제공합니다.
@@ -358,6 +360,8 @@ Co-occurrence matrix 인 x 를 pmi 에 입력하면 row 와 column 을 각 축�
         min_pmi=0,
         alpha=0.0001,
         verbose=True)
+
+더 자세한 설명은 [튜토리얼][pmi_tutorial]에 있습니다.
 
 ## notes
 
@@ -400,6 +404,8 @@ Co-occurrence matrix 인 x 를 pmi 에 입력하면 row 와 column 을 각 축�
 [nounextractor-v2_usage]: tutorials/nounextractor-v2_usage.ipynb
 [tagger_usage]: tutorials/tagger_usage.ipynb
 [tagger_lecture]: tutorials/tagger_lecture.ipynb
+[normalizer_tutorial]: tutorials/normalizer_usage.ipynb
+[pmi_tutorial]: tutorials/pmi_usage.ipynb
 [unkornlp_pdf]: notes/unskonlp.pdf
 [textmining-tutorial]: https://github.com/lovit/textmining-tutorial
 [lovitio]: https://lovit.github.io/
