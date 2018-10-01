@@ -228,7 +228,7 @@ class MaxLRScoreTokenizer:
     def __init__(self, Dl=None, Dr=None,
                  preference_l=None, preference_r=None,
                  lrgraph=None, tokenizer_builder=None,
-                 lscore_max_difference=0.3, lscore_max_diffratio=0.5, # Expansion L
+                 max_lscore_difference=0.3, max_lscore_diffratio=0.5, # Expansion L
                  ensurable_score_l=0.5, ensurable_score_lr_diff=0.3   # R overlap L
                 ):
 
@@ -269,8 +269,8 @@ class MaxLRScoreTokenizer:
         self.rmax = max((len(w) for w in self.Dr)) if self.Dr else 0
         self.base_tokenizer = MaxScoreTokenizer(scores=self.Dr)
         
-        self.lscore_max_difference = lscore_max_difference
-        self.lscore_max_diffratio = lscore_max_diffratio
+        self.max_lscore_difference = max_lscore_difference
+        self.max_lscore_diffratio = max_lscore_diffratio
         self.ensurable_score_l = ensurable_score_l
         self.ensurable_score_lr_diff = ensurable_score_lr_diff
 
@@ -355,9 +355,9 @@ class MaxLRScoreTokenizer:
             for c in candidates:
                 if c[2] > b or c[3] < e or not (c[2] < b or c[3] > e):
                     continue
-                if ((lscore - c[-2]) < self.lscore_max_difference) or \
+                if ((lscore - c[-2]) < self.max_lscore_difference) or \
                     ((self.ensurable_score_l * 0.5 < lscore) and \
-                        ((lscore+1e-5) / (c[-2]+1e-5) < self.lscore_max_diffratio)):
+                        ((lscore+1e-5) / (c[-2]+1e-5) < self.max_lscore_diffratio)):
                     exist_longer = True
                     break
 
