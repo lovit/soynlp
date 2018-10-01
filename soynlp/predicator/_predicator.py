@@ -57,7 +57,7 @@ class PredicatorExtractor:
             pos_features = {word.split()[0] for word in f}
         return pos_features
 
-    def _load_default_stems(self, min_count=100):
+    def _load_default_stems(self, min_frequency=100):
         dirs = '%s/lemmatizer/dictionary/default/Stem' % installpath
         paths = ['%s/Adjective.txt', '%s/Verb.txt']
         paths = [p % dirs for p in paths]
@@ -65,19 +65,19 @@ class PredicatorExtractor:
         for path in paths:
             with open(path, encoding='utf-8') as f:
                 for line in f:
-                    word, count = line.split()
-                    if int(count) < min_count:
+                    word, frequency = line.split()
+                    if int(frequency) < min_frequency:
                         continue
                     stems.add(word)
         return stems
 
-    def _load_default_eomis(self, min_count=20):
+    def _load_default_eomis(self, min_frequency=20):
         path = '%s/lemmatizer/dictionary/default/Eomi/Eomi.txt' % installpath
         eomis = set()
         with open(path, encoding='utf-8') as f:
             for line in f:
-                word, count = line.split()
-                if int(count) < min_count:
+                word, frequency = line.split()
+                if int(frequency) < min_frequency:
                     continue
                 eomis.add(word)
         return eomis
@@ -182,7 +182,8 @@ class PredicatorExtractor:
                 '%.3f' % get_process_memory())
             self._print(message, replace=False, newline=True)
 
-    def extract(self, candidates=None, min_count=10, reset_lrgraph=True,
+    def extract(self, candidates=None,
+        min_predicator_frequency=10, reset_lrgraph=True,
         # Eomi extractor
         min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
         # Stem extractor
@@ -203,7 +204,8 @@ class PredicatorExtractor:
                 min_entropy_of_R_char, min_entropy_of_R,
                 min_stem_score, min_stem_frequency)
 
-        return self._extract_predicator(candidates, min_count, reset_lrgraph)
+        return self._extract_predicator(
+            candidates, min_predicator_frequency, reset_lrgraph)
 
     def _extract_eomi(self, min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1):
 
@@ -255,14 +257,17 @@ class PredicatorExtractor:
             message = '{} stems have been extracted'.format(len(extracted_stems))
             self._print(message, replace=False, newline=True)
 
-    def _extract_predicator(self, eojeols=None, min_count=10, reset_lrgraph=True):
+    def _extract_predicator(self, eojeols=None,
+        min_frequency=10, reset_lrgraph=True):
 
-        lemmas = self._as_lemma_candidates(eojeols, min_count)
+        lemmas = self._as_lemma_candidates(
+            eojeols, min_frequency)
+
         # TODO
         # evaluation
         return lemmas
 
-    def _as_lemma_candidates(self, eojeols=None,  min_count=10):
+    def _as_lemma_candidates(self, eojeols=None,  min_frequency=10):
 
         def all_character_are_complete_korean(s):
             for c in s:
@@ -273,7 +278,7 @@ class PredicatorExtractor:
         if not eojeols:
             eojeols = {l:rdict.get('', 0) for l, rdict in self.lrgraph._lr.items()}
             eojeols = {eojeol:count for eojeol, count in eojeols.items()
-                       if (count > min_count) and all_character_are_complete_korean(eojeol)}
+                       if (count > min_frequency) and all_character_are_complete_korean(eojeol)}
 
         n_eojeols = len(eojeols)
         lemmas = {}
