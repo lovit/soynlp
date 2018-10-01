@@ -7,16 +7,16 @@ if sys.version_info <= (2,7):
 import re
 from soynlp.hangle import decompose
 
-doublespace_pattern = re.compile(u'\s+', re.UNICODE)
-repeatchars_pattern = re.compile(u'(\w)\1{3,}', re.UNICODE)
-hangle_filter = re.compile(u'[^ㄱ-ㅎㅏ-ㅣ가-힣]', re.UNICODE)
-hangle_number_filter = re.compile(u'[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]', re.UNICODE)
-text_filter = re.compile(u'[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\.\?\!\"\'-]', re.UNICODE)
+doublespace_pattern = re.compile('\s+')
+repeatchars_pattern = re.compile('(\w)\\1{3,}')
+hangle_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣]')
+hangle_number_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]')
+text_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\.\?\!\"\'-]')
 
 
 def repeat_normalize(sent, num_repeats=2):
     if num_repeats > 0:
-        sent = repeatchars_pattern.sub(u'\1' * num_repeats, sent)
+        sent = repeatchars_pattern.sub('\\1' * num_repeats, sent)
     sent = doublespace_pattern.sub(' ', sent)
     return sent.strip()
 
