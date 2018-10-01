@@ -7,10 +7,10 @@ from soynlp.utils import get_process_memory
 
 class EojeolPatternTrainer:
 
-    def __init__(self, left_max_length=10, right_max_length=6, min_count=10, verbose=True):
-        self.left_max_length = left_max_length
-        self.right_max_length = right_max_length
-        self.min_count = min_count
+    def __init__(self, max_left_length=10, max_right_length=6, min_frequency=10, verbose=True):
+        self.max_left_length = max_left_length
+        self.max_right_length = max_right_length
+        self.min_frequency = min_frequency
         self.verbose = verbose
         self.lrgraph = None
         self.rlgraph = None
@@ -43,16 +43,16 @@ class EojeolPatternTrainer:
                 if not token:
                     continue
                 token_len = len(token)
-                for i in range(1, min(self.left_max_length, token_len)+1):
+                for i in range(1, min(self.max_left_length, token_len)+1):
                     wordset_l[token[:i]] += 1
-                for i in range(1, min(self.right_max_length, token_len)):
+                for i in range(1, min(self.max_right_length, token_len)):
                     wordset_r[token[-i:]] += 1
             if self.verbose and (i % _ckpt == 0):
                 args = ('#' * int(i/_ckpt), '-' * (40 - int(i/_ckpt)), 100.0 * i / len(sent), '%', get_process_memory())
                 sys.stdout.write('\rscanning: %s%s (%.3f %s) %.3f Gb' % args)
             
-        wordset_l = {w for w,f in wordset_l.items() if f >= self.min_count}
-        wordset_r = {w for w,f in wordset_r.items() if f >= self.min_count}
+        wordset_l = {w for w,f in wordset_l.items() if f >= self.min_frequency}
+        wordset_r = {w for w,f in wordset_r.items() if f >= self.min_frequency}
         if self.verbose:
             print('\rscanning completed')
             print('(L,R) has (%d, %d) tokens. memory = %.3f Gb' % (len(wordset_l), len(wordset_r), get_process_memory()))
@@ -72,7 +72,7 @@ class EojeolPatternTrainer:
                 if not token:
                     continue
                 token_len = len(token)
-                for i in range(1, min(self.left_max_length, token_len)+1):
+                for i in range(1, min(self.max_left_length, token_len)+1):
                     l = token[:i]
                     r = token[i:]
                     if (not l in wordset_l) or (not r in wordset_r):
@@ -92,7 +92,7 @@ class EojeolPatternTrainer:
     
     def save(self, fname):
         with open(fname, 'w', encoding='utf-8') as f:
-            f.write('%d %d %d %d\n' % (self.left_max_length, self.right_max_length, self.min_count, 1 if self.verbose else 0))
+            f.write('%d %d %d %d\n' % (self.max_left_length, self.max_right_length, self.min_frequency, 1 if self.verbose else 0))
             f.write('# lrgraph\n')
             for l, rdict in self.lrgraph.items():
                 f.write('> %s (%d)\n' % (l, sum(rdict.values())))
@@ -112,9 +112,9 @@ class EojeolPatternTrainer:
                 args = [int(a) for a in args]
                 if len(args) != 4:
                     raise ValueError('first line should be parameter info, %s' % str(e))
-                self.left_max_length = args[0]
-                self.right_max_length = args[1]
-                self.min_count = args[2]
+                self.max_left_length = args[0]
+                self.max_right_length = args[1]
+                self.min_frequency = args[2]
                 self.verbose == True if args[3] == 1 else False
             except Exception as e:
                 raise ValueError('first line should be parameter info, %s' % str(e))
