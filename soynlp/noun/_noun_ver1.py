@@ -9,13 +9,13 @@ NounScore = namedtuple('NounScore', 'frequency score known_r_ratio')
 
 class LRNounExtractor:
 
-    def __init__(self, l_max_length=10, r_max_length=7,
+    def __init__(self, max_left_length=10, max_right_length=7,
             predictor_fnames=None, verbose=True, min_num_of_features=1):
         
         self.coefficient = {}
         self.verbose = verbose
-        self.l_max_length = l_max_length
-        self.r_max_length = r_max_length
+        self.max_left_length = max_left_length
+        self.max_right_length = max_right_length
         self.lrgraph = None
         self.words = None
         self._wordset_l_counter = {}
@@ -56,19 +56,19 @@ class LRNounExtractor:
         except Exception as e:
             print(e)
     
-    def train_extract(self, sents, minimum_noun_score=0.5, min_count=5,
+    def train_extract(self, sents, min_noun_score=0.5, min_frequency=5,
             noun_candidates=None):
         
-        self.train(sents, min_count)
-        return self.extract(minimum_noun_score, min_count, noun_candidates)
+        self.train(sents, min_frequency)
+        return self.extract(min_noun_score, min_frequency, noun_candidates)
 
-    def train(self, sents, min_count=5):
+    def train(self, sents, min_frequency=5):
         wordset_l, wordset_r = self._scan_vocabulary(sents)
         lrgraph = self._build_lrgraph(sents, wordset_l, wordset_r)
         self.lrgraph = LRGraph(lrgraph)
         self.words = wordset_l
     
-    def _scan_vocabulary(self, sents, min_count=5):
+    def _scan_vocabulary(self, sents, min_frequency=5):
         """
         Parameters
         ----------
@@ -88,17 +88,17 @@ class LRNounExtractor:
                 if not token:
                     continue
                 token_len = len(token)
-                for i in range(1, min(self.l_max_length, token_len)+1):
+                for i in range(1, min(self.max_left_length, token_len)+1):
                     wordset_l[token[:i]] += 1
-                for i in range(1, min(self.r_max_length, token_len)):
+                for i in range(1, min(self.max_right_length, token_len)):
                     wordset_r[token[-i:]] += 1
             if self.verbose and (i % _ckpt == 0):
                 args = ('#' * int(i/_ckpt), '-' * (40 - int(i/_ckpt)), 100.0 * i / len(sent), '%')
                 sys.stdout.write('\rscanning: %s%s (%.3f %s)' % args)
         
-        self._wordset_l_counter = {w:f for w,f in wordset_l.items() if f >= min_count}
+        self._wordset_l_counter = {w:f for w,f in wordset_l.items() if f >= min_frequency}
         wordset_l = set(self._wordset_l_counter.keys())
-        wordset_r = {w for w,f in wordset_r.items() if f >= min_count}
+        wordset_r = {w for w,f in wordset_r.items() if f >= min_frequency}
         
         if self.verbose:
             print('\rscanning completed')
@@ -115,7 +115,7 @@ class LRNounExtractor:
                 if not token:
                     continue
                 n = len(token)
-                for i in range(1, min(self.l_max_length, n)+1):
+                for i in range(1, min(self.max_left_length, n)+1):
                     l = token[:i]
                     r = token[i:]
                     if not (l in wordset_l):
@@ -132,7 +132,7 @@ class LRNounExtractor:
         lrgraph = {l:{r:f for r,f in rdict.items()} for l,rdict in lrgraph.items()}
         return lrgraph
     
-    def extract(self, minimum_noun_score=0.5, min_count=5, noun_candidates=None):
+    def extract(self, min_noun_score=0.5, min_frequency=5, noun_candidates=None):
         if not noun_candidates:
             noun_candidates = self.words
 
@@ -143,11 +143,11 @@ class LRNounExtractor:
 
             score = self.predict(word, nouns)
 
-            if score[0] < minimum_noun_score:
+            if score[0] < min_noun_score:
                 continue
             nouns[word] = score
             
-        nouns = self._postprocess(nouns, minimum_noun_score, min_count)
+        nouns = self._postprocess(nouns, min_noun_score, min_frequency)
         nouns = {word:NounScore(self._wordset_l_counter.get(word, 0), score[0], score[1]) for word, score in nouns.items()}
         return nouns
     
@@ -157,7 +157,7 @@ class LRNounExtractor:
         features = [feature for feature in features if feature[0]]
         return features
     
-    def _get_subword_score(self, word, minimum_noun_score, nouns):
+    def _get_subword_score(self, word, min_noun_score, nouns):
         subword_scores = {}
         for e in range(1, len(word)):
             subword = word[:e]
@@ -167,16 +167,16 @@ class LRNounExtractor:
                 score1 = nouns[subword]
                 score2 = nouns[suffix]
                 subword_scores[subword] = max(score1, score2)
-            elif (subword in nouns) and (self.coefficient.get(suffix,0.0) > minimum_noun_score):
+            elif (subword in nouns) and (self.coefficient.get(suffix,0.0) > min_noun_score):
                 subword_scores[subword] = (self.coefficient.get(suffix,0.0), 0)
         if not subword_scores:
             return (0.0, 0)
         return sorted(subword_scores.items(), key=lambda x:-x[1][0])[0][1]
 
-    def is_noun(self, word, minimum_noun_score=0.5):
-        return self.predict(word)[0] >= minimum_noun_score
+    def is_noun(self, word, min_noun_score=0.5):
+        return self.predict(word)[0] >= min_noun_score
 
-    def predict(self, word, minimum_noun_score=0.5, nouns=None):
+    def predict(self, word, min_noun_score=0.5, nouns=None):
         features = self._get_r_features(word)
 
         # (감사합니다 + 만) 처럼 뒤에 등장하는 R 의 종류가 한가지 뿐이면 제대로 된 판단이 되지 않음
@@ -185,7 +185,7 @@ class LRNounExtractor:
         else:
             if nouns is None:
                 nouns = {}
-            score = self._get_subword_score(word, minimum_noun_score, nouns)
+            score = self._get_subword_score(word, min_noun_score, nouns)
 
         return score
 
@@ -219,7 +219,7 @@ class LRNounExtractor:
         return (0 if norm == 0 else score / norm, 
                 0 if (norm + unknown == 0) else norm / (norm + unknown))
     
-    def _postprocess(self, nouns, minimum_noun_score, min_count):
+    def _postprocess(self, nouns, min_noun_score, min_frequency):
         removals = set()
         for word in nouns:
             if len(word) <= 2:
@@ -228,7 +228,7 @@ class LRNounExtractor:
                 removals.add(word)
                 continue
             for e in range(2, len(word)):
-                if (word[:e] in nouns) and (self.coefficient.get(word[e:], 0.0) > minimum_noun_score):
+                if (word[:e] in nouns) and (self.coefficient.get(word[e:], 0.0) > min_noun_score):
                     removals.add(word)
                     break
         nouns_ = {word:score for word, score in nouns.items() if (word in removals) == False}
