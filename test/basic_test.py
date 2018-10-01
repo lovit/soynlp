@@ -191,6 +191,43 @@ def pos_tagger_test():
 
     print('all pos tagger tests have been successed\n\n')
 
+def pmi_test(corpus_path):
+    print('PMI test\n{}'.format('-'*40))
+
+    from soynlp import DoublespaceLineCorpus
+    from soynlp.word import WordExtractor
+    from soynlp.tokenizer import LTokenizer
+    from soynlp.vectorizer import sent_to_word_contexts_matrix
+    from soynlp.word import pmi
+
+    corpus = DoublespaceLineCorpus(corpus_path, iter_sent=True)
+    print('num sents = {}'.format(len(corpus)))
+
+    word_extractor = WordExtractor()
+    word_extractor.train(corpus)
+    cohesions = word_extractor.all_cohesion_scores()
+
+    l_cohesions = {word:score[0] for word, score in cohesions.items()}
+    tokenizer = LTokenizer(l_cohesions)
+    print('trained l tokenizer')
+
+    x, idx2vocab = sent_to_word_contexts_matrix(
+        corpus,
+        windows=3,
+        min_tf=10,
+        tokenizer=tokenizer, # (default) lambda x:x.split(),
+        dynamic_weight=False,
+        verbose=True)
+
+    pmi_dok = pmi(
+        x,
+        min_pmi=0,
+        alpha=0.0001,
+        verbose=True)
+
+    print('computed PMI')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--corpus_path', type=str, default='', help='DoublespaceLineCorpus text file')
@@ -199,6 +236,7 @@ def main():
     parser.add_argument('--pass_word', dest='pass_word', action='store_true')
     parser.add_argument('--pass_noun', dest='pass_noun', action='store_true')
     parser.add_argument('--pass_pos', dest='pass_pos', action='store_true')
+    parser.add_argument('--pass_pmi', dest='pass_pos', action='store_true')
     
     args = parser.parse_args()
     corpus_path = args.corpus_path
@@ -221,6 +259,9 @@ def main():
     
     if not args.pass_pos:
         pos_tagger_test()
+
+    if not args.pass_pmi:
+        pmi_test(corpus_path)
 
 if __name__ == '__main__':
     main()
