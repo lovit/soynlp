@@ -23,7 +23,7 @@ def repeat_normalize(sent, num_repeats=2):
 def emoticon_normalize(sent, num_repeats=2):
     if not sent:
         return sent
-    
+
     # Pattern matching ㅋ쿠ㅜ
     def pattern(idx):
         # Jaum: 0, Moum: 1, Complete: 2, else -1
