@@ -15,20 +15,20 @@ from ._noun_postprocessing import check_N_is_NJ
 NounScore = namedtuple('NounScore', 'frequency score')
 
 class LRNounExtractor_v2:
-    def __init__(self, l_max_length=10, r_max_length=9, predictor_headers=None,
-        verbose=True, min_num_of_features=1, max_count_when_noun_is_eojeol=30,
-        eojeol_counter_filtering_checkpoint=200000, min_eojeol_count=1,
+    def __init__(self, max_left_length=10, max_right_length=9, predictor_headers=None,
+        verbose=True, min_num_of_features=1, max_frequency_when_noun_is_eojeol=30,
+        eojeol_counter_filtering_checkpoint=200000, min_eojeol_frequency=1,
         extract_compound=True, extract_pos_feature=False,
         extract_determiner=False, postprocessing=None, logpath=None):
 
-        self.l_max_length = l_max_length
-        self.r_max_length = r_max_length
+        self.max_left_length = max_left_length
+        self.max_right_length = max_right_length
         self.lrgraph = None
         self.verbose = verbose
         self.min_num_of_features = min_num_of_features
-        self.max_count_when_noun_is_eojeol = max_count_when_noun_is_eojeol
+        self.max_frequency_when_noun_is_eojeol = max_frequency_when_noun_is_eojeol
         self.eojeol_counter_filtering_checkpoint = eojeol_counter_filtering_checkpoint
-        self.min_eojeol_count = min_eojeol_count
+        self.min_eojeol_frequency = min_eojeol_frequency
         self.extract_compound = extract_compound
         self.extract_pos_feature = extract_pos_feature
         self.extract_determiner = extract_determiner
@@ -136,20 +136,20 @@ class LRNounExtractor_v2:
                 n_pos, n_pos_, n_neg, n_neg_, n_common, n_common_)
             print('[Noun Extractor] features appended. {}'.format(message))
 
-    def train_extract(self, sentences, minimum_noun_score=0.3,
-        min_count=1, min_eojeol_count=1, reset_lrgraph=True):
+    def train_extract(self, sentences, min_noun_score=0.3,
+        min_count=1, min_eojeol_frequency=1, reset_lrgraph=True):
 
         self.train(sentences)
 
-        return self.extract(minimum_noun_score, min_count, reset_lrgraph)
+        return self.extract(min_noun_score, min_count, reset_lrgraph)
 
     def train(self, sentences):
 
         if self.verbose:
             print('[Noun Extractor] counting eojeols')
 
-        eojeol_counter = EojeolCounter(sentences, self.min_eojeol_count,
-            max_length=self.l_max_length + self.r_max_length,
+        eojeol_counter = EojeolCounter(sentences, self.min_eojeol_frequency,
+            max_length=self.max_left_length + self.max_right_length,
             filtering_checkpoint=self.eojeol_counter_filtering_checkpoint,
             verbose=self.verbose)
 
@@ -160,7 +160,7 @@ class LRNounExtractor_v2:
             print('[Noun Extractor] complete eojeol counter -> lr graph')
 
         self.lrgraph = eojeol_counter.to_lrgraph(
-            self.l_max_length, self.r_max_length)
+            self.max_left_length, self.max_right_length)
 
         if self.verbose:
             print('[Noun Extractor] has been trained. mem={} Gb'.format(
@@ -208,7 +208,7 @@ class LRNounExtractor_v2:
             print('[Noun Extractor] {} pos features were extracted'.format(
                 len(self._pos_features_extracted)))
 
-    def extract(self, minimum_noun_score=0.3, min_count=1, reset_lrgraph=True):
+    def extract(self, min_noun_score=0.3, min_count=1, reset_lrgraph=True):
 
         # reset covered eojeol count
         self._num_of_covered_eojeols = 0
@@ -223,7 +223,7 @@ class LRNounExtractor_v2:
             self.extract_domain_pos_features(noun_candidates)
 
         prediction_scores = self._batch_predicting_nouns(
-            noun_candidates, minimum_noun_score)
+            noun_candidates, min_noun_score)
 
         if self.logpath:
             with open(self.logpath+'_prediction_score.log', 'w', encoding='utf-8') as f:
@@ -237,14 +237,14 @@ class LRNounExtractor_v2:
             candidates = {l:sum(rdict.values()) for l,rdict in
                 self.lrgraph._lr.items() if len(l) >= 4}
             compounds = self.extract_compounds(
-                candidates, prediction_scores, minimum_noun_score)
+                candidates, prediction_scores, min_noun_score)
 
         else:
             compounds = {}
 
         # combine single nouns and compounds
         nouns = {noun:score for noun, score in prediction_scores.items()
-            if score[1] >= minimum_noun_score}
+            if score[1] >= min_noun_score}
 
         nouns.update(compounds)
 
@@ -288,7 +288,7 @@ class LRNounExtractor_v2:
                 return True
         return False
 
-    def predict(self, word, minimum_noun_score=0.3, debug=False):
+    def predict(self, word, min_noun_score=0.3, debug=False):
 
         # scoring
         features = self.lrgraph.get_r(word, -1)
@@ -296,7 +296,7 @@ class LRNounExtractor_v2:
 
         base = pos + neg
         score = 0 if base == 0 else (pos - neg) / base
-        support = pos + end + common if score >= minimum_noun_score else neg + end + common
+        support = pos + end + common if score >= min_noun_score else neg + end + common
 
         features_ = self._get_nonempty_features(word, features)
         n_features_ = len(features_)
@@ -316,7 +316,7 @@ class LRNounExtractor_v2:
                 return support, 0
 
             # exception. frequent nouns may have various positive R such as Josa
-            if ((end > self.max_count_when_noun_is_eojeol) and (pos >= neg) ):
+            if ((end > self.max_frequency_when_noun_is_eojeol) and (pos >= neg) ):
                 return support, score
 
             if (common > 0 or pos > 0) and (end / sum_ >= 0.3) and (common >= neg):
@@ -399,7 +399,7 @@ class LRNounExtractor_v2:
         return N_from_J
 
     def _batch_predicting_nouns(self,
-        noun_candidates, minimum_noun_score=0.3):
+        noun_candidates, min_noun_score=0.3):
 
         prediction_scores = {}
 
@@ -412,12 +412,12 @@ class LRNounExtractor_v2:
                     percentage, n), flush=True, end='')
 
             # base prediction
-            support, score = self.predict(word, minimum_noun_score)
+            support, score = self.predict(word, min_noun_score)
             prediction_scores[word] = (support, score)
 
-            # if their score is higher than minimum_noun_score,
+            # if their score is higher than min_noun_score,
             # remove eojeol pattern from lrgraph
-            if score >= minimum_noun_score:
+            if score >= min_noun_score:
                 for r, count in self.lrgraph.get_r(word, -1):
                     # remove all eojeols that including word at left-side.
                     # we have to assume that pos, neg features are incomplete
@@ -433,10 +433,10 @@ class LRNounExtractor_v2:
 
         return prediction_scores
 
-    def extract_compounds(self, candidates, prediction_scores, minimum_noun_score=0.3):
+    def extract_compounds(self, candidates, prediction_scores, min_noun_score=0.3):
 
         noun_scores = {noun:len(noun) for noun, score in prediction_scores.items()
-                       if score[1] > minimum_noun_score and len(noun) > 1}
+                       if score[1] > min_noun_score and len(noun) > 1}
 
         self._compound_decomposer = MaxScoreTokenizer(scores=noun_scores)
 
