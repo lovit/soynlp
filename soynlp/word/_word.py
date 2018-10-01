@@ -23,16 +23,16 @@ def _entropy(dic):
 
 class WordExtractor:
     
-    def __init__(self, sents=None, left_max_length=10, right_max_length=6, 
-                min_count=5, verbose_points=100000, 
+    def __init__(self, sents=None, max_left_length=10, max_right_length=6,
+                min_frequency=5, verbose_points=100000,
                 min_cohesion_forward=0.05, min_cohesion_backward=0.0, 
                 max_droprate_cohesion=0.98, max_droprate_leftside_frequency=0.98,
                 min_left_branching_entropy=0.0, min_right_branching_entropy=0.0,
                 min_left_accessor_variety=0, min_right_accessor_variety=0,
                 remove_subwords=True):
-        self.left_max_length = left_max_length
-        self.right_max_length = right_max_length
-        self.min_count = min_count
+        self.max_left_length = max_left_length
+        self.max_right_length = max_right_length
+        self.min_frequency = min_frequency
         self.L = {}
         self.R = {}
         self._aL = {}
@@ -54,8 +54,8 @@ class WordExtractor:
         
     def train(self, sents, num_for_pruning = 0, cumulate=True):
         def prune_extreme_case():
-            self.L = defaultdict(lambda: 0, {w:f for w,f in self.L.items() if f >= self.min_count})
-            self.R = defaultdict(lambda: 0, {w:f for w,f in self.R.items() if f >= self.min_count})
+            self.L = defaultdict(lambda: 0, {w:f for w,f in self.L.items() if f >= self.min_frequency})
+            self.R = defaultdict(lambda: 0, {w:f for w,f in self.R.items() if f >= self.min_frequency})
         def prune_extreme_case_a():
             self._aL = defaultdict(lambda: 0, {w:f for w,f in self._aL.items() if f > 1})
             self._aR = defaultdict(lambda: 0, {w:f for w,f in self._aR.items() if f > 1})
@@ -81,9 +81,9 @@ class WordExtractor:
                 if (not word) or (len(word) <= 1):
                     continue
                 word_len = len(word)
-                for i in range(1, min(self.left_max_length + 1, word_len)+1):
+                for i in range(1, min(self.max_left_length + 1, word_len)+1):
                     self.L[word[:i]] += 1
-                for i in range(1, min(self.right_max_length + 1, word_len)):
+                for i in range(1, min(self.max_right_length + 1, word_len)):
                     self.R[word[-i:]] += 1
 
             if len(words) <= 1:
@@ -93,9 +93,9 @@ class WordExtractor:
                 self._aR['%s %s' % (left_word[-1], word)] += 1
 
                 word_len = len(word)
-                for i in range(1, min(self.right_max_length + 1, word_len)):
+                for i in range(1, min(self.max_right_length + 1, word_len)):
                     self._aL['%s %s' % (word[-i:], right_word[0])] += 1
-                for i in range(1, min(self.left_max_length + 1, word_len)):
+                for i in range(1, min(self.max_left_length + 1, word_len)):
                     self._aR['%s %s' % (left_word[-1], word[:i])] += 1
 
             if (num_for_pruning > 0) and ( num_sent % num_for_pruning == 0):
@@ -126,7 +126,7 @@ class WordExtractor:
                 (score.right_branching_entropy < self.min_right_branching_entropy) or \
                 (score.left_accessor_variety < self.min_left_accessor_variety) or \
                 (score.right_accessor_variety < self.min_right_accessor_variety) or \
-                (max(score.leftside_frequency, score.rightside_frequency) < self.min_count):
+                (max(score.leftside_frequency, score.rightside_frequency) < self.min_frequency):
                 continue
             scores_[word] = score
             if not self.remove_subwords:
@@ -207,8 +207,8 @@ class WordExtractor:
                 be[word] = (0, v)
             return be
 
-        be_l = get_entropy_table(parse_right, sort_by_length(self.R), sort_by_length(self._aR), self.right_max_length+1, self.R, self._aR)
-        be_r = get_entropy_table(parse_left, sort_by_length(self.L), sort_by_length(self._aL), self.left_max_length+1, self.L, self._aL)
+        be_l = get_entropy_table(parse_right, sort_by_length(self.R), sort_by_length(self._aR), self.max_right_length+1, self.R, self._aR)
+        be_r = get_entropy_table(parse_left, sort_by_length(self.L), sort_by_length(self._aL), self.max_left_length+1, self.L, self._aL)
         be = merge(be_l, be_r)
         if self.verbose > 0:
             print_head = 'branching entropies' if get_score == _entropy else 'accessor variety'
@@ -239,15 +239,15 @@ class WordExtractor:
         return (av_l, av_r)
 
     def words(self):
-        words = {word for word in self.L.keys() if len(word) <= self.left_max_length}
-        words.update({word for word in self.R.keys() if len(word) <= self.right_max_length})
+        words = {word for word in self.L.keys() if len(word) <= self.max_left_length}
+        words.update({word for word in self.R.keys() if len(word) <= self.max_right_length})
         return words
 
     def save(self, fname):
         configuration = {
-            'left_max_length': self.left_max_length,
-            'right_max_length': self.right_max_length,
-            'min_count': self.min_count,
+            'max_left_length': self.max_left_length,
+            'max_right_length': self.max_right_length,
+            'min_frequency': self.min_frequency,
             'verbose_points': self.verbose,
             'min_cohesion_forward': self.min_cohesion_forward,
             'min_cohesion_backward': self.min_cohesion_backward,
@@ -277,9 +277,9 @@ class WordExtractor:
             params = pickle.load(f)
 
         configuration = params['configuration']
-        self.left_max_length = configuration['left_max_length']
-        self.right_max_length = configuration['right_max_length']
-        self.min_count = configuration['min_count']
+        self.max_left_length = configuration['max_left_length']
+        self.max_right_length = configuration['max_right_length']
+        self.min_frequency = configuration['min_frequency']
         self.verbose = configuration['verbose_points']
 
         self.min_cohesion_forward = configuration['min_cohesion_forward']
