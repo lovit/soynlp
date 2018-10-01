@@ -317,10 +317,10 @@ dict 형식의 bag of words 는 decoding 이 가능합니다.
 
     from soynlp.normalizer import *
 
-    emoticon_normalize('ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜㅜ', n_repeats=3)
+    emoticon_normalize('ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜㅜ', num_repeats=3)
     # 'ㅋㅋㅋㅜㅜㅜ'
 
-    repeat_normalize('와하하하하하하하하하핫', n_repeats=2)
+    repeat_normalize('와하하하하하하하하하핫', num_repeats=2)
     # '와하하핫'
 
     only_hangle('가나다ㅏㅑㅓㅋㅋ쿠ㅜㅜㅜabcd123!!아핫')
