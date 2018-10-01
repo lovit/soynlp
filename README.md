@@ -43,7 +43,7 @@ index 와 idx 는 idx 로 통일합니다.
 
     from soynlp.word import WordExtractor
 
-    word_extractor = WordExtractor(min_count=100,
+    word_extractor = WordExtractor(min_frequency=100,
         min_cohesion_forward=0.05, 
         min_right_branching_entropy=0.0)
     word_extractor.train(sentences) # list of str or like
