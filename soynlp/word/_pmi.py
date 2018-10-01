@@ -61,7 +61,7 @@ class PMI:
     
     def train(self, sents):
         # construct word - context matrix
-        self.x, self.idx2vocab = sent_to_word_context_matrix(
+        self.x, self.idx2vocab = sent_to_word_contexts_matrix(
             sents, self.windows, self.min_tf, self.tokenizer, self.verbose)
         self.vocab2idx = {vocab:idx for idx, vocab in enumerate(self.idx2vocab)}
 
