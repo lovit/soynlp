@@ -21,6 +21,8 @@ soynlp=0.0.46 까지는 min_score, minimum_score, l_len_min 처럼 최소값이�
 
 soynlp 에서는 substring counting 을 하는 경우가 많습니다. 빈도수와 관련된 parameter 는 count 가 아닌 frequency 로 통일합니다.
 
+index 와 idx 는 idx 로 통일합니다.
+
 ## Setup
 
     pip install soynlp
