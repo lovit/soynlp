@@ -11,6 +11,15 @@ soynlp 에서 제공하는 WordExtractor 나 NounExtractor 는 여러 개의 문
 영화 댓글들이나 하루의 뉴스 기사처럼 같은 단어를 이용하는 집합의 문서만 모아서 Extractors 를 학습하시면 좋습니다.
 이질적인 집단의 문서들은 하나로 모아 학습하면 단어가 잘 추출되지 않습니다.
 
+### Parameter naming
+
+soynlp=0.0.46 까지는 min_score, minimum_score, l_len_min 처럼 최소값이나 최대값을 요구하는 parameters 의 이름들에 규칙이 없었습니다.
+0.0.47 이후 minimum, maximum 의 의미가 들어가는 변수명은 min, max 로 줄여 기입합니다.
+그 뒤에 어떤 항목의 threshold parameter 인지 이름을 기입합니다. 다음과 같은 패턴으로 parameter 이름을 통일합니다.
+{min, max}_{noun, word}_{score, threshold} 등으로 이름을 통일합니다.
+항목이 자명한 경우에는 이를 생략할 수 있습니다.
+
+soynlp 에서는 substring counting 을 하는 경우가 많습니다. 빈도수와 관련된 parameter 는 count 가 아닌 frequency 로 통일합니다.
 
 ## Setup
 
