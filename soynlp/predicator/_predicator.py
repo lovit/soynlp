@@ -265,6 +265,11 @@ class PredicatorExtractor:
 
         # TODO
         # evaluation
+
+        if self.verbose:
+            message = '{} predicators are extracted'.format(len(lemmas))
+            self._print(message, replace=True, newline=True)
+
         return lemmas
 
     def _as_lemma_candidates(self, eojeols=None,  min_frequency=10):
