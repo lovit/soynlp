@@ -1,4 +1,5 @@
 from collections import namedtuple
+from soynlp.hangle import decompose
 from soynlp.lemmatizer import _lemma_candidate
 from soynlp.lemmatizer import _conjugate_stem
 
@@ -222,11 +223,17 @@ class EomiExtractor:
         return lemmas
 
     def _post_processing(self, eomis):
-        # TODO
-        # Remove E + V + E : -서가지고
+        eomis_ = {}
+        for eomi, score in eomis.items():
+            # 어미의 첫 종성이 ㅎ 으로 끝나는 경우
+            if decompose(eomi[0])[2] == 'ㅎ':
+                continue
+            # TODO
+            # Remove E + V + E : -서가지고
+            # Remove V + E : -싶구나
+            eomis_[eomi] = score
 
-        # Remove V + E : -싶구나
-        return eomis
+        return eomis_
 
     def _check_covered_eojeols(self, eomis):
         # TODO
