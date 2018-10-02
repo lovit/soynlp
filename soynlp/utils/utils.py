@@ -375,6 +375,7 @@ class LRGraph:
                 counter[l+r] = count
         eojeol_counter = EojeolCounter(None)
         eojeol_counter._counter = counter
+        eojeol_counter._count_sum = sum(counter.values())
         return eojeol_counter
 
     def save(self, path):
