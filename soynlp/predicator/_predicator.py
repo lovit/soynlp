@@ -95,14 +95,14 @@ class PredicatorExtractor:
     def is_trained(self):
         return self.lrgraph
 
-    def train(self, sentences_or_lrgraph, min_eojeol_count=2,
+    def train(self, sentences_or_lrgraph, min_eojeol_frequency=2,
         filtering_checkpoint=100000):
 
         if isinstance(sentences_or_lrgraph, LRGraph):
             self._train_with_lrgraph(sentences_or_lrgraph)
         else:
             self._train_with_sentences(sentences_or_lrgraph,
-                min_eojeol_count, filtering_checkpoint)
+                min_eojeol_frequency, filtering_checkpoint)
 
     def _train_with_lrgraph(self, lrgraph):
         counter = {}
@@ -114,7 +114,7 @@ class PredicatorExtractor:
         self._num_of_covered_eojeols = 0
         self.lrgraph = lrgraph
 
-    def _train_with_sentences(self, sentences, min_eojeol_count=2,
+    def _train_with_sentences(self, sentences, min_eojeol_frequency=2,
         filtering_checkpoint=100000):
 
         check = filtering_checkpoint > 0
@@ -137,7 +137,7 @@ class PredicatorExtractor:
             if check and i_sent > 0 and i_sent % filtering_checkpoint == 0:
                 counter = {
                     eojeol:count for eojeol, count in counter.items()
-                    if count >= min_eojeol_count
+                    if count >= min_eojeol_frequency
                 }
 
             if self.verbose and i_sent % 100000 == 99999:
@@ -161,7 +161,7 @@ class PredicatorExtractor:
 
         counter = {
             eojeol:count for eojeol, count in counter.items()
-            if count >= min_eojeol_count
+            if count >= min_eojeol_frequency
         }
 
         self._num_of_eojeols = sum(counter.values())
