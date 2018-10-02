@@ -137,11 +137,11 @@ class LRNounExtractor_v2:
             print('[Noun Extractor] features appended. {}'.format(message))
 
     def train_extract(self, sentences, min_noun_score=0.3,
-        min_count=1, min_eojeol_frequency=1, reset_lrgraph=True):
+        min_noun_frequency=1, min_eojeol_frequency=1, reset_lrgraph=True):
 
         self.train(sentences)
 
-        return self.extract(min_noun_score, min_count, reset_lrgraph)
+        return self.extract(min_noun_score, min_noun_frequency, reset_lrgraph)
 
     def train(self, sentences):
 
@@ -208,7 +208,7 @@ class LRNounExtractor_v2:
             print('[Noun Extractor] {} pos features were extracted'.format(
                 len(self._pos_features_extracted)))
 
-    def extract(self, min_noun_score=0.3, min_count=1, reset_lrgraph=True):
+    def extract(self, min_noun_score=0.3, min_noun_frequency=1, reset_lrgraph=True):
 
         # reset covered eojeol count
         self._num_of_covered_eojeols = 0
@@ -250,13 +250,13 @@ class LRNounExtractor_v2:
 
         # frequency filtering
         nouns = {noun:score for noun, score in nouns.items()
-            if score[0] >= min_count}
+            if score[0] >= min_noun_frequency}
 
         nouns = self._post_processing(nouns, prediction_scores, compounds)
 
         if self.verbose:
-            print('[Noun Extractor] {} nouns ({} compounds) with min count={}'.format(
-                len(nouns), len(compounds), min_count), flush=True)
+            print('[Noun Extractor] {} nouns ({} compounds) with min frequency={}'.format(
+                len(nouns), len(compounds), min_noun_frequency), flush=True)
             print('[Noun Extractor] flushing ... ', flush=True, end='')
 
         self._check_covered_eojeols(nouns)

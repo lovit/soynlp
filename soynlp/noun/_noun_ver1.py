@@ -56,14 +56,14 @@ class LRNounExtractor:
         except Exception as e:
             print(e)
 
-    def train_extract(self, sents, min_noun_score=0.5, min_frequency=5,
+    def train_extract(self, sents, min_noun_score=0.5, min_noun_frequency=5,
             noun_candidates=None):
 
-        self.train(sents, min_frequency)
-        return self.extract(min_noun_score, min_frequency, noun_candidates)
+        self.train(sents, min_noun_frequency)
+        return self.extract(min_noun_score, min_noun_frequency, noun_candidates)
 
-    def train(self, sents, min_frequency=5):
-        wordset_l, wordset_r = self._scan_vocabulary(sents)
+    def train(self, sents, min_noun_frequency=5):
+        wordset_l, wordset_r = self._scan_vocabulary(sents, min_noun_frequency)
         lrgraph = self._build_lrgraph(sents, wordset_l, wordset_r)
         self.lrgraph = LRGraph(lrgraph)
         self.words = wordset_l
@@ -132,7 +132,7 @@ class LRNounExtractor:
         lrgraph = {l:{r:f for r,f in rdict.items()} for l,rdict in lrgraph.items()}
         return lrgraph
 
-    def extract(self, min_noun_score=0.5, min_frequency=5, noun_candidates=None):
+    def extract(self, min_noun_score=0.5, min_noun_frequency=5, noun_candidates=None):
         if not noun_candidates:
             noun_candidates = self.words
 
@@ -147,7 +147,7 @@ class LRNounExtractor:
                 continue
             nouns[word] = score
 
-        nouns = self._postprocess(nouns, min_noun_score, min_frequency)
+        nouns = self._postprocess(nouns, min_noun_score, min_noun_frequency)
         nouns = {word:NounScore(self._wordset_l_counter.get(word, 0), score[0], score[1]) for word, score in nouns.items()}
         return nouns
 
@@ -219,7 +219,7 @@ class LRNounExtractor:
         return (0 if norm == 0 else score / norm,
                 0 if (norm + unknown == 0) else norm / (norm + unknown))
 
-    def _postprocess(self, nouns, min_noun_score, min_frequency):
+    def _postprocess(self, nouns, min_noun_score, min_noun_frequency):
         removals = set()
         for word in nouns:
             if len(word) <= 2:
