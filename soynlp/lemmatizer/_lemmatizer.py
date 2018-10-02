@@ -147,9 +147,11 @@ def _lemma_candidate(l, r, predefined=None):
     if ((l_last[2] == 'ㅆ' or l_last[2] == 'ㅅ' or l_last[2] == ' ') and
         (l_last[1] == 'ㅕ') or (l_last[1] == 'ㅓ')):
 
-        l_stem = l_front + compose(l_last[0], 'ㅣ', ' ')
-        r_canon = compose('ㅇ', 'ㅓ', l_last[2])+ r
-        add_lemma(l_stem, r_canon)
+        # except: -었 -> 이 + 었 (x) // -였-> 이 + 었 (o) // -졌 -> 지 + 었 (o) // -젔 -> 지 + 었
+        if ((l_last[0] == 'ㅇ') and (l_last[1] == 'ㅕ')) or not (l_last[0] == 'ㅇ'):
+            l_stem = l_front + compose(l_last[0], 'ㅣ', ' ')
+            r_canon = compose('ㅇ', 'ㅓ', l_last[2])+ r
+            add_lemma(l_stem, r_canon)
 
     ## Pre-defined set
     if predefined and (l, r) in predefined:
