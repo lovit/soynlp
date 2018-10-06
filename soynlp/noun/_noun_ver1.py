@@ -1,6 +1,7 @@
 # -*- encoding:utf8 -*-
 
 from collections import defaultdict, namedtuple
+import math
 import sys
 from soynlp.word import WordExtractor
 from soynlp.utils import LRGraph
@@ -227,15 +228,32 @@ class LRNounExtractor:
                 0 if (norm + unknown == 0) else norm / (norm + unknown))
 
     def _postprocess(self, nouns, min_noun_score, min_noun_frequency):
+
+        def is_Noun_Josa(l, r):
+            return (l in nouns) and (self.coefficient.get(r, 0.0) > min_noun_score)
+
+        def cohesion(word):
+            base = self._substring_counter.get(word[0], 0)
+            n = len(word)
+            if not base or n <= 1:
+                return 0
+            return math.pow(self._substring_counter.get(word, 0) / base, 1/(n-1))
+
+        def longer_has_larger_cohesion(word):
+            return cohesion(word) >= cohesion(word[:-1])
+
         removals = set()
         for word in nouns:
-            if len(word) <= 2:
-                continue
             if word[-1] == '.' or word[-1] == ',':
                 removals.add(word)
                 continue
+            n = len(word)
+            if n <= 2 or longer_has_larger_cohesion(word):
+                continue
             for e in range(2, len(word)):
-                if (word[:e] in nouns) and (self.coefficient.get(word[e:], 0.0) > min_noun_score):
+                l = word[:e]
+                r = word[e:]
+                if is_Noun_Josa(l, r):
                     removals.add(word)
                     break
         nouns_ = {word:score for word, score in nouns.items() if (word in removals) == False}
