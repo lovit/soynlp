@@ -182,6 +182,8 @@ class LRNounExtractor:
         return self.predict(word)[0] >= min_noun_score
 
     def predict(self, word, min_noun_score=0.5, nouns=None):
+        """Returns (noun_score, known_r_ratio)
+        """
         features = self._get_r_features(word)
 
         # (감사합니다 + 만) 처럼 뒤에 등장하는 R 의 종류가 한가지 뿐이면 제대로 된 판단이 되지 않음
