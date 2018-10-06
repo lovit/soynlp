@@ -18,7 +18,7 @@ class LRNounExtractor:
         self.max_right_length = max_right_length
         self.lrgraph = None
         self.words = None
-        self._wordset_l_counter = {}
+        self._substring_counter = {}
         self.min_num_of_features = min_num_of_features
 
         if not predictor_fnames:
@@ -96,8 +96,8 @@ class LRNounExtractor:
                 args = ('#' * int(i/_ckpt), '-' * (40 - int(i/_ckpt)), 100.0 * i / len(sent), '%')
                 sys.stdout.write('\rscanning: %s%s (%.3f %s)' % args)
 
-        self._wordset_l_counter = {w:f for w,f in wordset_l.items() if f >= min_frequency}
-        wordset_l = set(self._wordset_l_counter.keys())
+        self._substring_counter = {w:f for w,f in wordset_l.items() if f >= min_frequency}
+        wordset_l = set(self._substring_counter.keys())
         wordset_r = {w for w,f in wordset_r.items() if f >= min_frequency}
 
         if self.verbose:
@@ -148,7 +148,7 @@ class LRNounExtractor:
             nouns[word] = score
 
         nouns = self._postprocess(nouns, min_noun_score, min_noun_frequency)
-        nouns = {word:NounScore(self._wordset_l_counter.get(word, 0), score[0], score[1]) for word, score in nouns.items()}
+        nouns = {word:NounScore(self._substring_counter.get(word, 0), score[0], score[1]) for word, score in nouns.items()}
         return nouns
 
     def _get_r_features(self, word):
