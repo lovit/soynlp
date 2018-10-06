@@ -136,6 +136,7 @@ class LRNounExtractor:
         if not noun_candidates:
             noun_candidates = self.words
 
+        # prediction
         nouns = {}
         for word in sorted(noun_candidates, key=lambda w:len(w)):
             if len(word) <= 1:
@@ -147,9 +148,13 @@ class LRNounExtractor:
                 continue
             nouns[word] = score
 
+        # postprocessing
         nouns = self._postprocess(nouns, min_noun_score, min_noun_frequency)
-        nouns = {word:NounScore(self._substring_counter.get(word, 0), score[0], score[1]) for word, score in nouns.items()}
-        return nouns
+
+        # summary information as NounScore
+        nouns_ = self._to_NounScore(nouns)
+
+        return nouns_
 
     def _get_r_features(self, word):
         features = self.lrgraph.get_r(word, -1)
@@ -232,4 +237,19 @@ class LRNounExtractor:
                     removals.add(word)
                     break
         nouns_ = {word:score for word, score in nouns.items() if (word in removals) == False}
+        return nouns_
+
+    def _to_NounScore(self, nouns):
+        noun_frequencies = {}
+        for word in sorted(nouns, key=lambda x:-len(x)):
+            r_count = self.lrgraph.get_r(word, -1)
+            noun_frequencies[word] = sum(c for w, c in r_count)
+            for r, count in r_count:
+                self.lrgraph.remove_eojeol(word+r, count)
+        self.lrgraph.reset_lrgraph()
+
+        nouns_ = {}
+        for word, score in nouns.items():
+            nouns_[word] = NounScore(noun_frequencies[word], score[0], score[1])
+
         return nouns_
