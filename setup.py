@@ -8,8 +8,8 @@ with open('README.md', encoding='utf-8') as fh:
 
 setuptools.setup(
     name="soynlp",
-    version=ckonlpy.__version__,
-    author=ckonlpy.__author__,
+    version=soynlp.__version__,
+    author=soynlp.__author__,
     author_email='soy.lovit@gmail.com',
     description="Unsupervised Korean Natural Language Processing Toolkits",
     long_description=long_description,
