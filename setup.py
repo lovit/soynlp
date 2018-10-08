@@ -30,7 +30,7 @@ setuptools.setup(
         'tokenizer',
         'postagging',
         'word-extraction'
-    ]
+    ],
     install_requires=[
         "numpy>=1.12.1",
         "psutil>=5.0.1"
