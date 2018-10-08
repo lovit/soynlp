@@ -48,7 +48,8 @@ index 와 idx 는 idx 로 통일합니다.
 
     word_extractor = WordExtractor(min_frequency=100,
         min_cohesion_forward=0.05, 
-        min_right_branching_entropy=0.0)
+        min_right_branching_entropy=0.0
+    )
     word_extractor.train(sentences) # list of str or like
     words = word_extractor.extract()
 
@@ -63,7 +64,8 @@ words 는 Scores 라는 namedtuple 을 value 로 지니는 dict 입니다.
            left_accessor_variety=0,
            right_accessor_variety=0,
            leftside_frequency=270,
-           rightside_frequency=0)
+           rightside_frequency=0
+    )
 
 2016-10-26 의 뉴스 기사로부터 학습한 단어 점수 (cohesion * branching entropy) 기준으로 정렬한 예시입니다. 
 
@@ -349,7 +351,8 @@ dict 형식의 bag of words 는 decoding 이 가능합니다.
         min_tf=10,
         tokenizer=tokenizer, # (default) lambda x:x.split(),
         dynamic_weight=False,
-        verbose=True)
+        verbose=True
+    )
 
 Co-occurrence matrix 인 x 를 pmi 에 입력하면 row 와 column 을 각 축으로 PMI 가 계산됩니다. pmi_dok 은 scipy.sparse.dok_matrix 형식입니다. min_pmi 이상의 값만 저장되며, default 는 min_pmi = 0 이기 때문에 Positive PMI (PPMI) 입니다. alpha 는 PMI(x,y) = p(x,y) / ( p(x) * ( p(y) + alpha ) ) 에 입력되는 smoothing parameter 입니다. 계산 과정이 오래 걸리기 때문에 verbose = True 로 설정하면 현재의 진행 상황을 출력합니다.
 
@@ -359,7 +362,8 @@ Co-occurrence matrix 인 x 를 pmi 에 입력하면 row 와 column 을 각 축�
         x,
         min_pmi=0,
         alpha=0.0001,
-        verbose=True)
+        verbose=True
+    )
 
 더 자세한 설명은 [튜토리얼][pmi_tutorial]에 있습니다.
 
