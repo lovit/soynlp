@@ -1,26 +1,43 @@
-from description import __version__, __author__
+import soynlp
+import setuptools
 from setuptools import setup, find_packages
 
-setup(
-   name="soynlp",
-   version=__version__,
-   author=__author__,
-   author_email='soy.lovit@gmail.com',
-   url='https://github.com/lovit/soynlp',
-   description="Unsupervised Korean Natural Language Processing Toolkits",
-   long_description="""Python library for Korean Natural Language Processing. 
-   
-   It supports followings.
-       1. Unsupervised word extractor
-       2. Word score based tokenizer
-       3. Noun extractor
-       4. Dictionary based part of speech tagger
-       5. Text normalizer
 
-   Details are written at https://github.com/lovit/soynlp
-   """,
-   install_requires=["numpy>=1.12.1", "psutil>=5.0.1"],
-   keywords = ['korean natural language processing'],
-   packages=find_packages(),
-   package_data={'soynlp':['trained_models/*', 'pos/dictionary/*.txt', 'pos/dictionary/*/*.txt']}
+with open('README.md', encoding='utf-8') as fh:
+    long_description = fh.read()
+
+setuptools.setup(
+    name="soynlp",
+    version=ckonlpy.__version__,
+    author=ckonlpy.__author__,
+    author_email='soy.lovit@gmail.com',
+    description="Unsupervised Korean Natural Language Processing Toolkits",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url='https://github.com/lovit/soynlp',
+    packages=setuptools.find_packages(),
+    package_data={
+        'soynlp':[
+            'trained_models/*',
+            'pos/dictionary/*.txt',
+            'pos/dictionary/*/*.txt'
+        ]
+    },
+    keywords = [
+        'korean-nlp',
+        'korean-text-processing',
+        'nlp',
+        'tokenizer',
+        'postagging',
+        'word-extraction'
+    ]
+    install_requires=[
+        "numpy>=1.12.1",
+        "psutil>=5.0.1"
+    ],
+    classifiers=(
+        "Programming Language :: Python :: 3.6",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Operating System :: OS Independent",
+    ),
 )
