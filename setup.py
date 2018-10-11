@@ -20,7 +20,8 @@ setuptools.setup(
         'soynlp':[
             'trained_models/*',
             'pos/dictionary/*.txt',
-            'pos/dictionary/*/*.txt'
+            'pos/dictionary/*/*.txt',
+            'noun/*.txt'
         ]
     },
     keywords = [
