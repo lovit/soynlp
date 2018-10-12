@@ -408,14 +408,13 @@ Co-occurrence matrix 인 x 를 pmi 에 입력하면 row 와 column 을 각 축�
 - https://github.com/lovit/soykeyword
 - pip install soykeyword
 
-
-[wordextraction_lecture]: tutorials/wordextractor_lecture.ipynb
-[nounextraction-v1_usage]: tutorials/nounextraction-v1_usage.ipynb
-[nounextractor-v2_usage]: tutorials/nounextractor-v2_usage.ipynb
-[tagger_usage]: tutorials/tagger_usage.ipynb
-[tagger_lecture]: tutorials/tagger_lecture.ipynb
-[normalizer_tutorial]: tutorials/normalizer_usage.ipynb
-[pmi_tutorial]: tutorials/pmi_usage.ipynb
-[unkornlp_pdf]: notes/unskonlp.pdf
+[wordextraction_lecture]: https://github.com/lovit/soynlp/blob/master/tutorials/wordextractor_lecture.ipynb
+[nounextraction-v1_usage]: https://github.com/lovit/soynlp/blob/master/tutorials/nounextraction-v1_usage.ipynb
+[nounextractor-v2_usage]: https://github.com/lovit/soynlp/blob/master/tutorials/nounextractor-v2_usage.ipynb
+[tagger_usage]: https://github.com/lovit/soynlp/blob/master/tutorials/tagger_usage.ipynb
+[tagger_lecture]: https://github.com/lovit/soynlp/blob/master/tutorials/tagger_lecture.ipynb
+[normalizer_tutorial]: https://github.com/lovit/soynlp/blob/master/tutorials/normalizer_usage.ipynb
+[pmi_tutorial]: https://github.com/lovit/soynlp/blob/master/tutorials/pmi_usage.ipynb
+[unkornlp_pdf]: https://github.com/lovit/soynlp/blob/master/notes/unskonlp.pdf
 [textmining-tutorial]: https://github.com/lovit/textmining-tutorial
 [lovitio]: https://lovit.github.io/
