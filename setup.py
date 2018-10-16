@@ -21,7 +21,8 @@ setuptools.setup(
             'trained_models/*',
             'pos/dictionary/*.txt',
             'pos/dictionary/*/*.txt',
-            'noun/*.txt'
+            'noun/*.txt',
+            'lemmatizer/dictionary/default/*/*.txt'
         ]
     },
     keywords = [
