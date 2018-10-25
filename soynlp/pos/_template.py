@@ -102,7 +102,7 @@ class LRTemplateMatcher(BaseTemplateMatcher):
                 for l_tag in l_tags:
                     candidates.append([l, l_tag, b, e])
                     
-        candidates = self._remove_subset_l(candidates)
+        # candidates = self._remove_subset_l(candidates)
         return sorted(candidates, key=lambda x:x[2])
 
     def _remove_subset_l(self, candidates):
@@ -145,7 +145,7 @@ class LRTemplateMatcher(BaseTemplateMatcher):
                             continue
                         expanded.append(LR(l, l_tag, r, r_tag, b, e1, e2))
                         
-        expanded = self._remove_subset_r(expanded)
+       #  expanded = self._remove_subset_r(expanded)
         return sorted(expanded, key=lambda x:x.b)
 
     def _remove_subset_r(self, expanded):
