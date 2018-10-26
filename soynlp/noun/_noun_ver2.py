@@ -583,17 +583,14 @@ class LRNounExtractor_v2:
             if not (word in nouns):
                 continue
 
-            if len(word) > 1:
-                for r, count in self.lrgraph.get_r(word, -1):
+            for r, count in self.lrgraph.get_r(word, -1):
+                if (len(word) > 1 or
+                    r == '' or
+                    r in self._pos_features or
+                    r in self._common_features):
                     # remove all eojeols that including word at left-side.
                     # we have to assume that pos, neg features are incomplete
-                    self.lrgraph.remove_eojeol(word+r, count)
-                    self._num_of_covered_eojeols += count
-            else:
-                # a syllable noun is exception; remove only N + pos feature
-                if (r == '' or
-                   (r in self._pos_features) or
-                   (r in self._common_features)):
+                    # a syllable noun is exception; remove only N + pos feature
                     self.lrgraph.remove_eojeol(word+r, count)
                     self._num_of_covered_eojeols += count
 
