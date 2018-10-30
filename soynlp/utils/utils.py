@@ -149,6 +149,9 @@ class EojeolCounter:
     def __getitem__(self, eojeol):
         return self._counter.get(eojeol, 0)
 
+    def __len__(self):
+        return len(self._counter)
+
     def _counting_from_sents(self, sents):
         _counter = {}
         for i_sent, sent in enumerate(sents):
