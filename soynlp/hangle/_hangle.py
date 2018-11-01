@@ -42,7 +42,7 @@ doublespace_pattern = re.compile('\s+')
 repeatchars_pattern = re.compile('(\w)\\1{3,}')
 
 def normalize(doc, english=False, number=False, punctuation=False, remove_repeat = 0, remains={}):
-    message = 'normalize func will be moved soynlp.normalizer at ver 0.1'
+    message = 'normalize func will be moved soynlp.normalizer at ver 0.1\nargument remains will be removed at ver 0.1'
     warnings.warn(message, DeprecationWarning, stacklevel=2)
 
     if remove_repeat > 0:
