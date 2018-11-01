@@ -13,8 +13,8 @@ number_pattern = re.compile('[0-9]')
 punctuation_pattern = re.compile('[,\.\?\!]')
 symbol_pattern = re.compile('[()\[\]\{\}`]')
 hangle_pattern = re.compile('[ㄱ-ㅎㅏ-ㅣ가-힣]')
-
 alphabet_pattern = re.compile('[a-zA-Z]')
+
 hangle_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣]')
 hangle_number_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]')
 text_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9,\.\?\!\"\'-()\[\]\{\}]')
