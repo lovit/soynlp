@@ -27,14 +27,14 @@ class LRNounExtractor:
             directory = '/'.join(os.path.abspath(__file__).replace('\\', '/').split('/')[:-2])
             predictor_fnames = ['%s/trained_models/noun_predictor_sejong' % directory]
             if verbose:
-                print('used default noun predictor; Sejong corpus predictor')
+                print('[Noun Extractor] used default noun predictor; Sejong corpus predictor')
 
         for fname in predictor_fnames:
             if verbose:
-                print('used %s' % fname.split('/')[-1])
+                print('[Noun Extractor] used %s' % fname.split('/')[-1])
             self._load_predictor(fname)
         if verbose:
-            print('All %d r features was loaded' % len(self.coefficient))
+            print('[Noun Extractor] All %d r features was loaded' % len(self.coefficient))
 
     def _load_predictor(self, fname):
         try:
@@ -51,7 +51,7 @@ class LRNounExtractor:
                     else:
                         self.coefficient[r] = score
             except Exception as e:
-                print('predictor parsing error line {} = {}'.format(num_line+1, line))
+                print('[Noun Extractor] predictor parsing error line {} = {}'.format(num_line+1, line))
             finally:
                 f.close()
         except Exception as e:
@@ -79,8 +79,6 @@ class LRNounExtractor:
         After then, it builds lr-graph with sub-tokens appeared at least min count
         """
 
-        _ckpt = int(len(sents) / 40)
-
         wordset_l = defaultdict(lambda: 0)
         wordset_r = defaultdict(lambda: 0)
 
@@ -93,22 +91,21 @@ class LRNounExtractor:
                     wordset_l[token[:i]] += 1
                 for i in range(1, min(self.max_right_length, token_len)):
                     wordset_r[token[-i:]] += 1
-            if self.verbose and (i % _ckpt == 0):
-                args = ('#' * int(i/_ckpt), '-' * (40 - int(i/_ckpt)), 100.0 * i / len(sent), '%')
-                sys.stdout.write('\rscanning: %s%s (%.3f %s)' % args)
+            if self.verbose and (i % 1000 == 999):
+                message = 'scanning {} / {} sents'.format(i+1, len(sents))
+                print('\r[Noun Extractor] {}'.format(message), end='')
 
         self._substring_counter = {w:f for w,f in wordset_l.items() if f >= min_frequency}
         wordset_l = set(self._substring_counter.keys())
         wordset_r = {w for w,f in wordset_r.items() if f >= min_frequency}
 
         if self.verbose:
-            print('\rscanning completed')
-            print('(L,R) has (%d, %d) tokens' % (len(wordset_l), len(wordset_r)))
+            message = '(L,R) has (%d, %d) tokens' % (len(wordset_l), len(wordset_r))
+            print('\r[Noun Extractor] scanning was done {}'.format(message))
 
         return wordset_l, wordset_r
 
     def _build_lrgraph(self, sents, wordset_l, wordset_r):
-        _ckpt = int(len(sents) / 40)
         lrgraph = defaultdict(lambda: defaultdict(lambda: 0))
 
         for i, sent in enumerate(sents):
@@ -125,11 +122,12 @@ class LRNounExtractor:
                         continue
                     lrgraph[l][r] += 1
 
-            if self.verbose and (i % _ckpt == 0):
-                args = ('#' * int(i/_ckpt), '-' * (40 - int(i/_ckpt)), 100.0 * i / len(sents), '%')
-                sys.stdout.write('\rbuilding lr-graph: %s%s (%.3f %s)' % args)
+            if self.verbose and (i % 1000 == 999):
+                message = 'building L-R graph from {} / {} sents'.format(i+1, len(sents))
+                print('\r[Noun Extractor] {}'.format(message), end='')
+
         if self.verbose:
-            sys.stdout.write('\rbuilding lr-graph completed')
+            print('\r[Noun Extractor] building L-R graph was done'.format(' '*20))
         lrgraph = {l:{r:f for r,f in rdict.items()} for l,rdict in lrgraph.items()}
         return lrgraph
 
@@ -154,6 +152,9 @@ class LRNounExtractor:
 
         # summary information as NounScore
         nouns_ = self._to_NounScore(nouns)
+
+        if self.verbose:
+            print('[Noun Extractor] {} nouns are extracted'.format(len(nouns_)))
 
         return nouns_
 
