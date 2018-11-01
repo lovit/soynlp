@@ -9,10 +9,32 @@ from soynlp.hangle import decompose
 
 doublespace_pattern = re.compile('\s+')
 repeatchars_pattern = re.compile('(\w)\\1{3,}')
+number_pattern = re.compile('[0-9]')
+punctuation_pattern = re.compile('[,\.\?\!]')
+symbol_pattern = re.compile('[()\[\]\{\}`]')
+hangle_pattern = re.compile('[ㄱ-ㅎㅏ-ㅣ가-힣]')
+
+alphabet_pattern = re.compile('[a-zA-Z]')
 hangle_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣]')
 hangle_number_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]')
-text_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9,\.\?\!\"\'-]')
+text_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9,\.\?\!\"\'-()\[\]\{\}]')
 
+def normalize(doc, alphabet=False, number=False,
+    punctuation=False, symbol=False, remove_repeat=0):
+
+    doc = text_filter.sub(' ', doc)
+    if not alphabet:
+        doc = alphabet_pattern.sub(' ', doc)
+    if not number:
+        doc = number_pattern.sub(' ', doc)
+    if not punctuation:
+        doc = punctuation_pattern.sub(' ', doc)
+    if not symbol:
+        doc = symbol_pattern.sub(' ', doc)
+    if remove_repeat > 0:
+        doc = repeatchars_pattern.sub('\\1' * remove_repeat, doc)
+
+    return doublespace_pattern.sub(' ', doc).strip()
 
 def repeat_normalize(sent, num_repeats=2):
     if num_repeats > 0:
