@@ -11,7 +11,7 @@ doublespace_pattern = re.compile('\s+')
 repeatchars_pattern = re.compile('(\w)\\1{3,}')
 hangle_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣]')
 hangle_number_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]')
-text_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\.\?\!\"\'-]')
+text_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9,\.\?\!\"\'-]')
 
 
 def repeat_normalize(sent, num_repeats=2):
