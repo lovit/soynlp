@@ -225,12 +225,17 @@ def pmi_test(corpus_path):
         alpha=0.0001,
         verbose=True)
 
+    for pair, pmi in sorted(pmi_dok.items(), key=lambda x:-x[1])[100:110]:
+        pair_ = (idx2vocab[pair[0]], idx2vocab[pair[1]])
+        print('pmi {} = {:.3f}'.format(pair_, pmi))
     print('computed PMI')
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--corpus_path', type=str, default='', help='DoublespaceLineCorpus text file')
+    parser.add_argument('--corpus_path', type=str,
+        default='../tutorials/doublespace_line_corpus_sample.txt',
+        help='DoublespaceLineCorpus text file')
     parser.add_argument('--pass_hangle', dest='pass_hangle', action='store_true')
     parser.add_argument('--pass_tokenizer', dest='pass_tokenizer', action='store_true')
     parser.add_argument('--pass_word', dest='pass_word', action='store_true')
