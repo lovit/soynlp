@@ -3,6 +3,7 @@
 from collections import defaultdict, namedtuple
 import math
 import sys
+from soynlp.normalizer import normalize_sent_for_lrgraph
 from soynlp.word import WordExtractor
 from soynlp.utils import LRGraph
 
@@ -11,7 +12,8 @@ NounScore = namedtuple('NounScore', 'frequency score known_r_ratio')
 class LRNounExtractor:
 
     def __init__(self, max_left_length=10, max_right_length=7,
-            predictor_fnames=None, verbose=True, min_num_of_features=1):
+            predictor_fnames=None, verbose=True,
+            min_num_of_features=1, ensure_normalized=False):
 
         self.coefficient = {}
         self.verbose = verbose
@@ -21,6 +23,7 @@ class LRNounExtractor:
         self.words = None
         self._substring_counter = {}
         self.min_num_of_features = min_num_of_features
+        self.ensure_normalized = ensure_normalized
 
         if not predictor_fnames:
             import os
@@ -83,6 +86,8 @@ class LRNounExtractor:
         wordset_r = defaultdict(lambda: 0)
 
         for i, sent in enumerate(sents):
+            if not self.ensure_normalized:
+                sent = normalize_sent_for_lrgraph(sent)
             for token in sent.split(' '):
                 if not token:
                     continue
@@ -109,6 +114,8 @@ class LRNounExtractor:
         lrgraph = defaultdict(lambda: defaultdict(lambda: 0))
 
         for i, sent in enumerate(sents):
+            if not self.ensure_normalized:
+                sent = normalize_sent_for_lrgraph(sent)
             for token in sent.split():
                 if not token:
                     continue
