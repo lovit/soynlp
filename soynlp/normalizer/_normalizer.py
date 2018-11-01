@@ -81,3 +81,19 @@ def only_hangle_number(sent):
 
 def only_text(sent):
     return doublespace_pattern.sub(' ',text_filter.sub(' ', sent)).strip()
+
+def remain_hangle_on_last(eojeol):
+    matchs = list(hangle_pattern.finditer(eojeol))
+    if not matchs:
+        return ''
+    last_index = matchs[-1].span()[1]
+    return eojeol[:last_index].strip()
+
+def normalize_sent_for_lrgraph(sent):
+    sent = text_filter.sub(' ', sent)
+    sent = symbol_pattern.sub(' ', sent)
+    sent_ = [remain_hangle_on_last(eojeol) for eojeol in sent.split()]
+    sent_ = [eojeol for eojeol in sent_ if eojeol]
+    if not sent_:
+        return ''
+    return ' '.join(sent_)

@@ -4,6 +4,8 @@ from ._normalizer import only_hangle
 from ._normalizer import only_hangle_number
 from ._normalizer import only_text
 from ._normalizer import normalize
+from ._normalizer import remain_hangle_on_last
+from ._normalizer import normalize_sent_for_lrgraph
 
 __all__ = [
     'normalize',
@@ -11,5 +13,7 @@ __all__ = [
     'repeat_normalize',
     'only_hangle',
     'only_hangle_number',
-    'only_text'
+    'only_text',
+    'remain_hangle_on_last',
+    'normalize_sent_for_lrgraph'
 ]
