@@ -2,6 +2,7 @@ from collections import defaultdict
 from collections import namedtuple
 import os
 
+from soynlp.normalizer import normalize_sent_for_lrgraph
 from soynlp.utils import check_dirs
 from soynlp.utils import EojeolCounter
 from soynlp.utils import LRGraph
@@ -18,8 +19,8 @@ class LRNounExtractor_v2:
     def __init__(self, max_left_length=10, max_right_length=9, predictor_headers=None,
         verbose=True, min_num_of_features=1, max_frequency_when_noun_is_eojeol=30,
         eojeol_counter_filtering_checkpoint=200000, min_eojeol_frequency=1,
-        extract_compound=True, extract_pos_feature=False,
-        extract_determiner=False, postprocessing=None, logpath=None):
+        extract_compound=True, extract_pos_feature=False, extract_determiner=False,
+        ensure_normalized=False, postprocessing=None, logpath=None):
 
         self.max_left_length = max_left_length
         self.max_right_length = max_right_length
@@ -32,6 +33,7 @@ class LRNounExtractor_v2:
         self.extract_compound = extract_compound
         self.extract_pos_feature = extract_pos_feature
         self.extract_determiner = extract_determiner
+        self.ensure_normalized = ensure_normalized
         self.logpath = logpath
 
         if logpath:
@@ -148,10 +150,19 @@ class LRNounExtractor_v2:
         if self.verbose:
             print('[Noun Extractor] counting eojeols')
 
-        eojeol_counter = EojeolCounter(sentences, self.min_eojeol_frequency,
-            max_length=self.max_left_length + self.max_right_length,
-            filtering_checkpoint=self.eojeol_counter_filtering_checkpoint,
-            verbose=self.verbose)
+        if self.ensure_normalized:
+            preprocess = lambda x:x
+        else:
+            preprocess = normalize_sent_for_lrgraph
+
+        eojeol_counter = EojeolCounter(
+            sentences,
+            min_count = self.min_eojeol_frequency,
+            max_length = self.max_left_length + self.max_right_length,
+            filtering_checkpoint = self.eojeol_counter_filtering_checkpoint,
+            verbose = self.verbose,
+            preprocess = preprocess
+        )
 
         self._num_of_eojeols = eojeol_counter._count_sum
         self._num_of_covered_eojeols = 0
