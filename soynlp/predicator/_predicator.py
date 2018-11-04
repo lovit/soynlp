@@ -95,6 +95,24 @@ class PredicatorExtractor:
     def is_trained(self):
         return self.lrgraph
 
+    def train_extract(self, sentences_or_lrgraph, min_eojeol_frequency=2,
+        filtering_checkpoint=100000, candidates=None,
+        min_predicator_frequency=10, reset_lrgraph=True,
+        # Eomi extractor
+        min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
+        # Stem extractor
+        min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
+        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
+
+        self.train(sentences_or_lrgraph, min_eojeol_frequency, filtering_checkpoint)
+
+        predicators = self.extract(
+            candidates, min_predicator_frequency, reset_lrgraph,
+            min_num_of_features, min_eomi_score, min_eomi_frequency,
+            min_num_of_unique_R_char, min_entropy_of_R_char,
+            min_entropy_of_R, min_stem_score, min_stem_frequency)
+        return predicators
+
     def train(self, sentences_or_lrgraph, min_eojeol_frequency=2,
         filtering_checkpoint=100000):
 
