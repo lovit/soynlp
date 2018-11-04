@@ -35,7 +35,8 @@ setuptools.setup(
     ],
     install_requires=[
         "numpy>=1.12.1",
-        "psutil>=5.0.1"
+        "psutil>=5.0.1",
+        "scipy>=1.1.0"
     ],
     classifiers=(
         "Programming Language :: Python :: 3.6",
