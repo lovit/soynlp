@@ -8,7 +8,7 @@ from . import hangle
 from . import normalizer
 from . import noun
 from . import predicator
-from . import pos
+from . import postagger
 from . import tokenizer
 from . import vectorizer
 from . import word
