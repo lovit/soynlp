@@ -39,6 +39,7 @@ index 와 idx 는 idx 로 통일합니다.
 
 - numpy >= 1.12.1
 - psutil >= 5.0.1
+- scipy >= 1.1.0
 
 ## Word Extraction 
 
