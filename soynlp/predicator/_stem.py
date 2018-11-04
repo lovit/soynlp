@@ -143,7 +143,10 @@ class StemExtractor:
         char_count = self._count_first_chars(features)
 
         unique_of_char = len(char_count)
-        entropy_of_char = self._entropy(tuple(char_count.values()))
+        #entropy_of_char = self._entropy(tuple(char_count.values()))
+        entropy_of_char = self._entropy(
+            tuple(self._select_pos_features(l, features).values())
+        )
 
         pos, neg, unk = self._predict(l, features)
         score = (pos - neg) / (pos + neg) if (pos + neg) > 0 else 0
@@ -193,6 +196,13 @@ class StemExtractor:
         entropy = [v/sum_ for v in counts]
         entropy = -1 * sum((p * math.log(p) for p in entropy))
         return entropy
+
+    def _select_pos_features(self, l, features):
+        def is_pos(r):
+            if (r in self._josa) or self._r_is_predicator(r) or self._exist_longer_eomi(l, r):
+                return False
+            return r in self.R
+        return {r:count for r, count in features if is_pos(r)}
 
     def _r_is_predicator(self, r):
         n = len(r)
