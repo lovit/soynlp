@@ -1,1 +1,1 @@
-from ._pos import POSExtractor
+# from ._pos import POSExtractor # when developing
