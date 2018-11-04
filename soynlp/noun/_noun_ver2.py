@@ -370,8 +370,8 @@ class LRNounExtractor_v2:
                 continue
             if self._exist_longer_pos(word, r): # ignore
                 continue
-            if self._exist_longer_neg(word, r): # negative -다고
-                neg += freq
+            if self._exist_longer_neg(word, r): # negative -다고, -자는
+                #neg += freq # ('관계자' 의 경우 '관계 + 자는'으로 고려될 수 있음)
                 continue
             if r in self._common_features:
                 common += freq
