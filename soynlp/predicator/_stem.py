@@ -69,7 +69,7 @@ class StemExtractor:
         return stem_surfaces, eomi_surfaces
 
     def extract(self, L_ignore=None, min_stem_score=0.7,
-        min_frequency=100):
+        min_stem_frequency=100):
 
         if L_ignore is None:
             L_ignore = {}
@@ -83,14 +83,14 @@ class StemExtractor:
 
         # 1st. frequency filtering
         candidates = {l:count for l, count in candidates.items()
-            if count >= min_frequency}
+            if count >= min_stem_frequency}
 
         if self.verbose:
             message = 'batch prediction for {} candidates'.format(len(candidates))
             self._print(message, replace=False, newline=True)
 
         stem_surfaces = self._batch_prediction(
-            candidates, min_stem_score, min_frequency)
+            candidates, min_stem_score, min_stem_frequency)
 
         self.stem_surfaces, self.removals = self._post_processing(
             stem_surfaces)

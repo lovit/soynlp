@@ -265,7 +265,7 @@ class PredicatorExtractor:
         extracted_stems = stem_extractor.extract(
             L_ignore=None,
             min_stem_score = min_stem_score,
-            min_frequency = min_stem_frequency
+            min_stem_frequency = min_stem_frequency
         )
 
         extracted_stems = {stem for stem in extracted_stems if not (stem in self._stems)}
