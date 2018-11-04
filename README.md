@@ -201,7 +201,7 @@ nouns = noun_extractor.train_extract(sentences) # list of str like
     인터폰  원화  단기간  편곡  무산  외국인들
     세무조사  석유화학  워킹  원피스  서장  공범
 
-더 자세한 설명은 [튜토리얼][nounextraction-v1_usage]에 있습니다. 
+더 자세한 설명은 [튜토리얼][nounextractor-v1_usage]에 있습니다. 
 
 ### Noun Extractor ver 2
 
@@ -453,7 +453,7 @@ pmi_dok = pmi(
 - pip install soykeyword
 
 [wordextraction_lecture]: https://github.com/lovit/soynlp/blob/master/tutorials/wordextractor_lecture.ipynb
-[nounextraction-v1_usage]: https://github.com/lovit/soynlp/blob/master/tutorials/nounextraction-v1_usage.ipynb
+[nounextractor-v1_usage]: https://github.com/lovit/soynlp/blob/master/tutorials/nounextractor-v1_usage.ipynb
 [nounextractor-v2_usage]: https://github.com/lovit/soynlp/blob/master/tutorials/nounextractor-v2_usage.ipynb
 [tagger_usage]: https://github.com/lovit/soynlp/blob/master/tutorials/tagger_usage.ipynb
 [tagger_lecture]: https://github.com/lovit/soynlp/blob/master/tutorials/tagger_lecture.ipynb
