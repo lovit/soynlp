@@ -51,7 +51,7 @@ class PredicatorExtractor:
         self.extract_eomi = extract_eomi
         self.extract_stem = extract_stem
 
-        self._stem_surfaces = {l for stem in self._stems for l in _conjugate_stem(stem)}
+        self._stem_surfaces = self._transform_stem_as_surfaces()
         self.lrgraph = None
 
     def _load_default_noun_pos_features(self):
@@ -86,6 +86,17 @@ class PredicatorExtractor:
                     continue
                 eomis.add(word)
         return eomis
+
+    def _transform_stem_as_surfaces(self):
+        surfaces = set()
+        for stem in self._stems:
+            try:
+                for l in _conjugate_stem(stem):
+                    surfaces.add(l)
+            except Exception as e:
+                print('Exception stem = {}, {}'.format(stem, e))
+                continue
+        return surfaces
 
     def _print(self, message, replace=False, newline=True):
         header = '[Predicator Extractor]'
