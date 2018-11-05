@@ -179,8 +179,8 @@ class LRNounExtractor_v2:
     def _extract_determiner(self):
         raise NotImplemented
 
-    def extract_domain_pos_features(self, append_extracted_features=True,
-        noun_candidates=None, ignore_features=None,
+    def extract_domain_pos_features(self, noun_candidates=None,
+        ignore_features=None, append_extracted_features=True,
         min_noun_score=0.3, min_noun_frequency=100,
         min_pos_score=0.3, min_pos_feature_frequency=1000,
         min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5,
