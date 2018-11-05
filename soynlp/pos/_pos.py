@@ -19,23 +19,46 @@ class POSExtractor:
         self._extract_stem = extract_stem
 
     def extract(self, sents):
-        # noun extraction
-        noun_extractor = LRNounExtractor_v2(
+
+        nouns = self._extract_nouns(sents)
+
+        predicators = self._extract_predicators(nouns, sents)
+
+        nouns_, removals, predicators = self._remove_confused_nouns(
+            nouns, predicators)
+
+        wordtags = {
+            'Noun': nouns_,
+            'Eomi': self.predicator_extractor._eomis,
+            'Adjective': {},
+            'AdjectiveStem': {},
+            'Verb': {},
+            'VerbStem': {},
+        }
+
+        return wordtags
+
+    def _extract_nouns(self, sents):
+        self.noun_extractor = LRNounExtractor_v2(
             extract_pos_feature = self._extract_pos_feature,
             extract_determiner = self._extract_determiner,
             ensure_normalized = self._ensure_normalized,
             verbose = self._verbose
         )
 
-        nouns = noun_extractor.train_extract(sents, reset_lrgraph=False)
+        nouns = self.noun_extractor.train_extract(sents, reset_lrgraph=False)
 
-        predicator_lrgraph = LRGraph(noun_extractor.lrgraph._lr)
-        predicator_lrgraph.reset_lrgraph()
-        noun_pos_features = {r for r in noun_extractor._pos_features}
-        noun_pos_features.update({r for r in noun_extractor._common_features})
+        return nouns
+
+    def _extract_predicators(self, nouns, sents):
+
+        # prepare predicator_lrgraph
+        predicator_lrgraph = LRGraph(self.noun_extractor.lrgraph._lr)
+        noun_pos_features = {r for r in self.noun_extractor._pos_features}
+        noun_pos_features.update({r for r in self.noun_extractor._common_features})
 
         # predicator extraction
-        predicator_extractor = PredicatorExtractor(
+        self.predicator_extractor = PredicatorExtractor(
             nouns,
             noun_pos_features,
             extract_eomi = self._extract_eomi,
@@ -43,12 +66,12 @@ class POSExtractor:
             verbose = self._verbose
         )
 
-        predicator_extractor.train(sents)
-        predicators = predicator_extractor.extract() # 782 개
+        self.predicator_extractor.train(sents)
+        predicators = self.predicator_extractor.extract()
 
-        self.noun_extractor = noun_extractor
-        self.predicator_extractor = predicator_extractor
+        return predicators
 
+    def _remove_confused_nouns(self, nouns, predicators):
         nouns_ = {}
         removals = {}
 
@@ -85,3 +108,6 @@ class POSExtractor:
             if is_noun_josa(prefix) and (suffix in predicators):
                 return True
         return False
+
+    def _separate_verb_adjective(self, predicators):
+        raise NotImplemented
