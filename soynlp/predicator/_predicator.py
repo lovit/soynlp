@@ -291,11 +291,8 @@ class PredicatorExtractor:
             message = '{} stems have been extracted'.format(len(extracted_stems))
             self._print(message, replace=False, newline=True)
 
-    def _extract_predicator(self, eojeols=None,
-        min_frequency=10, reset_lrgraph=True):
-
-        lemmas = self._as_lemma_candidates(
-            eojeols, min_frequency)
+    def _extract_predicator(self, eojeols=None, min_frequency=1, reset_lrgraph=True):
+        lemmas = self._as_lemma_candidates(eojeols, min_frequency)
 
         # TODO
         # evaluation
