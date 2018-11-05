@@ -151,11 +151,11 @@ def noun_extractor_test(corpus_path):
     print('noun extractor test has been done\n\n')
 
 def pos_tagger_test():
-    from soynlp.pos import Dictionary
-    from soynlp.pos import LRTemplateMatcher
-    from soynlp.pos import LREvaluator
-    from soynlp.pos import SimpleTagger
-    from soynlp.pos import UnknowLRPostprocessor
+    from soynlp.postagger import Dictionary
+    from soynlp.postagger import LRTemplateMatcher
+    from soynlp.postagger import LREvaluator
+    from soynlp.postagger import SimpleTagger
+    from soynlp.postagger import UnknowLRPostprocessor
 
     pos_dict = {
         'Adverb': {'너무', '매우'}, 
