@@ -5,22 +5,45 @@ from soynlp.utils import LRGraph
 
 class POSExtractor:
 
-    def __init__(self, verbose=True, extract_pos_feature=True,
+    def __init__(self, verbose=True, extract_noun_pos_feature=True,
         extract_determiner=True, ensure_normalized=True, extract_eomi=True,
         extract_stem=True):
 
         self._verbose = verbose
         # noun extraction
-        self._extract_pos_feature = extract_pos_feature
+        self._extract_noun_pos_feature = extract_noun_pos_feature
         self._extract_determiner = extract_determiner
         self._ensure_normalized = ensure_normalized
         # predicator extraction
         self._extract_eomi = extract_eomi
         self._extract_stem = extract_stem
 
-    def extract(self, sents):
+    def extract(self, sents,
+        # noun init
+        min_num_of_noun_features=1, max_frequency_when_noun_is_eojeol=30,
+        # noun extraction
+        min_noun_score=0.3, min_noun_frequency=1, min_eojeol_frequency=1,
+        # noun domain pos features
+        ignore_features=None, min_noun_frequency_in_pos_extraction=100,
+        min_pos_score=0.3, min_pos_feature_frequency=1000,
+        min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5,
+        min_noun_entropy=1.5,
+        # predicator train
+        min_predicator_frequency=10,
+        # Eomi extractor
+        min_num_of_eomi_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
+        # Stem extractor
+        min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
+        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
 
-        nouns = self._extract_nouns(sents)
+        nouns = self._extract_nouns(sents, min_num_of_noun_features,
+            max_frequency_when_noun_is_eojeol, min_noun_score,
+            min_noun_frequency, min_eojeol_frequency,
+            # noun domain pos features
+            ignore_features, min_noun_frequency_in_pos_extraction,
+            min_pos_score, min_pos_feature_frequency,
+            min_num_of_unique_lastchar, min_entropy_of_lastchar,
+            min_noun_entropy)
 
         predicators = self._extract_predicators(nouns, sents)
 
@@ -38,15 +61,37 @@ class POSExtractor:
 
         return wordtags
 
-    def _extract_nouns(self, sents):
+    def _extract_nouns(self, sents,
+        # noun init
+        min_num_of_features=1, max_frequency_when_noun_is_eojeol=30,
+        # noun extraction
+        min_noun_score=0.3, min_noun_frequency=1, min_eojeol_frequency=1,
+        # noun domain pos features
+        ignore_features=None, min_noun_frequency_in_pos_extraction=100,
+        min_pos_score=0.3, min_pos_feature_frequency=1000,
+        min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5,
+        min_noun_entropy=1.5):
+
         self.noun_extractor = LRNounExtractor_v2(
-            extract_pos_feature = self._extract_pos_feature,
+            extract_pos_feature = False,
             extract_determiner = self._extract_determiner,
             ensure_normalized = self._ensure_normalized,
-            verbose = self._verbose
+            verbose = self._verbose,
+            min_num_of_features = min_num_of_features,
+            max_frequency_when_noun_is_eojeol = max_frequency_when_noun_is_eojeol
         )
 
-        nouns = self.noun_extractor.train_extract(sents, reset_lrgraph=False)
+        self.noun_extractor.train(sents, min_eojeol_frequency)
+
+        if self._extract_noun_pos_feature:
+            self.noun_extractor.extract_domain_pos_features(None, # noun candidates
+                ignore_features, True, # append_extracted_features
+                min_noun_score, min_noun_frequency_in_pos_extraction, min_pos_score,
+                min_pos_feature_frequency, min_num_of_unique_lastchar,
+                min_entropy_of_lastchar, min_noun_entropy)
+
+        nouns = self.noun_extractor.extract(min_noun_score,
+            min_noun_frequency, reset_lrgraph=False)
 
         return nouns
 
