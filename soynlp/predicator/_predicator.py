@@ -42,10 +42,10 @@ class PredicatorExtractor:
 
         self._nouns = nouns
         self._noun_pos_features = noun_pos_features
-        self._adjective_stems = adjectives if adjectives is not None else set()
-        self._verb_stems = verbs if verbs is not None else set()
-        self._stems = {stem for stem in self._adjective_stems}
-        self._stems.union(self._verb_stems)
+        self._adjective_stems = adjectives
+        self._verb_stems = verbs
+        self._stems = {stem for stem in adjectives}
+        self._stems = self._stems.union(verbs)
         self._eomis = eomis
         self.verbose = verbose
         self.extract_eomi = extract_eomi
