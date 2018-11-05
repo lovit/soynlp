@@ -28,27 +28,30 @@ Predicator = namedtuple('Predicator', 'frequency lemma')
 
 class PredicatorExtractor:
 
-    def __init__(self, nouns, noun_pos_features=None, stems=None,
+    def __init__(self, nouns, noun_pos_features=None, adjectives=None, verbs=None,
         eomis=None, extract_eomi=False, extract_stem=False, verbose=True):
 
         if not noun_pos_features:
             noun_pos_features = self._load_default_noun_pos_features()
 
-        if not stems:
-            stems = self._load_default_stems()
+        if (adjectives is None) or (verbs is None):
+            adjectives, verbs = self._load_default_stems()
 
-        if not eomis:
+        if eomis is None:
             eomis = self._load_default_eomis()
 
         self._nouns = nouns
         self._noun_pos_features = noun_pos_features
-        self._stems = stems
+        self._adjective_stems = adjectives if adjectives is not None else set()
+        self._verb_stems = verbs if verbs is not None else set()
+        self._stems = {stem for stem in self._adjective_stems}
+        self._stems.union(self._verb_stems)
         self._eomis = eomis
         self.verbose = verbose
         self.extract_eomi = extract_eomi
         self.extract_stem = extract_stem
 
-        self._stem_surfaces = {l for stem in stems for l in _conjugate_stem(stem)}
+        self._stem_surfaces = {l for stem in self._stems for l in _conjugate_stem(stem)}
         self.lrgraph = None
 
     def _load_default_noun_pos_features(self):
@@ -57,19 +60,21 @@ class PredicatorExtractor:
             pos_features = {word.split()[0] for word in f}
         return pos_features
 
-    def _load_default_stems(self, min_frequency=100):
-        dirs = '%s/lemmatizer/dictionary/default/Stem' % installpath
-        paths = ['%s/Adjective.txt', '%s/Verb.txt']
-        paths = [p % dirs for p in paths]
-        stems = set()
-        for path in paths:
+    def _load_default_stems(self, min_frequency=2):
+        def load(path):
+            stems = set()
             with open(path, encoding='utf-8') as f:
                 for line in f:
                     word, frequency = line.split()
                     if int(frequency) < min_frequency:
                         continue
                     stems.add(word)
-        return stems
+            return stems
+
+        dirs = '%s/lemmatizer/dictionary/default/Stem' % installpath
+        adjectives = load('%s/Adjective.txt' % dirs)
+        verbs = load('%s/Verb.txt' % dirs)
+        return adjectives, verbs
 
     def _load_default_eomis(self, min_frequency=20):
         path = '%s/lemmatizer/dictionary/default/Eomi/Eomi.txt' % installpath
