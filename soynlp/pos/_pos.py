@@ -29,7 +29,7 @@ class POSExtractor:
         min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5,
         min_noun_entropy=1.5,
         # predicator train
-        min_predicator_frequency=10,
+        min_predicator_frequency=1,
         # Eomi extractor
         min_num_of_eomi_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
         # Stem extractor
@@ -45,7 +45,10 @@ class POSExtractor:
             min_num_of_unique_lastchar, min_entropy_of_lastchar,
             min_noun_entropy)
 
-        predicators = self._extract_predicators(nouns, sents)
+        predicators = self._extract_predicators(nouns, sents, min_predicator_frequency,
+            min_eojeol_frequency, min_num_of_eomi_features, min_eomi_score,
+            min_eomi_frequency, min_num_of_unique_R_char, min_entropy_of_R_char,
+            min_entropy_of_R, min_stem_score, min_stem_frequency)
 
         nouns_, removals, predicators = self._remove_confused_nouns(
             nouns, predicators)
@@ -95,7 +98,14 @@ class POSExtractor:
 
         return nouns
 
-    def _extract_predicators(self, nouns, sents):
+    def _extract_predicators(self, nouns, sents,
+        # predicator train
+        min_predicator_frequency=1, min_eojeol_frequency=2,
+        # Eomi extractor
+        min_num_of_eomi_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
+        # Stem extractor
+        min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
+        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
 
         # prepare predicator_lrgraph
         predicator_lrgraph = LRGraph(self.noun_extractor.lrgraph._lr)
@@ -111,8 +121,14 @@ class POSExtractor:
             verbose = self._verbose
         )
 
-        self.predicator_extractor.train(sents)
-        predicators = self.predicator_extractor.extract()
+        predicators = self.predicator_extractor.train_extract(
+            sents, min_eojeol_frequency, 100000, #filtering_checkpoint
+            None, min_predicator_frequency, True, # filtering_checkpoint, lrgraph_reset
+            # Eomi extractor
+            min_num_of_eomi_features, min_eomi_score, min_eomi_frequency,
+            # Stem extractor
+            min_num_of_unique_R_char, min_entropy_of_R_char,
+            min_entropy_of_R, min_stem_score, min_stem_frequency)
 
         return predicators
 
