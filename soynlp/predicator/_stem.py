@@ -61,8 +61,8 @@ class StemExtractor:
                     continue
 
         if self.verbose:
-            message = 'Initializing was done with {} stems and {} eomis'.format(
-                len(stems), len(eomis))
+            message = 'Initializing was done with {} stems and {} eomis{}'.format(
+                len(stems), len(eomis), ' ' * 10)
             self._print(message, replace=True, newline=True)
 
         del eojeol_counter
