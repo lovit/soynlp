@@ -20,6 +20,7 @@ from soynlp.utils import LRGraph
 from soynlp.utils import get_process_memory
 from soynlp.utils import EojeolCounter
 from soynlp.utils.utils import installpath
+from soynlp.lemmatizer import conjugate
 from soynlp.lemmatizer import _lemma_candidate
 from soynlp.lemmatizer import _conjugate_stem
 from ._eomi import EomiExtractor
@@ -345,9 +346,14 @@ class PredicatorExtractor:
                     if (stem in self._stems) and (eomi in self._eomis):
                         lemma_candidates.add((stem, eomi))
 
-            if lemma_candidates:
+            lemma_candidates_ = set()
+            for stem, eomi in lemma_candidates:
+                if eojeol in conjugate(stem, eomi):
+                    lemma_candidates_.add((stem, eomi))
+
+            if lemma_candidates_:
                 count = eojeols[eojeol]
-                lemmas[eojeol] = Predicator(count, lemma_candidates)
+                lemmas[eojeol] = Predicator(count, lemma_candidates_)
                 self._num_of_covered_eojeols += count
 
         if self.verbose:
