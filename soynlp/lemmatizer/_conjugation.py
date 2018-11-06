@@ -75,7 +75,7 @@ def conjugate(stem, ending, debug=False):
         surface = l + r
         candidates.add(surface)
         if debug:
-            print('ㄷ 불규칙: {}'.format(surface))
+            print('르 불규칙: {}'.format(surface))
 
     # ㅂ 불규칙 활용:
     # (모음조화) 더럽 + 어 -> 더러워 / 곱 + 아 -> 고와 
