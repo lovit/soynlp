@@ -34,7 +34,7 @@ class POSExtractor:
         min_num_of_eomi_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
         # Stem extractor
         min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
-        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
+        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100, debug=False):
 
         nouns = self._extract_nouns(sents, min_num_of_noun_features,
             max_frequency_when_noun_is_eojeol, min_noun_score,
@@ -50,17 +50,22 @@ class POSExtractor:
             min_eomi_frequency, min_num_of_unique_R_char, min_entropy_of_R_char,
             min_entropy_of_R, min_stem_score, min_stem_frequency)
 
-        nouns_, removals, predicators = self._remove_confused_nouns(
+        nouns_, confuseds, predicators = self._remove_confused_nouns(
             nouns, predicators)
+
+        adj, adj_stem, v, v_stem = self._separate_verb_adjective(predicators)
 
         wordtags = {
             'Noun': nouns_,
             'Eomi': self.predicator_extractor._eomis,
-            'Adjective': {},
-            'AdjectiveStem': {},
-            'Verb': {},
-            'VerbStem': {},
+            'Adjective': adj,
+            'AdjectiveStem': adj_stem,
+            'Verb': v,
+            'VerbStem': v_stem
         }
+
+        if debug:
+            wordtags['ConfusedNoun'] = confuseds
 
         return wordtags
 
@@ -171,4 +176,21 @@ class POSExtractor:
         return False
 
     def _separate_verb_adjective(self, predicators):
-        raise NotImplemented
+        adjective_stems = self.predicator_extractor._adjective_stems
+        verb_stems = self.predicator_extractor._verb_stems
+        adjectives = {}
+        verbs = {}
+
+        for word, info in predicators.items():
+            frequency = info.frequency
+            lemmas = info.lemma
+
+            adj = {lemma for lemma in lemmas if lemma[0] in adjective_stems}
+            if adj:
+                adjectives[word] = Predicator(frequency, adj)
+
+            verb = {lemma for lemma in lemmas if lemma[0] in verb_stems}
+            if verb:
+                verbs[word] = Predicator(frequency, verb)
+
+        return adjectives, adjective_stems, verbs, verb_stems
