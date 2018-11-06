@@ -147,14 +147,26 @@ def conjugate(stem, ending, debug=False):
     # 거라, 너라 불규칙 활용
     # '-거라/-너라'를 어미로 취급하면 규칙 활용: 최근에는 인정되지 않는 규칙
     if ending[:2] == '어라' or ending[:2] == '아라':
-        if l_last[1] in negative_moum:
-            r = '어' + ending[1:]
-        else:
-            r = '아' + ending[1:]
+        # 돌아오 + 아라 -> 돌아와라
+        if stem[-1] == '오':
+            l = stem[:-1]
+            r = '와' + ending[1:]
+        # 그리우 + 어라 -> 그리워라
+        elif stem[-1] == '우':
+            l = stem[:-1]
+            r = '워' + ending[1:]
         # 가 + 아라 -> 가라
-        if stem[-1] == '가':
-            r = r[1:]
-        candidates.add(stem + r)
+        elif stem[-1] == '가':
+            l = stem
+            r = ending[1:]
+        else:
+            if l_last[1] in negative_moum:
+                l = stem
+                r = '어' + ending[1:]
+            else:
+                l = stem
+                r = '아' + ending[1:]
+        candidates.add(l + r)
         if debug:
             print('거라/너라 불규칙')
 
