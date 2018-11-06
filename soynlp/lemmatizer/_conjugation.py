@@ -225,7 +225,8 @@ def conjugate(stem, ending, debug=False):
 
     # ㅎ (축약) 불규칙 할용
     # 파랗 + 았다 -> 파랬다 / 시퍼렇 + 었다 -> 시퍼렜다
-    if l_last[2] == 'ㅎ' and l_last_ != '좋' and (r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ'):
+    if ( (l_last[2] == 'ㅎ' and l_last_ != '좋') and
+         (r_first[0] == 'ㅇ' and r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ') ):
         l = stem[:-1] + compose(l_last[0], 'ㅐ' if r_first[1] == 'ㅏ' else 'ㅔ', r_first[2])
         r = ending[1:]
         surface = l + r
@@ -335,7 +336,8 @@ def _conjugate_stem(stem, debug=False):
 
     # ㅡ 탈락 불규칙 활용: 끄 + 어 -> 꺼 / 트 + 었다 -> 텄다 / 예쁘 + 었다 -> 예뻤다
     if l_last[1] == 'ㅡ' and l_last[2] == ' ':
-        candidates.add(stem[:-1] + compose(l_last[0], r_first[1], r_first[2]))
+        candidates.add(stem[:-1] + compose(l_last[0], 'ㅓ', ' '))
+        candidates.add(stem[:-1] + compose(l_last[0], 'ㅓ', 'ㅆ'))
         if debug:
             print('ㅡ 탈락 불규칙')
 
