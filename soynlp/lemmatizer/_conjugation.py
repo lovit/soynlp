@@ -2,7 +2,7 @@
 
 from soynlp.hangle import compose, decompose
 
-def conjugate(stem, ending):
+def conjugate(stem, ending, debug=False):
 
     assert ending # ending must be inserted
 
@@ -18,6 +18,8 @@ def conjugate(stem, ending):
     if l_last[2] == 'ㄷ' and r_first[0] == 'ㅇ':
         l = stem[:-1] + compose(l_last[0], l_last[1], 'ㄹ')
         candidates.add(l + ending)
+        if debug:
+            print('ㄷ 불규칙')
 
     # 르 불규칙 활용: 구르 + 어 -> 굴러
     if (l_last_ == '르') and (r_first_ == '아' or r_first_ == '어') and l_len >= 2:
@@ -25,6 +27,8 @@ def conjugate(stem, ending):
         l = stem[:-2] + compose(c0, c1, 'ㄹ')
         r = compose('ㄹ', r_first[1], r_first[2]) + ending[1:]
         candidates.add(l + r)
+        if debug:
+            print('ㄷ 불규칙')
 
     # ㅂ 불규칙 활용:
     # (모음조화) 더럽 + 어 -> 더러워 / 곱 + 아 -> 고와 
@@ -44,8 +48,12 @@ def conjugate(stem, ending):
                 c1 = 'ㅘ'
             r = compose('ㅇ', c1, r_first[2]) + ending[1:]
             candidates.add(l + r)
+            if debug:
+                print('ㅂ 불규칙')
         elif r_first[0] == 'ㅇ': # 돕 + 울까 = 도울까, 답 + 울까 = 다울까
             candidates.add(l + ending)
+            if debug:
+                print('ㅂ 불규칙')
 
     # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅂ, -ㅆ)
     # 이 + ㅂ니다 -> 입니다
@@ -53,6 +61,8 @@ def conjugate(stem, ending):
         l = stem[:-1] + compose(l_last[0], l_last[1], r_first[0])
         r = ending[1:]
         candidates.add(l + r)
+        if debug:
+            print('어미의 첫 글자가 -ㄴ, -ㄹ, -ㅂ, -ㅆ 인 경우')
 
     # ㅅ 불규칙 활용: 붓 + 어 -> 부어
     # exception : 벗 + 어 -> 벗어    
@@ -62,6 +72,8 @@ def conjugate(stem, ending):
         else:
             l = stem[:-1] + compose(l_last[0], l_last[1], ' ')
         candidates.add(l + ending)
+        if debug:
+            print('ㅅ 불규칙')
 
     # 우 불규칙 활용: 푸 + 어 -> 퍼 / 주 + 어 -> 줘
     if l_last[1] == 'ㅜ' and l_last[2] == ' ' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅓ':
@@ -71,18 +83,24 @@ def conjugate(stem, ending):
             l = stem[:-1] + compose(l_last[0], 'ㅝ', r_first[2])
         r = ending[1:]
         candidates.add(l + r)
+        if debug:
+            print('우 불규칙')
 
     # 오 활용: 오 + 았어 -> 왔어
     if l_last[1] == 'ㅗ' and l_last[2] == ' ' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅏ':
         l = stem[:-1] + compose(l_last[0], 'ㅘ', r_first[2])
         r = ending[1:]
         candidates.add(l + r)
+        if debug:
+            print('오 활용')
 
     # ㅡ 탈락 불규칙 활용: 끄 + 어 -> 꺼 / 트 + 었다 -> 텄다
     if (l_last_ == '끄' or l_last_ == '크' or l_last_ == '트') and (r_first[0] == 'ㅇ') and (r_first[1] == 'ㅓ'):
         l = stem[:-1] + compose(l_last[0], r_first[1], r_first[2])
         r = ending[1:]
         candidates.add(l + r)
+        if debug:
+            print('ㅡ 탈락 불규칙')
 
     # 거라, 너라 불규칙 활용
     # '-거라/-너라'를 어미로 취급하면 규칙 활용
@@ -94,11 +112,15 @@ def conjugate(stem, ending):
         else:
             r = ending
         candidates.add(stem + r)
+        if debug:
+            print('거라/너라 불규칙')
 
     # 러 불규칙 활용: 이르 + 어 -> 이르러 / 이르 + 었다 -> 이르렀다
     if l_last_ == '르' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅓ':
         r = compose('ㄹ', r_first[1], r_first[2]) + ending[1:]
         candidates.add(stem + r)
+        if debug:
+            print('러 불규칙')
 
     # 여 불규칙 활용
     # 하 + 았다 -> 하였다 / 하 + 었다 -> 하였다
@@ -110,6 +132,8 @@ def conjugate(stem, ending):
         l = stem[:-1] + compose('ㅎ', 'ㅐ', r_first[2])
         r = ending[1:]
         candidates.add(l + r)
+        if debug:
+            print('여 불규칙')
 
     # ㅎ (탈락) 불규칙 활용
     # 파라 + 면 -> 파랗다 / 동그랗 + ㄴ -> 동그란
@@ -125,6 +149,8 @@ def conjugate(stem, ending):
         else:
             r = ending
         candidates.add(l + r)
+        if debug:
+            print('ㅎ 탈락 불규칙')
 
     # ㅎ (축약) 불규칙 할용
     # 파랗 + 았다 -> 파랬다 / 시퍼렇 + 었다 -> 시퍼렜다
@@ -132,24 +158,34 @@ def conjugate(stem, ending):
         l = stem[:-1] + compose(l_last[0], 'ㅐ' if r_first[1] == 'ㅏ' else 'ㅔ', r_first[2])
         r = ending[1:]
         candidates.add(l + r)
+        if debug:
+            print('ㅎ 축약 불규칙')
 
     # ㅎ + 네 불규칙 활용
     # ㅎ 탈락과 ㅎ 유지 모두 맞음
     if l_last[2] == 'ㅎ' and r_first[0] == 'ㄴ' and r_first[1] != ' ':
         candidates.add(stem + ending)
+        if debug:
+            print('ㅎ + 네 불규칙')
 
     # 이었 -> 였 규칙활용
     if ending[0] == '었' and l_last[1] == 'ㅣ' and l_last[2] == ' ':
         candidates.add(stem[:-1] + compose(l_last[0], 'ㅕ', 'ㅆ') + ending[1:])
+        if debug:
+            print('이었 -> 였 규칙')
         if l_last[0] == 'ㅇ':
             candidates.add(stem + ending)
+            if debug:
+                print('이었 -> 였 규칙')
 
     if not candidates and r_first[1] != ' ':
         candidates.add(stem + ending)
+        if debug:
+            print('L + R 규칙 결합')
 
     return candidates
 
-def _conjugate_stem(stem):
+def _conjugate_stem(stem, debug=False):
 
     l_len = len(stem)
     l_last = decompose(stem[-1])
@@ -161,12 +197,16 @@ def _conjugate_stem(stem):
     if l_last[2] == 'ㄷ':
         l = stem[:-1] + compose(l_last[0], l_last[1], 'ㄹ')
         candidates.add(l)
+        if debug:
+            print('ㄷ 불규칙')
 
     # 르 불규칙 활용: 구르 + 어 -> 굴러
     if (l_last_ == '르') and l_len >= 2:
         c0, c1, c2 = decompose(stem[-2])
         l = stem[:-2] + compose(c0, c1, 'ㄹ')
         candidates.add(l)
+        if debug:
+            print('르 불규칙')
 
     # ㅂ 불규칙 활용:
     # (모음조화) 더럽 + 어 -> 더러워 / 곱 + 아 -> 고와
@@ -174,6 +214,8 @@ def _conjugate_stem(stem):
     if (l_last[2] == 'ㅂ'):
         l = stem[:-1] + compose(l_last[0], l_last[1], ' ')
         candidates.add(l)
+        if debug:
+            print('ㅂ 불규칙')
 
     # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅂ, -ㅆ)
     # 이 + ㅂ니다 -> 입니다
@@ -182,11 +224,15 @@ def _conjugate_stem(stem):
         candidates.add(stem[:-1] + compose(l_last[0], l_last[1], 'ㄹ'))
         candidates.add(stem[:-1] + compose(l_last[0], l_last[1], 'ㅂ'))
         candidates.add(stem[:-1] + compose(l_last[0], l_last[1], 'ㅆ'))
+        if debug:
+            print('어미의 첫 글자가 -ㄴ, -ㄹ, -ㅂ, -ㅆ 일 경우')
 
     # ㅅ 불규칙 활용: 붓 + 어 -> 부어
     # exception : 벗 + 어 -> 벗어
     if (l_last[2] == 'ㅅ') and stem[-1] != '벗':
         candidates.add(stem[:-1] + compose(l_last[0], l_last[1], ' '))
+        if debug:
+            print('ㅅ 불규칙')
 
     # 우 불규칙 활용: 푸 + 어 -> 퍼 / 주 + 어 -> 줘
     if l_last[1] == 'ㅜ' and l_last[2] == ' ':
@@ -195,16 +241,22 @@ def _conjugate_stem(stem):
         else:
             candidates.add(stem[:-1] + compose(l_last[0], 'ㅝ', ' '))
             candidates.add(stem[:-1] + compose(l_last[0], 'ㅝ', 'ㅆ'))
+            if debug:
+                print('우 불규칙')
 
     # 오 활용: 오 + 았어 -> 왔어
     if l_last[1] == 'ㅗ' and l_last[2] == ' ':
         candidates.add(stem[:-1] + compose(l_last[0], 'ㅘ', ' '))
         candidates.add(stem[:-1] + compose(l_last[0], 'ㅘ', 'ㅆ'))
+        if debug:
+            print('오 + 았어 -> 왔어 규칙')
 
     # ㅡ 탈락 불규칙 활용: 끄 + 어 -> 꺼 / 트 + 었다 -> 텄다
     if (l_last_ == '끄' or l_last_ == '크' or l_last_ == '트'):
         candidates.add(stem[:-1] + compose(l_last[0], 'ㅓ', ' '))
         candidates.add(stem[:-1] + compose(l_last[0], 'ㅓ', 'ㅆ'))
+        if debug:
+            print('ㅡ 탈락 불규칙')
 
     # 거라, 너라 불규칙 활용
     # '-거라/-너라'를 어미로 취급하면 규칙 활용
@@ -217,6 +269,8 @@ def _conjugate_stem(stem):
     if l_last_ == '하':
         candidates.add(stem[:-1] + '해')
         candidates.add(stem[:-1] + '했')
+        if debug:
+            print('하 -> 해, 했 활용')
 
     # ㅎ (탈락) 불규칙 활용
     # 파라 + 면 -> 파랗다 / 동그랗 + ㄴ -> 동그란
@@ -226,12 +280,27 @@ def _conjugate_stem(stem):
         candidates.add(stem[:-1] + compose(l_last[0], l_last[1], 'ㄹ'))
         # candidates.add(stem[:-1] + compose(l_last[0], l_last[1], 'ㅂ'))
         candidates.add(stem[:-1] + compose(l_last[0], l_last[1], 'ㅆ'))
+        if debug:
+            print('ㅎ 탈락 불규칙')
 
     # ㅎ (축약) 불규칙 할용
     # 파랗 + 았다 -> 파랬다 / 시퍼렇 + 었다 -> 시퍼렜다
     if l_last[2] == 'ㅎ' and l_last_ != '좋':
         candidates.add(stem[:-1] + compose(l_last[0], 'ㅐ', 'ㅆ'))
         # candidates.add(stem[:-1] + compose(l_last[0], 'ㅔ', 'ㅆ'))
+        if debug:
+            print('ㅎ 축약 불규칙')
+
+    # ㅎ + 네 불규칙 활용
+    # ㅎ 탈락과 ㅎ 유지 모두 맞음
+
+    # 이었 -> 였 규칙활용
+    if l_last[1] == 'ㅣ' and l_last[2] == ' ':
+        candidates.add(stem[:-1] + compose(l_last[0], 'ㅕ', 'ㅆ'))
+        if debug:
+            print('이었 -> 였 규칙')
+
+    return candidates
 
     # ㅎ + 네 불규칙 활용
     # ㅎ 탈락과 ㅎ 유지 모두 맞음
