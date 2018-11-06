@@ -7,7 +7,7 @@ class POSExtractor:
 
     def __init__(self, verbose=True, extract_noun_pos_feature=True,
         extract_determiner=True, ensure_normalized=True, extract_eomi=True,
-        extract_stem=True):
+        extract_stem=False):
 
         self._verbose = verbose
         # noun extraction
@@ -45,23 +45,23 @@ class POSExtractor:
             min_num_of_unique_lastchar, min_entropy_of_lastchar,
             min_noun_entropy)
 
-        predicators = self._extract_predicators(nouns, sents, min_predicator_frequency,
+        adjectives, verbs = self._extract_predicators(
+            nouns, sents, min_predicator_frequency,
             min_eojeol_frequency, min_num_of_eomi_features, min_eomi_score,
             min_eomi_frequency, min_num_of_unique_R_char, min_entropy_of_R_char,
             min_entropy_of_R, min_stem_score, min_stem_frequency)
 
-        nouns_, confuseds, predicators = self._remove_confused_nouns(
-            nouns, predicators)
-
-        adj, adj_stem, v, v_stem = self._separate_verb_adjective(predicators)
+        predicators = set(adjectives.keys())
+        predicators.update(set(verbs.keys()))
+        nouns_, confuseds = self._remove_confused_nouns(nouns, predicators)
 
         wordtags = {
             'Noun': nouns_,
             'Eomi': self.predicator_extractor._eomis,
-            'Adjective': adj,
-            'AdjectiveStem': adj_stem,
-            'Verb': v,
-            'VerbStem': v_stem
+            'Adjective': adjectives,
+            'AdjectiveStem': self.predicator_extractor._adjective_stems,
+            'Verb': verbs,
+            'VerbStem': self.predicator_extractor._verb_stems
         }
 
         if debug:
@@ -126,7 +126,7 @@ class POSExtractor:
             verbose = self._verbose
         )
 
-        predicators = self.predicator_extractor.train_extract(
+        adjectives, verbs = self.predicator_extractor.train_extract(
             sents, min_eojeol_frequency, 100000, #filtering_checkpoint
             None, min_predicator_frequency, True, # filtering_checkpoint, lrgraph_reset
             # Eomi extractor
@@ -135,7 +135,7 @@ class POSExtractor:
             min_num_of_unique_R_char, min_entropy_of_R_char,
             min_entropy_of_R, min_stem_score, min_stem_frequency)
 
-        return predicators
+        return adjectives, verbs
 
     def _remove_confused_nouns(self, nouns, predicators):
         nouns_ = {}
@@ -146,7 +146,7 @@ class POSExtractor:
                 removals[noun] = score
             else:
                 nouns_[noun] = score
-        return nouns_, removals, predicators
+        return nouns_, removals
 
     def _is_noun_predicator_compound(self, noun, nouns, predicators):
         def is_noun_josa(prefix):
@@ -174,23 +174,3 @@ class POSExtractor:
             if is_noun_josa(prefix) and (suffix in predicators):
                 return True
         return False
-
-    def _separate_verb_adjective(self, predicators):
-        adjective_stems = self.predicator_extractor._adjective_stems
-        verb_stems = self.predicator_extractor._verb_stems
-        adjectives = {}
-        verbs = {}
-
-        for word, info in predicators.items():
-            frequency = info.frequency
-            lemmas = info.lemma
-
-            adj = {lemma for lemma in lemmas if lemma[0] in adjective_stems}
-            if adj:
-                adjectives[word] = Predicator(frequency, adj)
-
-            verb = {lemma for lemma in lemmas if lemma[0] in verb_stems}
-            if verb:
-                verbs[word] = Predicator(frequency, verb)
-
-        return adjectives, adjective_stems, verbs, verb_stems
