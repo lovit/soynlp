@@ -16,7 +16,10 @@ def conjugate(stem, ending, debug=False):
     r_first_ = compose(r_first[0], r_first[1], ' ') if r_first[1] != ' ' else ending[0]
 
     candidates = set()
-    
+
+    print('l_last = {}'.format(l_last))
+    print('r_first = {}'.format(r_first))
+
     # ㄷ 불규칙 활용: 깨달 + 아 -> 깨달아
     if l_last[2] == 'ㄷ' and r_first[0] == 'ㅇ':
         l = stem[:-1] + compose(l_last[0], l_last[1], 'ㄹ')
@@ -98,10 +101,8 @@ def conjugate(stem, ending, debug=False):
             print('오 활용')
 
     # ㅡ 탈락 불규칙 활용: 끄 + 어 -> 꺼 / 트 + 었다 -> 텄다
-    if (l_last_ == '끄' or l_last_ == '크' or l_last_ == '트') and (r_first[0] == 'ㅇ') and (r_first[1] == 'ㅓ'):
-        l = stem[:-1] + compose(l_last[0], r_first[1], r_first[2])
-        r = ending[1:]
-        candidates.add(l + r)
+    if l_last[1] == 'ㅡ' and l_last[2] == ' ' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅓ':
+        candidates.add(stem[:-1] + compose(l_last[0], r_first[1], r_first[2]) + ending[1:])
         if debug:
             print('ㅡ 탈락 불규칙')
 
@@ -252,10 +253,9 @@ def _conjugate_stem(stem, debug=False):
         if debug:
             print('오 + 았어 -> 왔어 규칙')
 
-    # ㅡ 탈락 불규칙 활용: 끄 + 어 -> 꺼 / 트 + 었다 -> 텄다
-    if (l_last_ == '끄' or l_last_ == '크' or l_last_ == '트'):
-        candidates.add(stem[:-1] + compose(l_last[0], 'ㅓ', ' '))
-        candidates.add(stem[:-1] + compose(l_last[0], 'ㅓ', 'ㅆ'))
+    # ㅡ 탈락 불규칙 활용: 끄 + 어 -> 꺼 / 트 + 었다 -> 텄다 / 예쁘 + 었다 -> 예뻤다
+    if l_last[1] == 'ㅡ' and l_last[2] == ' ' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅓ':
+        candidates.add(stem[:-1] + compose(l_last[0], r_first[1], r_first[2]))
         if debug:
             print('ㅡ 탈락 불규칙')
 
