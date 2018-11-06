@@ -2,6 +2,9 @@
 
 from soynlp.hangle import compose, decompose
 
+positive_moum = set('ㅏㅑㅗㅛ') # 4 개의 양성모음만 기록
+negative_moum = set('ㅓㅕㅜㅠ') # 4 개의 음성모음만 기록
+
 def conjugate(stem, ending, debug=False):
 
     assert ending # ending must be inserted
@@ -103,14 +106,12 @@ def conjugate(stem, ending, debug=False):
             print('ㅡ 탈락 불규칙')
 
     # 거라, 너라 불규칙 활용
-    # '-거라/-너라'를 어미로 취급하면 규칙 활용
+    # '-거라/-너라'를 어미로 취급하면 규칙 활용: 최근에는 인정되지 않는 규칙
     if ending[:2] == '어라' or ending[:2] == '아라':
-        if l_last[1] == 'ㅏ':            
-            r = '거' + ending[1:]
-        elif l_last[1] == 'ㅗ':
-            r = '너' + ending[1:]
+        if l_last[1] in negative_moum:
+            r = '어' + ending[1:]
         else:
-            r = ending
+            r = '아' + ending[1:]
         candidates.add(stem + r)
         if debug:
             print('거라/너라 불규칙')
@@ -299,14 +300,5 @@ def _conjugate_stem(stem, debug=False):
         candidates.add(stem[:-1] + compose(l_last[0], 'ㅕ', 'ㅆ'))
         if debug:
             print('이었 -> 였 규칙')
-
-    return candidates
-
-    # ㅎ + 네 불규칙 활용
-    # ㅎ 탈락과 ㅎ 유지 모두 맞음
-
-    # 이었 -> 였 규칙활용
-    if l_last[1] == 'ㅣ' and l_last[2] == ' ':
-        candidates.add(stem[:-1] + compose(l_last[0], 'ㅕ', 'ㅆ'))
 
     return candidates
