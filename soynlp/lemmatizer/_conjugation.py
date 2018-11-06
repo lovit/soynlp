@@ -44,6 +44,11 @@ def conjugate(stem, ending, debug=False):
         print('l_last = {}'.format(l_last))
         print('r_first = {}'.format(r_first))
 
+    if ending[0] == '다':
+        candidates.add(stem + ending)
+        if debug:
+            print('\'다\'로 시작하는 어미')
+
     # ㄷ 불규칙 활용: 깨달 + 아 -> 깨달아
     if l_last[2] == 'ㄷ' and r_first[0] == 'ㅇ':
         l = stem[:-1] + compose(l_last[0], l_last[1], 'ㄹ')
@@ -168,10 +173,8 @@ def conjugate(stem, ending, debug=False):
             l = l = stem[:-1] + compose(l_last[0], l_last[1], r_first[0])
         else:
             l = stem[:-1] + compose(l_last[0], l_last[1], ' ')
-        if r_first_ == '으':
+        if r_first_ == '으' or r_first[1] == ' ':
             r = ending[1:]
-        elif r_first[1] == ' ':            
-            r = ''
         else:
             r = ending
         candidates.add(l + r)
