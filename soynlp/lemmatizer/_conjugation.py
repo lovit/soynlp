@@ -334,7 +334,7 @@ def _conjugate_stem(stem, debug=False):
             print('오 + 았어 -> 왔어 규칙')
 
     # ㅡ 탈락 불규칙 활용: 끄 + 어 -> 꺼 / 트 + 었다 -> 텄다 / 예쁘 + 었다 -> 예뻤다
-    if l_last[1] == 'ㅡ' and l_last[2] == ' ' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅓ':
+    if l_last[1] == 'ㅡ' and l_last[2] == ' ':
         candidates.add(stem[:-1] + compose(l_last[0], r_first[1], r_first[2]))
         if debug:
             print('ㅡ 탈락 불규칙')
