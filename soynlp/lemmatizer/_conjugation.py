@@ -54,25 +54,28 @@ def conjugate(stem, ending, debug=False):
         print('r_first = {}'.format(r_first))
 
     if ending[0] == '다':
-        candidates.add(stem + ending)
+        surface = stem + ending
+        candidates.add(surface)
         if debug:
-            print('\'다\'로 시작하는 어미')
+            print('\'다\'로 시작하는 어미: {}'.format(surface))
 
     # ㄷ 불규칙 활용: 깨달 + 아 -> 깨달아
     if l_last[2] == 'ㄷ' and r_first[0] == 'ㅇ':
         l = stem[:-1] + compose(l_last[0], l_last[1], 'ㄹ')
-        candidates.add(l + ending)
+        surface = l + ending
+        candidates.add(surface)
         if debug:
-            print('ㄷ 불규칙')
+            print('ㄷ 불규칙: {}'.format(surface))
 
     # 르 불규칙 활용: 구르 + 어 -> 굴러
     if (l_last_ == '르') and (r_first_ == '아' or r_first_ == '어') and l_len >= 2:
         c0, c1, c2 = decompose(stem[-2])
         l = stem[:-2] + compose(c0, c1, 'ㄹ')
         r = compose('ㄹ', r_first[1], r_first[2]) + ending[1:]
-        candidates.add(l + r)
+        surface = l + r
+        candidates.add(surface)
         if debug:
-            print('ㄷ 불규칙')
+            print('ㄷ 불규칙: {}'.format(surface))
 
     # ㅂ 불규칙 활용:
     # (모음조화) 더럽 + 어 -> 더러워 / 곱 + 아 -> 고와 
@@ -91,22 +94,25 @@ def conjugate(stem, ending, debug=False):
             else: # r_first_ == '아'
                 c1 = 'ㅘ'
             r = compose('ㅇ', c1, r_first[2]) + ending[1:]
-            candidates.add(l + r)
+            surface = l + r
+            candidates.add(surface)
             if debug:
-                print('ㅂ 불규칙')
+                print('ㅂ 불규칙: {}'.format(surface))
         elif r_first[0] == 'ㅇ': # 돕 + 울까 = 도울까, 답 + 울까 = 다울까
-            candidates.add(l + ending)
+            surface = l + ending
+            candidates.add(surface)
             if debug:
-                print('ㅂ 불규칙')
+                print('ㅂ 불규칙: {}'.format(surface))
 
     # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅂ, -ㅆ)
     # 이 + ㅂ니다 -> 입니다
     if l_last[2] == ' ' and r_first[1] == ' ' and (r_first[0] == 'ㄴ' or r_first[0] == 'ㄹ' or r_first[0] == 'ㅂ' or r_first[0] == 'ㅆ'):
         l = stem[:-1] + compose(l_last[0], l_last[1], r_first[0])
         r = ending[1:]
-        candidates.add(l + r)
+        surface = l + r
+        candidates.add(surface)
         if debug:
-            print('어미의 첫 글자가 -ㄴ, -ㄹ, -ㅂ, -ㅆ 인 경우')
+            print('어미의 첫 글자가 -ㄴ, -ㄹ, -ㅂ, -ㅆ 인 경우: {}'.format(surface))
 
     # ㅅ 불규칙 활용: 붓 + 어 -> 부어
     # exception : 벗 + 어 -> 벗어    
@@ -115,9 +121,10 @@ def conjugate(stem, ending, debug=False):
             l = stem
         else:
             l = stem[:-1] + compose(l_last[0], l_last[1], ' ')
-        candidates.add(l + ending)
+        surface = l + ending
+        candidates.add(surface)
         if debug:
-            print('ㅅ 불규칙')
+            print('ㅅ 불규칙: {}'.format(surface))
 
     # 우 불규칙 활용: 푸 + 어 -> 퍼 / 주 + 어 -> 줘
     if l_last[1] == 'ㅜ' and l_last[2] == ' ' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅓ':
@@ -126,23 +133,26 @@ def conjugate(stem, ending, debug=False):
         else:
             l = stem[:-1] + compose(l_last[0], 'ㅝ', r_first[2])
         r = ending[1:]
-        candidates.add(l + r)
+        surface = l + r
+        candidates.add(surface)
         if debug:
-            print('우 불규칙')
+            print('우 불규칙: {}'.format(surface))
 
     # 오 활용: 오 + 았어 -> 왔어
     if l_last[1] == 'ㅗ' and l_last[2] == ' ' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅏ':
         l = stem[:-1] + compose(l_last[0], 'ㅘ', r_first[2])
         r = ending[1:]
-        candidates.add(l + r)
+        surface = l + r
+        candidates.add(surface)
         if debug:
-            print('오 활용')
+            print('오 활용: {}'.format(surface))
 
     # ㅡ 탈락 불규칙 활용: 끄 + 어 -> 꺼 / 트 + 었다 -> 텄다
     if l_last[1] == 'ㅡ' and l_last[2] == ' ' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅓ':
-        candidates.add(stem[:-1] + compose(l_last[0], r_first[1], r_first[2]) + ending[1:])
+        surface = stem[:-1] + compose(l_last[0], r_first[1], r_first[2]) + ending[1:]
+        candidates.add(surface)
         if debug:
-            print('ㅡ 탈락 불규칙')
+            print('ㅡ 탈락 불규칙: {}'.format(surface))
 
     # 거라, 너라 불규칙 활용
     # '-거라/-너라'를 어미로 취급하면 규칙 활용: 최근에는 인정되지 않는 규칙
@@ -166,29 +176,33 @@ def conjugate(stem, ending, debug=False):
             else:
                 l = stem
                 r = '아' + ending[1:]
-        candidates.add(l + r)
+        surface = l + r
+        candidates.add(surface)
         if debug:
-            print('거라/너라 불규칙')
+            print('거라/너라 불규칙: {}'.format(surface))
 
     # 러 불규칙 활용: 이르 + 어 -> 이르러 / 이르 + 었다 -> 이르렀다
     if l_last_ == '르' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅓ':
         r = compose('ㄹ', r_first[1], r_first[2]) + ending[1:]
-        candidates.add(stem + r)
+        surface = stem + r
+        candidates.add(surface)
         if debug:
-            print('러 불규칙')
+            print('러 불규칙: {}'.format(surface))
 
     # 여 불규칙 활용
     # 하 + 았다 -> 하였다 / 하 + 었다 -> 하였다
     if l_last_ == '하' and r_first[0] == 'ㅇ' and (r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ') and (r_first[2] == 'ㅆ'):
         # case 1
         r = compose(r_first[0], 'ㅕ', r_first[2]) + ending[1:]
-        candidates.add(stem + r)
+        surface0 = stem + r
+        candidates.add(surface0)
         # case 2
         l = stem[:-1] + compose('ㅎ', 'ㅐ', r_first[2])
         r = ending[1:]
-        candidates.add(l + r)
+        surface1 = l + r
+        candidates.add(surface1)
         if debug:
-            print('여 불규칙')
+            print('여 불규칙: {}, {}'.format(surface0, surface1))
 
     # ㅎ (탈락) 불규칙 활용
     # 파라 + 면 -> 파랗다 / 동그랗 + ㄴ -> 동그란
@@ -201,45 +215,52 @@ def conjugate(stem, ending, debug=False):
             r = ending[1:]
         else:
             r = ending
-        candidates.add(l + r)
+        surface = l + r
+        candidates.add(surface)
         if debug:
-            print('ㅎ 탈락 불규칙')
+            print('ㅎ 탈락 불규칙: {}'.format(surface))
 
     # ㅎ (축약) 불규칙 할용
     # 파랗 + 았다 -> 파랬다 / 시퍼렇 + 었다 -> 시퍼렜다
     if l_last[2] == 'ㅎ' and l_last_ != '좋' and (r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ'):
         l = stem[:-1] + compose(l_last[0], 'ㅐ' if r_first[1] == 'ㅏ' else 'ㅔ', r_first[2])
         r = ending[1:]
-        candidates.add(l + r)
+        surface = l + r
+        candidates.add(surface)
         if debug:
-            print('ㅎ 축약 불규칙')
+            print('ㅎ 축약 불규칙: {}'.format(surface))
 
     # ㅎ + 네 불규칙 활용
     # ㅎ 탈락과 ㅎ 유지 모두 맞음
     if l_last[2] == 'ㅎ' and r_first[0] == 'ㄴ' and r_first[1] != ' ':
-        candidates.add(stem + ending)
+        surface = stem + ending
+        candidates.add(surface)
         if debug:
-            print('ㅎ + 네 불규칙')
+            print('ㅎ + 네 불규칙: {}'.format(surface))
 
     # 이었 -> 였 규칙활용
     if ending[0] == '었' and l_last[1] == 'ㅣ' and l_last[2] == ' ':
-        candidates.add(stem[:-1] + compose(l_last[0], 'ㅕ', 'ㅆ') + ending[1:])
+        surface = stem[:-1] + compose(l_last[0], 'ㅕ', 'ㅆ') + ending[1:]
+        candidates.add(surface)
         if debug:
-            print('이었 -> 였 규칙')
+            print('이었 -> 였 규칙: {}'.format(surface))
         if l_last[0] == 'ㅇ':
-            candidates.add(stem + ending)
+            surface = stem + ending
+            candidates.add(surface)
             if debug:
-                print('이었 -> 였 규칙')
+                print('이었 -> 였 규칙: {}'.format(surface))
 
     if not candidates and r_first[1] != ' ':
         if (l_last[2] == ' ') and (r_first[0] == 'ㅇ') and (r_first[1] == l_last[1]):
             l = stem[:-1] + compose(l_last[0], l_last[1], r_first[2])
             r = ending[1:]
-            candidates.add(l + r)
+            surface = l + r
+            candidates.add(surface)
         else:
-            candidates.add(stem + ending)
+            surface = stem + ending
+            candidates.add(surface)
         if debug:
-            print('L + R 규칙 결합')
+            print('L + R 규칙 결합: {}'.format(surface))
 
     return candidates
 
