@@ -68,7 +68,8 @@ def conjugate(stem, ending, debug=False):
             print('ㄷ 불규칙: {}'.format(surface))
 
     # 르 불규칙 활용: 구르 + 어 -> 굴러
-    if (l_last_ == '르') and (r_first_ == '아' or r_first_ == '어') and l_len >= 2:
+    if ( (l_last_ == '르' and stem[-2:] != '푸르') and
+         (r_first_ == '아' or r_first_ == '어') and l_len >= 2 ):
         c0, c1, c2 = decompose(stem[-2])
         l = stem[:-2] + compose(c0, c1, 'ㄹ')
         r = compose('ㄹ', r_first[1], r_first[2]) + ending[1:]
