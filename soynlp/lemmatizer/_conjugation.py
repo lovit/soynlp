@@ -4,15 +4,38 @@ from soynlp.hangle import compose, decompose
 
 positive_moum = set('ㅏㅑㅗㅛ') # 4 개의 양성모음만 기록
 negative_moum = set('ㅓㅕㅜㅠ') # 4 개의 음성모음만 기록
+neuter_moum = set('ㅡㅣ')
+pos_to_neg = {
+    'ㅏ': 'ㅓ',
+    'ㅑ': 'ㅕ',
+    'ㅗ': 'ㅜ',
+    'ㅛ': 'ㅠ'
+}
+neg_to_pos = {
+    'ㅓ': 'ㅏ',
+    'ㅕ': 'ㅑ',
+    'ㅜ': 'ㅗ',
+    'ㅠ': 'ㅛ'
+}
 
 def conjugate(stem, ending, debug=False):
 
     assert ending # ending must be inserted
 
     l_len = len(stem)
-    l_last = decompose(stem[-1])
+    l_last = list(decompose(stem[-1]))
     l_last_ = stem[-1]
-    r_first = decompose(ending[0])
+    r_first = list(decompose(ending[0]))
+
+    # check moum is positive or negative
+    # ㅂ 불규칙 활용은 모음조화가 이뤄지지 않는 경우가 있음
+    if ((l_last[2] != 'ㅂ') and (l_last[1] in positive_moum)) and (r_first[1] in negative_moum):
+        r_first[1] = neg_to_pos[r_first[1]]
+    if ((l_last[2] != 'ㅂ') and (l_last[1] in negative_moum)) and (r_first[1] in positive_moum):
+        r_first[1] = pos_to_neg[r_first[1]]
+    if (l_last[1] in neuter_moum) and (r_first[1] in positive_moum):
+        r_first[1] = pos_to_neg[r_first[1]]
+
     r_first_ = compose(r_first[0], r_first[1], ' ') if r_first[1] != ' ' else ending[0]
 
     candidates = set()
