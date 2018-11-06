@@ -31,10 +31,19 @@ def conjugate(stem, ending, debug=False):
     # ㅂ 불규칙 활용은 모음조화가 이뤄지지 않는 경우가 있음
     if ((l_last[2] != 'ㅂ') and (l_last[1] in positive_moum)) and (r_first[1] in negative_moum):
         r_first[1] = neg_to_pos[r_first[1]]
+        ending = compose(*r_first) + ending[1:]
     if ((l_last[2] != 'ㅂ') and (l_last[1] in negative_moum)) and (r_first[1] in positive_moum):
         r_first[1] = pos_to_neg[r_first[1]]
+        ending = compose(*r_first) + ending[1:]
     if (l_last[1] in neuter_moum) and (r_first[1] in positive_moum):
         r_first[1] = pos_to_neg[r_first[1]]
+        ending = compose(*r_first) + ending[1:]
+
+    # -는 vs -ㄴ / -ㄴ, -ㄹ, -ㅂ, -ㅆ
+    if ((l_last[2] == ' ') and
+        ((r_first[0] == 'ㅇ' or r_first[0] == r_first[2]) and (r_first[1] == 'ㅣ' or r_first[1] == 'ㅡ'))):
+        r_first = [r_first[2], ' ', ' ']
+        ending = r_first[2] + ending[1:]
 
     r_first_ = compose(r_first[0], r_first[1], ' ') if r_first[1] != ' ' else ending[0]
 
@@ -142,6 +151,9 @@ def conjugate(stem, ending, debug=False):
             r = '어' + ending[1:]
         else:
             r = '아' + ending[1:]
+        # 가 + 아라 -> 가라
+        if stem[-1] == '가':
+            r = r[1:]
         candidates.add(stem + r)
         if debug:
             print('거라/너라 불규칙')
@@ -155,7 +167,7 @@ def conjugate(stem, ending, debug=False):
 
     # 여 불규칙 활용
     # 하 + 았다 -> 하였다 / 하 + 었다 -> 하였다
-    if l_last_ == '하' and r_first[0] == 'ㅇ' and (r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ'):
+    if l_last_ == '하' and r_first[0] == 'ㅇ' and (r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ') and (r_first[2] == 'ㅆ'):
         # case 1
         r = compose(r_first[0], 'ㅕ', r_first[2]) + ending[1:]
         candidates.add(stem + r)
@@ -170,7 +182,7 @@ def conjugate(stem, ending, debug=False):
     # 파라 + 면 -> 파랗다 / 동그랗 + ㄴ -> 동그란
     if l_last[2] == 'ㅎ' and l_last_ != '좋' and not (r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ'):
         if r_first[1] == ' ':
-            l = l = stem[:-1] + compose(l_last[0], l_last[1], r_first[0])
+            l = stem[:-1] + compose(l_last[0], l_last[1], r_first[0])
         else:
             l = stem[:-1] + compose(l_last[0], l_last[1], ' ')
         if r_first_ == '으' or r_first[1] == ' ':
@@ -208,7 +220,12 @@ def conjugate(stem, ending, debug=False):
                 print('이었 -> 였 규칙')
 
     if not candidates and r_first[1] != ' ':
-        candidates.add(stem + ending)
+        if (l_last[2] == ' ') and (r_first[0] == 'ㅇ') and (r_first[1] == l_last[1]):
+            l = stem[:-1] + compose(l_last[0], l_last[1], r_first[2])
+            r = ending[1:]
+            candidates.add(l + r)
+        else:
+            candidates.add(stem + ending)
         if debug:
             print('L + R 규칙 결합')
 
