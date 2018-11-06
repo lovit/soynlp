@@ -29,10 +29,12 @@ def conjugate(stem, ending, debug=False):
 
     # check moum is positive or negative
     # ㅂ 불규칙 활용은 모음조화가 이뤄지지 않는 경우가 있음
-    if ((l_last[2] != 'ㅂ') and (l_last[1] in positive_moum)) and (r_first[1] in negative_moum):
+    if ( (l_last[2] != 'ㅂ' and l_last[1] in positive_moum) and
+         (r_first[0] == 'ㅇ' and r_first[1] in negative_moum) ):
         r_first[1] = neg_to_pos[r_first[1]]
         ending = compose(*r_first) + ending[1:]
-    if ((l_last[2] != 'ㅂ') and (l_last[1] in negative_moum)) and (r_first[1] in positive_moum):
+    if ( (l_last[2] != 'ㅂ' and l_last[1] in negative_moum) and
+         (r_first[0] == 'ㅇ' and r_first[1] in positive_moum) ):
         r_first[1] = pos_to_neg[r_first[1]]
         ending = compose(*r_first) + ending[1:]
     if (l_last[1] in neuter_moum) and (r_first[1] in positive_moum):
