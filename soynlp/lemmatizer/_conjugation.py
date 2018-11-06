@@ -148,7 +148,8 @@ def conjugate(stem, ending, debug=False):
             print('오 활용: {}'.format(surface))
 
     # ㅡ 탈락 불규칙 활용: 끄 + 어 -> 꺼 / 트 + 었다 -> 텄다
-    if l_last[1] == 'ㅡ' and l_last[2] == ' ' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅓ':
+    if ( ((l_last[1] == 'ㅡ') and (l_last[0] != 'ㄹ') and (l_last[2] == ' ')) and
+         ((r_first[0] == 'ㅇ') and (r_first[1] == 'ㅓ')) ):
         surface = stem[:-1] + compose(l_last[0], r_first[1], r_first[2]) + ending[1:]
         candidates.add(surface)
         if debug:
@@ -182,7 +183,8 @@ def conjugate(stem, ending, debug=False):
             print('거라/너라 불규칙: {}'.format(surface))
 
     # 러 불규칙 활용: 이르 + 어 -> 이르러 / 이르 + 었다 -> 이르렀다
-    if l_last_ == '르' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅓ':
+    if ( (l_last_ == '르' and stem[-2:] != '구르') and
+         (r_first[0] == 'ㅇ' and r_first[1] == 'ㅓ') ):
         r = compose('ㄹ', r_first[1], r_first[2]) + ending[1:]
         surface = stem + r
         candidates.add(surface)
