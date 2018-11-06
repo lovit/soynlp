@@ -63,9 +63,9 @@ def _lemma_candidate(l, r, predefined=None):
     if (l_last[2] == ' '):
         l_stem = l_front + compose(l_last[0], l_last[1], 'ㅂ')
         if (r_first_ == '워' or r_first_ == '와'):
-            r_canon = compose('ㅇ', 'ㅏ' if r_first_ == '와' else 'ㅓ', r_first[2]) + r_end
+            r_canon = compose('ㅇ', 'ㅏ' if r_first_ == '와' else 'ㅓ', r_first[2] if r_first[2] else ' ') + r_end
         else:
-            r_canon = compose('ㅇ', 'ㅜ' if (r_end and r_end[0] =='려') else 'ㅏ', r_first[2]) + r_end
+            r_canon = compose('ㅇ', 'ㅜ' if (r_end and r_end[0] =='려') else 'ㅏ', r_first[2] if r_first[2] else ' ') + r_end
         add_lemma(l_stem, r_canon)
 
     # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅂ, -ㅅ)
