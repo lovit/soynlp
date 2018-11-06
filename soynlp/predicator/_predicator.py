@@ -13,6 +13,7 @@ lrgraph : L-R graph including [stem + Ending], Adverbs,
           and maybe some Noun + Josa
 """
 
+from collections import defaultdict
 from collections import namedtuple
 from soynlp.hangle import character_is_complete_korean
 from soynlp.utils import LRGraph
@@ -23,6 +24,10 @@ from soynlp.lemmatizer import _lemma_candidate
 from soynlp.lemmatizer import _conjugate_stem
 from ._eomi import EomiExtractor
 from ._stem import StemExtractor
+from ._adjective_vs_verb import conjugate_as_present
+from ._adjective_vs_verb import conjugate_as_imperative
+from ._adjective_vs_verb import conjugate_as_pleasure
+from ._adjective_vs_verb import rule_classify
 
 Predicator = namedtuple('Predicator', 'frequency lemma')
 
@@ -238,8 +243,12 @@ class PredicatorExtractor:
                 min_entropy_of_R_char, min_entropy_of_R,
                 min_stem_score, min_stem_frequency)
 
-        return self._extract_predicator(
+        predicators = self._extract_predicator(
             candidates, min_predicator_frequency, reset_lrgraph)
+
+        adjectives, verbs = self._separate_adjective_verb(predicators)
+
+        return adjectives, verbs
 
     def _extract_eomi(self, min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1):
 
@@ -260,6 +269,7 @@ class PredicatorExtractor:
         )
 
         extracted_eomis = {eomi for eomi in extracted_eomis if not (eomi in self._eomis)}
+        # TODO: update adjective_stems & verb_stems ?
         self._eomis.update(extracted_eomis)
 
         if self.verbose:
@@ -346,3 +356,51 @@ class PredicatorExtractor:
             self._print(message, replace=True, newline=True)
 
         return lemmas
+
+    def _separate_adjective_verb(self, predicators, num_threshold=3):
+        adjectives = {}
+        verbs = {}
+
+        # proportion
+        for word, predicator in predicators.items():
+            frequency = predicator.frequency
+            lemmas = predicator.lemma
+            adj = set()
+            v = set()
+            for lemma in lemmas:
+                # dictionary first, verb preference
+                if lemma[0] in self._verb_stems:
+                    v.add(lemma)
+                    continue
+                if lemma[0] in self._adjective_stems:
+                    adj.add(lemma)
+                    continue
+
+                # others are extracted stems
+                # rule based classifier, verb preference
+                answer = rule_classify(lemma[0])
+                if answer is 'Verb':
+                    v.add(lemma)
+                    continue
+                if answer is 'Adjective':
+                    adj.add(lemma)
+                    continue
+
+                # surfacial form test
+                surfaces = conjugate_as_present(lemma[0])
+                surfaces.update(conjugate_as_imperative(lemma[0]))
+                surfaces.update(conjugate_as_pleasure(lemma[0]))
+                surfaces = {surface for surface in surfaces
+                            if surface in predicators}
+
+                if len(surfaces) <= 1:
+                    adj.add(lemma)
+                else:
+                    v.add(lemma)
+
+            if adj:
+                adjectives[word] = Predicator(frequency, adj)
+            if v:
+                verbs[word] = Predicator(frequency, v)
+
+        return adjectives, verbs
