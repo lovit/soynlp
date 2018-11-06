@@ -17,8 +17,9 @@ def conjugate(stem, ending, debug=False):
 
     candidates = set()
 
-    print('l_last = {}'.format(l_last))
-    print('r_first = {}'.format(r_first))
+    if debug:
+        print('l_last = {}'.format(l_last))
+        print('r_first = {}'.format(r_first))
 
     # ㄷ 불규칙 활용: 깨달 + 아 -> 깨달아
     if l_last[2] == 'ㄷ' and r_first[0] == 'ㅇ':
