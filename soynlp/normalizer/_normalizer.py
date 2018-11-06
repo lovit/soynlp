@@ -5,7 +5,7 @@ if sys.version_info <= (2,7):
     reload(sys)
     sys.setdefaultencoding('utf-8')
 import re
-from soynlp.hangle import decompose
+from soynlp.hangle import compose, decompose
 
 doublespace_pattern = re.compile('\s+')
 repeatchars_pattern = re.compile('(\w)\\1{3,}')
@@ -60,17 +60,27 @@ def emoticon_normalize(sent, num_repeats=2):
 
     idxs = [pattern(ord(c)) for c in sent]
     sent_ = []
-    for i, (idx, c) in enumerate(zip(idxs[:-1], sent)):
-        if i > 0 and (idxs[i-1] == 0 and idx == 2 and idxs[i+1] == 1):
-            cho, jung, jong = decompose(sent[i])
+    last_idx = len(idxs) - 1
+    for i, (idx, c) in enumerate(zip(idxs, sent)):
+        if (i > 0 and i < last_idx) and (idxs[i-1] == 0 and idx == 2 and idxs[i+1] == 1):
+            cho, jung, jong = decompose(c)
             if (cho == sent[i-1]) and (jung == sent[i+1]) and (jong == ' '):
                 sent_.append(cho)
                 sent_.append(jung)
             else:
                 sent_.append(c)
+        elif (i < last_idx) and (idx == 2) and (idxs[i+1] == 0):
+            cho, jung, jong = decompose(c)
+            if (jong == sent[i+1]):
+                sent_.append(compose(cho, jung, ' '))
+                sent_.append(jong)
+        elif (i > 0) and (idx == 2 and idxs[i-1] == 0):
+            cho, jung, jong = decompose(c)
+            if (cho == sent[i-1]):
+                sent_.append(cho)
+                sent_.append(jung)
         else:
             sent_.append(c)
-    sent_.append(sent[-1])
     return repeat_normalize(''.join(sent_), num_repeats)
 
 def only_hangle(sent):
