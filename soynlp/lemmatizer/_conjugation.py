@@ -29,20 +29,23 @@ def conjugate(stem, ending):
     # ㅂ 불규칙 활용:
     # (모음조화) 더럽 + 어 -> 더러워 / 곱 + 아 -> 고와 
     # (모음조화가 깨진 경우) 아름답 + 아 -> 아름다워 / (-답, -꼽, -깝, -롭)
-    if (l_last[2] == 'ㅂ') and (r_first_ == '어' or r_first_ == '아'):
+    if (l_last[2] == 'ㅂ'):
         l = stem[:-1] + compose(l_last[0], l_last[1], ' ')
-        if l_len >= 2 and (l_last_ == '답' or l_last_ == '곱' or l_last_ == '깝' or l_last_ == '롭'):
-            c1 = 'ㅝ'
-        elif r_first[1] == 'ㅗ':
-            c1 = 'ㅘ'
-        elif r_first[1] == 'ㅜ':
-            c1 = 'ㅝ'
-        elif r_first_ == '어':
-            c1 = 'ㅝ'
-        else: # r_first_ == '아'
-            c1 = 'ㅘ'
-        r = compose('ㅇ', c1, r_first[2]) + ending[1:]
-        candidates.add(l + r)
+        if (r_first_ == '어' or r_first_ == '아'):
+            if l_len >= 2 and (l_last_ == '답' or l_last_ == '곱' or l_last_ == '깝' or l_last_ == '롭'):
+                c1 = 'ㅝ'
+            elif r_first[1] == 'ㅗ':
+                c1 = 'ㅘ'
+            elif r_first[1] == 'ㅜ':
+                c1 = 'ㅝ'
+            elif r_first_ == '어':
+                c1 = 'ㅝ'
+            else: # r_first_ == '아'
+                c1 = 'ㅘ'
+            r = compose('ㅇ', c1, r_first[2]) + ending[1:]
+            candidates.add(l + r)
+        elif r_first[0] == 'ㅇ': # 돕 + 울까 = 도울까, 답 + 울까 = 다울까
+            candidates.add(l + ending)
 
     # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅂ, -ㅆ)
     # 이 + ㅂ니다 -> 입니다
