@@ -7,7 +7,7 @@ from soynlp.normalizer import normalize_sent_for_lrgraph
 from soynlp.word import WordExtractor
 from soynlp.utils import LRGraph
 
-NounScore = namedtuple('NounScore', 'frequency score known_r_ratio')
+NounScore_v1 = namedtuple('NounScore_v1', 'frequency score known_r_ratio')
 
 class LRNounExtractor:
 
@@ -278,6 +278,6 @@ class LRNounExtractor:
 
         nouns_ = {}
         for word, score in nouns.items():
-            nouns_[word] = NounScore(noun_frequencies[word], score[0], score[1])
+            nouns_[word] = NounScore_v1(noun_frequencies[word], score[0], score[1])
 
         return nouns_
