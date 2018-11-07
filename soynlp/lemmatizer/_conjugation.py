@@ -196,7 +196,7 @@ def conjugate(stem, ending, debug=False):
 
     # 여 불규칙 활용
     # 하 + 았다 -> 하였다 / 하 + 었다 -> 하였다
-    if l_last_ == '하' and r_first[0] == 'ㅇ' and (r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ') and (r_first[2] == 'ㅆ'):
+    if l_last_ == '하' and r_first[0] == 'ㅇ' and (r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ'):
         # case 1
         r = compose(r_first[0], 'ㅕ', r_first[2]) + ending[1:]
         surface0 = stem + r
