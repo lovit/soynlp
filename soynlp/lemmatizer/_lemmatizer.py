@@ -1,6 +1,7 @@
 # -*- encoding:utf8 -*-
 
 from soynlp.hangle import compose, decompose
+from ._conjugation import conjugate
 
 class Lemmatizer:
     def __init__(self, stems, endings, predefined=None):
@@ -40,6 +41,7 @@ def _lemma_candidate(l, r, predefined=None):
         candidates.add((stem, ending))
 
     candidates = {(l, r)}
+    word = l + r
 
     l_last = decompose(l[-1])
     l_last_ = compose(l_last[0], l_last[1], ' ')
@@ -161,4 +163,13 @@ def _lemma_candidate(l, r, predefined=None):
         for stem in predefined[(l, r)]:
             candidates.add(stem)
 
+    # check whether lemma is conjugatable
+    candidates_ = []
+    for stem, eomi in candidates:
+        if not eomi:
+            continue
+        surfaces = conjugate(stem, eomi)
+        if word in surfaces:
+            candidates_.append((stem, eomi))
+    return candidates_
     return candidates
