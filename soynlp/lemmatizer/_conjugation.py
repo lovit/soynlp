@@ -132,7 +132,7 @@ def conjugate(stem, ending, debug=False):
     # 우 불규칙 활용: 푸 + 어 -> 퍼 / 주 + 어 -> 줘
     if l_last[1] == 'ㅜ' and l_last[2] == ' ' and r_first[0] == 'ㅇ' and r_first[1] == 'ㅓ':
         if l_last_ == '푸':
-            l = '퍼'
+            l = stem[:-1] + '퍼'
         else:
             l = stem[:-1] + compose(l_last[0], 'ㅝ', r_first[2])
         r = ending[1:]
