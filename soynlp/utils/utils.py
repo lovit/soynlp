@@ -149,13 +149,18 @@ class EojeolCounter:
             self._counter = self._counting_from_sents(sents)
         else:
             self._counter = {}
-        self._count_sum = sum(self._counter.values())
+
+        self._count_sum = 0
+        self._set_count_sum()
 
     def __getitem__(self, eojeol):
         return self._counter.get(eojeol, 0)
 
     def __len__(self):
         return len(self._counter)
+
+    def _set_count_sum(self):
+        self._count_sum = sum(self._counter.values())
 
     def _counting_from_sents(self, sents):
         _counter = {}
