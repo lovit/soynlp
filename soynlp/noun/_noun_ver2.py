@@ -192,7 +192,7 @@ class LRNounExtractor_v2:
         self._num_of_eojeols = num_of_eojeols
 
         if self.verbose:
-            print('[Noun Extractor] has been trained. eojeols={}, mem={} Gb'.format(
+            print('[Noun Extractor] has been trained. #eojeols={}, mem={} Gb'.format(
                 num_of_eojeols, '%.3f'%get_process_memory()))
 
     def _extract_determiner(self):
