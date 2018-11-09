@@ -192,6 +192,15 @@ class POSExtractor:
                     confused_nouns[eojeol] += count
                 continue
 
+            # check eojeol is noun + josa (or pos feature of noun)
+            noun = self._separate_predicator_from_noun(
+                eojeol, nouns,
+                self.noun_extractor._pos_features,
+                self.noun_extractor._common_features)
+            if noun is not None:
+                nouns_[noun] += count
+                continue
+
             # check eojeol is noun + predicator-suspect compound
             noun = self._separate_predicator_suspect_from_noun(
                 eojeol, nouns, stems, eomis)
