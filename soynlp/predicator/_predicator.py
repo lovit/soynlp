@@ -48,7 +48,6 @@ class PredicatorExtractor:
         if eomis is None:
             eomis = self._load_default_eomis()
 
-        self._nouns = nouns
         self._noun_pos_features = noun_pos_features
         self._adjective_stems = adjectives
         self._verb_stems = verbs
@@ -62,6 +61,9 @@ class PredicatorExtractor:
 
         self._stem_surfaces = self._transform_stem_as_surfaces()
         self.lrgraph = None
+
+        nouns = self._remove_stem_prefix(nouns)
+        self._nouns = nouns
 
     def _load_default_noun_pos_features(self):
         path = '%s/trained_models/noun_predictor_ver2_pos' % installpath
@@ -95,6 +97,18 @@ class PredicatorExtractor:
                     continue
                 eomis.add(word)
         return eomis
+
+    def _remove_stem_prefix(self, nouns):
+        def parse_noun(stem):
+            if stem[:-1] in nouns:
+                return stem[:-1]
+            if stem[:-2] in nouns:
+                return stem[:-2]
+            return None
+
+        removals = {parse_noun(stem) for stem in self._stems
+                    if parse_noun(stem) is not None}
+        return {noun for noun in nouns if not (noun in removals)}
 
     def _transform_stem_as_surfaces(self):
         surfaces = set()
