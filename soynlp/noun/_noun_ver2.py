@@ -173,19 +173,22 @@ class LRNounExtractor_v2:
         self._train_with_eojeol_counter(self, eojeol_counter)
 
     def _train_with_eojeol_counter(self, eojeol_counter):
-        self._num_of_eojeols = eojeol_counter._count_sum
-        self._num_of_covered_eojeols = 0
-
         if self.verbose:
             print('[Noun Extractor] complete eojeol counter -> lr graph')
 
         lrgraph = eojeol_counter.to_lrgraph(
             self.max_left_length, self.max_right_length)
 
-        self._train_with_lrgraph(lrgraph)
+        num_of_eojeols = eojeol_counter._count_sum
+        self._train_with_lrgraph(lrgraph, num_of_eojeols)
 
-    def _train_with_lrgraph(self, lrgraph):
+    def _train_with_lrgraph(self, lrgraph, num_of_eojeols=-1):
         self.lrgraph = lrgraph
+        self._num_of_covered_eojeols = 0
+
+        if num_of_eojeols == -1:
+            num_of_eojeols = lrgraph.to_EojeolCounter()._count_sum
+        self._num_of_eojeols = num_of_eojeols
 
         if self.verbose:
             print('[Noun Extractor] has been trained. mem={} Gb'.format(
