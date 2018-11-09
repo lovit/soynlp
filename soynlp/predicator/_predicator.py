@@ -16,13 +16,14 @@ lrgraph : L-R graph including [stem + Ending], Adverbs,
 from collections import defaultdict
 from collections import namedtuple
 from soynlp.hangle import character_is_complete_korean
-from soynlp.utils import LRGraph
-from soynlp.utils import get_process_memory
 from soynlp.utils import EojeolCounter
+from soynlp.utils import get_process_memory
+from soynlp.utils import LRGraph
 from soynlp.utils.utils import installpath
 from soynlp.lemmatizer import conjugate
 from soynlp.lemmatizer import _lemma_candidate
 from soynlp.lemmatizer import _conjugate_stem
+from soynlp.normalizer import normalize_sent_for_lrgraph
 from ._eomi import EomiExtractor
 from ._stem import StemExtractor
 from ._adjective_vs_verb import conjugate_as_present
@@ -34,8 +35,9 @@ Predicator = namedtuple('Predicator', 'frequency lemma')
 
 class PredicatorExtractor:
 
-    def __init__(self, nouns, noun_pos_features=None, adjectives=None, verbs=None,
-        eomis=None, extract_eomi=False, extract_stem=False, verbose=True):
+    def __init__(self, nouns, noun_pos_features=None, adjectives=None,
+        verbs=None, eomis=None, extract_eomi=False, extract_stem=False,
+        verbose=True, ensure_normalized=False):
 
         if not noun_pos_features:
             noun_pos_features = self._load_default_noun_pos_features()
@@ -56,6 +58,7 @@ class PredicatorExtractor:
         self.verbose = verbose
         self.extract_eomi = extract_eomi
         self.extract_stem = extract_stem
+        self.ensure_normalized = ensure_normalized
 
         self._stem_surfaces = self._transform_stem_as_surfaces()
         self.lrgraph = None
@@ -117,7 +120,7 @@ class PredicatorExtractor:
     def is_trained(self):
         return self.lrgraph
 
-    def train_extract(self, sentences_or_lrgraph, min_eojeol_frequency=2,
+    def train_extract(self, inputs, min_eojeol_frequency=2,
         filtering_checkpoint=100000, candidates=None,
         min_predicator_frequency=10, reset_lrgraph=True,
         # Eomi extractor
@@ -126,7 +129,7 @@ class PredicatorExtractor:
         min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
         min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
 
-        self.train(sentences_or_lrgraph, min_eojeol_frequency, filtering_checkpoint)
+        self.train(inputs, min_eojeol_frequency, filtering_checkpoint)
 
         predicators = self.extract(
             candidates, min_predicator_frequency, reset_lrgraph,
@@ -135,24 +138,21 @@ class PredicatorExtractor:
             min_entropy_of_R, min_stem_score, min_stem_frequency)
         return predicators
 
-    def train(self, sentences_or_lrgraph, min_eojeol_frequency=2,
+    def train(self, inputs, min_eojeol_frequency=2,
         filtering_checkpoint=100000):
 
-        if isinstance(sentences_or_lrgraph, LRGraph):
-            self._train_with_lrgraph(sentences_or_lrgraph)
+        if isinstance(inputs, LRGraph):
+            self._train_with_lrgraph(inputs)
+        elif isinstance(inputs, EojeolCounter):
+            self._train_with_eojeol_counter(
+                inputs, min_eojeol_frequency)
         else:
-            self._train_with_sentences(sentences_or_lrgraph,
+            self._train_with_sentences(inputs,
                 min_eojeol_frequency, filtering_checkpoint)
 
-    def _train_with_lrgraph(self, lrgraph):
-        counter = {}
-        for l, rdict in lrgraph._lr.items():
-            for r, count in rdict.items():
-                counter[l+r] = count
-
-        self._num_of_eojeols = sum(counter.values())
-        self._num_of_covered_eojeols = 0
-        self.lrgraph = lrgraph
+        if self.verbose:
+            message = 'has been trained'
+            self._print(message, replace=False, newline=True)
 
     def _train_with_sentences(self, sentences, min_eojeol_frequency=2,
         filtering_checkpoint=100000):
@@ -160,67 +160,58 @@ class PredicatorExtractor:
         check = filtering_checkpoint > 0
 
         if self.verbose:
-            message = 'counting eojeols'
+            message = 'counting eojeols ... '
             self._print(message, replace=False, newline=False)
 
-        # Eojeol counting
-        counter = {}
+        if self.ensure_normalized:
+            preprocess = lambda x:x
+        else:
+            preprocess = normalize_sent_for_lrgraph
 
-        def contains_noun(eojeol, n):
+        # Eojeol counting
+        eojeol_counter = EojeolCounter(
+            sentences,
+            min_count = min_eojeol_frequency,
+            verbose = self.verbose,
+            preprocess = preprocess
+        )
+
+        self._train_with_eojeol_counter(eojeol_counter)
+
+    def _train_with_eojeol_counter(self, eojeol_counter, min_eojeol_frequency=2):
+        def contains_noun(eojeol):
+            n = len(eojeol)
             for e in range(2, n + 1):
                 if eojeol[:e] in self._nouns:
                     return True
             return False
 
-        for i_sent, sent in enumerate(sentences):
-
-            if check and i_sent > 0 and i_sent % filtering_checkpoint == 0:
-                counter = {
-                    eojeol:count for eojeol, count in counter.items()
-                    if count >= min_eojeol_frequency
-                }
-
-            if self.verbose and i_sent % 100000 == 99999:
-                message = 'n eojeol = {} from {} sents. mem={} Gb{}'.format(
-                    len(counter), i_sent + 1, '%.3f' % get_process_memory(), ' '*20)
-                self._print(message, replace=True, newline=False)
-
-            for eojeol in sent.split():
-
-                n = len(eojeol)
-
-                if n <= 1 or contains_noun(eojeol, n):
-                    continue
-
-                counter[eojeol] = counter.get(eojeol, 0) + 1
-
-        if self.verbose:
-            message = 'counting eojeols was done. {} eojeols, mem={} Gb{}'.format(
-                len(counter), '%.3f' % get_process_memory(), ' '*20)
-            self._print(message, replace=True, newline=True)
-
-        counter = {
-            eojeol:count for eojeol, count in counter.items()
-            if count >= min_eojeol_frequency
+        eojeol_counter._counter = {
+            eojeol:count for eojeol, count in eojeol_counter._counter.items()
+            if ((count >= min_eojeol_frequency) and
+                (len(eojeol) > 1) and
+                (not contains_noun(eojeol)))
         }
 
-        self._num_of_eojeols = sum(counter.values())
+        eojeol_counter._set_count_sum()
+        num_of_eojeols = len(eojeol_counter)
+        lrgraph = eojeol_counter.to_lrgraph(l_max_length=10, r_max_length=9)
+
+        self._train_with_lrgraph(lrgraph, num_of_eojeols)
+
+    def _train_with_lrgraph(self, lrgraph, num_of_eojeols=-1):
+        self.lrgraph = lrgraph
+
+        if num_of_eojeols == -1:
+            num_of_eojeols = lrgraph.to_EojeolCounter()._count_sum
+
+        self._num_of_eojeols = num_of_eojeols
         self._num_of_covered_eojeols = 0
 
         if self.verbose:
-            message = 'complete eojeol counter -> lr graph'
-            self._print(message, replace=False, newline=True)
-
-        self.lrgraph = EojeolCounter()._to_lrgraph(
-            counter,
-            l_max_length=10,
-            r_max_length=9
-        )
-
-        if self.verbose:
-            message = 'has been trained. mem={} Gb'.format(
-                '%.3f' % get_process_memory())
-            self._print(message, replace=False, newline=True)
+            mem = '%.3f' % get_process_memory()
+            message = '#eojeols={}, mem={} Gb'.format(num_of_eojeols, mem)
+            self._print(message, replace=True, newline=True)
 
     def extract(self, candidates=None,
         min_predicator_frequency=10, reset_lrgraph=True,
