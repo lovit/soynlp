@@ -18,7 +18,7 @@ NounScore = namedtuple('NounScore', 'frequency score')
 class LRNounExtractor_v2:
     def __init__(self, max_left_length=10, max_right_length=9, predictor_headers=None,
         verbose=True, min_num_of_features=1, max_frequency_when_noun_is_eojeol=30,
-        eojeol_counter_filtering_checkpoint=200000,
+        eojeol_counter_filtering_checkpoint=500000,
         extract_compound=True, extract_pos_feature=False, extract_determiner=False,
         ensure_normalized=False, postprocessing=None, logpath=None):
 
@@ -148,9 +148,9 @@ class LRNounExtractor_v2:
         if isinstance(inputs, LRGraph):
             self._train_with_lrgraph(inputs)
         elif isinstance(inputs, EojeolCounter):
-            self._train_with_eojeol_counter(eojeol_counter)
+            self._train_with_eojeol_counter(inputs)
         else:
-            self._train_with_sentences(sentences, min_eojeol_frequency)
+            self._train_with_sentences(inputs, min_eojeol_frequency)
 
     def _train_with_sentences(self, sentences, min_eojeol_frequency=1):
         if self.verbose:
@@ -170,7 +170,7 @@ class LRNounExtractor_v2:
             preprocess = preprocess
         )
 
-        self._train_with_eojeol_counter(self, eojeol_counter)
+        self._train_with_eojeol_counter(eojeol_counter)
 
     def _train_with_eojeol_counter(self, eojeol_counter):
         if self.verbose:
