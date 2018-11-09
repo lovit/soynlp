@@ -221,6 +221,7 @@ class POSExtractor:
 
         if self._verbose:
             print('\r[POS Extractor] postprocessing was done 100.00 %    ')
+            print('[POS Extractor] ## statistics ##')
             print('[POS Extractor] Noun + [Josa/Predicator]: ({}, {:.3f} %)'.format(
                 len(nouns_), as_percent(sum(nouns_.values()), total_frequency)))
             print('[POS Extractor] Confused nouns          : ({}, {:.3f} %)'.format(
