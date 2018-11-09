@@ -137,15 +137,23 @@ class LRNounExtractor_v2:
                 n_pos, n_pos_, n_neg, n_neg_, n_common, n_common_)
             print('[Noun Extractor] features appended. {}'.format(message))
 
-    def train_extract(self, sentences, min_noun_score=0.3,
+    def train_extract(self, inputs, min_noun_score=0.3,
         min_noun_frequency=1, min_eojeol_frequency=1, reset_lrgraph=True):
 
-        self.train(sentences, min_eojeol_frequency)
+        self.train(inputs, min_eojeol_frequency)
 
         return self.extract(min_noun_score, min_noun_frequency, reset_lrgraph)
 
-    def train(self, sentences, min_eojeol_frequency=1):
+    def train(self, inputs, min_eojeol_frequency=1):
 
+        if isinstance(inputs, LRGraph):
+            self._train_with_lrgraph
+        elif isinstance(inputs, EojeolCounter):
+            self._train_with_eojeol_counter(eojeol_counter)
+        else:
+            self._train_with_sentences(sentences, min_eojeol_frequency)
+
+    def _train_with_sentences(self, sentences, min_eojeol_frequency=1):
         if self.verbose:
             print('[Noun Extractor] counting eojeols')
 
@@ -163,14 +171,22 @@ class LRNounExtractor_v2:
             preprocess = preprocess
         )
 
+        self._train_with_eojeol_counter(self, eojeol_counter)
+
+    def _train_with_eojeol_counter(self, eojeol_counter):
         self._num_of_eojeols = eojeol_counter._count_sum
         self._num_of_covered_eojeols = 0
 
         if self.verbose:
             print('[Noun Extractor] complete eojeol counter -> lr graph')
 
-        self.lrgraph = eojeol_counter.to_lrgraph(
+        lrgraph = eojeol_counter.to_lrgraph(
             self.max_left_length, self.max_right_length)
+
+        self._train_with_lrgraph(lrgraph)
+
+    def _train_with_lrgraph(self, lrgraph):
+        self.lrgraph = lrgraph
 
         if self.verbose:
             print('[Noun Extractor] has been trained. mem={} Gb'.format(
