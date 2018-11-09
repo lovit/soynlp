@@ -145,9 +145,8 @@ class LRNounExtractor_v2:
         return self.extract(min_noun_score, min_noun_frequency, reset_lrgraph)
 
     def train(self, inputs, min_eojeol_frequency=1):
-
         if isinstance(inputs, LRGraph):
-            self._train_with_lrgraph
+            self._train_with_lrgraph(inputs)
         elif isinstance(inputs, EojeolCounter):
             self._train_with_eojeol_counter(eojeol_counter)
         else:
