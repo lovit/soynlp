@@ -136,14 +136,14 @@ class PredicatorExtractor:
 
     def train_extract(self, inputs, min_eojeol_frequency=2,
         filtering_checkpoint=100000, candidates=None,
-        min_predicator_frequency=10, reset_lrgraph=True,
+        min_predicator_frequency=10, reset_lrgraph=True, ensure_lrgraph=False,
         # Eomi extractor
         min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
         # Stem extractor
         min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
         min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
 
-        self.train(inputs, min_eojeol_frequency, filtering_checkpoint)
+        self.train(inputs, min_eojeol_frequency, filtering_checkpoint, ensure_lrgraph)
 
         predicators = self.extract(
             candidates, min_predicator_frequency, reset_lrgraph,
@@ -153,10 +153,17 @@ class PredicatorExtractor:
         return predicators
 
     def train(self, inputs, min_eojeol_frequency=2,
-        filtering_checkpoint=100000):
+        filtering_checkpoint=100000, ensure_lrgraph=False):
 
         if isinstance(inputs, LRGraph):
-            self._train_with_lrgraph(inputs)
+            if ensure_lrgraph:
+                self._train_with_lrgraph(inputs)
+            else:
+                if self.verbose:
+                    message = 'LRGraph is converted to EojeolCounter for removing Noun [+Josa]'
+                    self._print(message, replace=False, newline=True)
+                eojeol_counter = inputs.to_EojeolCounter()
+                self._train_with_eojeol_counter(eojeol_counter)
         elif isinstance(inputs, EojeolCounter):
             self._train_with_eojeol_counter(
                 inputs, min_eojeol_frequency)
