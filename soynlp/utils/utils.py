@@ -175,7 +175,7 @@ class EojeolCounter:
                             if v >= self.min_count}
             # add eojeol count
             for eojeol in sent.split():
-                if (not eojeol) or (len(eojeol) <= 1) or (len(eojeol) > self.max_length):
+                if (not eojeol) or (len(eojeol) > self.max_length):
                     continue
                 _counter[eojeol] = _counter.get(eojeol, 0) + 1
             # print status
@@ -220,12 +220,14 @@ class EojeolCounter:
     def items(self):
         return self._counter.items()
 
-    def to_lrgraph(self, l_max_length=10, r_max_length=9):
+    def to_lrgraph(self, l_max_length=10, r_max_length=9, ignore_one_syllable=False):
         return self._to_lrgraph(self._counter, l_max_length, r_max_length)
 
-    def _to_lrgraph(self, counter, l_max_length=10, r_max_length=9):
+    def _to_lrgraph(self, counter, l_max_length=10, r_max_length=9, ignore_one_syllable=False):
         _lrgraph = defaultdict(lambda: defaultdict(int))
         for eojeol, count in counter.items():
+            if ignore_one_syllable and len(eojeol) == 1:
+                continue
             for e in range(1, min(l_max_length, len(eojeol)) + 1):
                 l, r = eojeol[:e], eojeol[e:]
                 if len(r) > r_max_length:
