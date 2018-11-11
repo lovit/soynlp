@@ -136,7 +136,7 @@ class PredicatorExtractor:
 
     def train_extract(self, inputs, min_eojeol_frequency=2,
         filtering_checkpoint=100000, candidates=None,
-        min_predicator_frequency=10, reset_lrgraph=True,
+        min_predicator_frequency=1, reset_lrgraph=True,
         # Eomi extractor
         min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
         # Stem extractor
@@ -232,7 +232,7 @@ class PredicatorExtractor:
             message = '#eojeols={}, mem={} Gb'.format(self._num_of_eojeols, mem)
             self._print(message, replace=True, newline=True)
 
-    def extract(self, candidates=None, min_predicator_frequency=10):
+    def extract(self, candidates=None, min_predicator_frequency=1):
         """candidates is EojeolCounter or dict format"""
 
         # reset covered eojeol count
