@@ -310,6 +310,8 @@ class PredicatorExtractor:
     def _extract_predicator(self, eojeols=None, min_frequency=1, reset_lrgraph=True):
         lemmas = self._as_lemma_candidates(eojeols, min_frequency)
 
+        lemmas = self._remove_noun_josa(lemmas)
+
         # TODO
         # evaluation
 
@@ -367,6 +369,20 @@ class PredicatorExtractor:
             self._print(message, replace=True, newline=True)
 
         return lemmas
+
+    def _remove_noun_josa(self, lemmas):
+
+        def is_noun_josa(eojeol):
+            for i in range(1, len(eojeol)):
+                if ((eojeol[:i] in self._nouns) and
+                    (eojeol[i:] in self._noun_pos_features)):
+                    return True
+            return False
+
+        def do_remove(eojeol):
+            return (eojeol in self._nouns) or (is_noun_josa(eojeol))
+
+        return {eojeol:lemma for eojeol, lemma in lemmas.items() if not do_remove(eojeol)}
 
     def _separate_adjective_verb(self, predicators, num_threshold=3):
         adjectives = {}
