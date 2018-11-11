@@ -171,17 +171,6 @@ class POSExtractor:
             # cumulate total frequency
             total_frequency += count
 
-            # check whether eojeol is predicator or not
-            is_predicator = False
-            if self._word_match(eojeol, adjectives):
-                adjectives_[eojeol] = count
-                is_predicator = True
-            if self._word_match(eojeol, verbs):
-                verbs_[eojeol] = count
-                is_predicator = True
-            if is_predicator:
-                continue
-
             # check eojeol is noun + predicator compound
             noun = self._separate_predicator_from_noun(
                 eojeol, nouns, adjectives, verbs)
@@ -211,6 +200,14 @@ class POSExtractor:
                     confused_nouns[eojeol] += count
                 continue
 
+            # check whether eojeol is predicator or noun
+            if self._word_match(eojeol, adjectives):
+                adjectives_[eojeol] = count
+            if self._word_match(eojeol, verbs):
+                verbs_[eojeol] = count
+            if eojeol in nouns:
+                nouns_[eojeol] += count
+
             # check eojeol is stem + eomi
             lemmas = self._conjugatable(eojeol, stems, eomis)
             if lemmas is not None:
@@ -223,10 +220,6 @@ class POSExtractor:
                 if eojeol in nouns:
                     confused_nouns[eojeol] = count
                 continue
-
-            # else if eojeol is known as noun
-            if eojeol in nouns:
-                nouns_[eojeol] += count
 
         if self._verbose:
             print('\r[POS Extractor] postprocessing was done 100.00 %    ')
