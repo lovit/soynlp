@@ -143,18 +143,23 @@ class PredicatorExtractor:
         min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
         min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
 
-        self.train(inputs, min_eojeol_frequency, filtering_checkpoint)
-
-        predicators = self.extract(
-            candidates, min_predicator_frequency,
+        self.train(inputs, min_eojeol_frequency, filtering_checkpoint,
             min_num_of_features, min_eomi_score, min_eomi_frequency,
             min_num_of_unique_R_char, min_entropy_of_R_char,
             min_entropy_of_R, min_stem_score, min_stem_frequency)
+
+        predicators = self.extract(
+            candidates, min_predicator_frequency)
         return predicators
 
-    def train(self, inputs, min_eojeol_frequency=2,
-        filtering_checkpoint=100000):
+    def train(self, inputs, min_eojeol_frequency=2, filtering_checkpoint=100000,
+        # Eomi extractor
+        min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
+        # Stem extractor
+        min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
+        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
 
+        # handle inputs
         if isinstance(inputs, LRGraph):
             self._train_with_eojeol_counter(
                 inputs.to_EojeolCounter(), min_eojeol_frequency)
@@ -164,6 +169,22 @@ class PredicatorExtractor:
         else:
             self._train_with_sentences(inputs,
                 min_eojeol_frequency, filtering_checkpoint)
+
+        # prepare predicator lrgraph
+        if self.extract_eomi or self.extract_stem:
+            lrgraph = self._prepare_predicator_lrgraph()
+
+        # extract eomi & stem
+        if self.extract_eomi:
+            self._extract_eomi(lrgraph, min_num_of_features,
+                min_eomi_score, min_eomi_frequency)
+
+        if self.extract_stem:
+            if self.extract_eomi:
+                lrgraph.reset_lrgraph()
+            self._extract_stem(lrgraph, min_num_of_unique_R_char,
+                min_entropy_of_R_char, min_entropy_of_R,
+                min_stem_score, min_stem_frequency)
 
         if self.verbose:
             message = 'has been trained'
@@ -211,33 +232,11 @@ class PredicatorExtractor:
             message = '#eojeols={}, mem={} Gb'.format(self._num_of_eojeols, mem)
             self._print(message, replace=True, newline=True)
 
-    def extract(self, candidates=None,
-        min_predicator_frequency=10,
-        # Eomi extractor
-        min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
-        # Stem extractor
-        min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
-        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
-
+    def extract(self, candidates=None, min_predicator_frequency=10):
         """candidates is EojeolCounter or dict format"""
 
         # reset covered eojeol count
         self._num_of_covered_eojeols = 0
-
-        # prepare predicator lrgraph
-        if self.extract_eomi or self.extract_stem:
-            lrgraph = self._prepare_predicator_lrgraph()
-
-        if self.extract_eomi:
-            self._extract_eomi(lrgraph, min_num_of_features,
-                min_eomi_score, min_eomi_frequency)
-
-        if self.extract_stem:
-            if self.extract_eomi:
-                lrgraph.reset_lrgraph()
-            self._extract_stem(lrgraph, min_num_of_unique_R_char,
-                min_entropy_of_R_char, min_entropy_of_R,
-                min_stem_score, min_stem_frequency)
 
         predicators = self._extract_predicator(
             candidates, min_predicator_frequency)
@@ -288,7 +287,7 @@ class PredicatorExtractor:
             message = '{} eomis have been extracted'.format(len(extracted_eomis))
             self._print(message, replace=False, newline=True)
 
-    def _extract_stem(self, lrgraph_, min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
+    def _extract_stem(self, lrgraph, min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
         min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
 
         stem_extractor = StemExtractor(
