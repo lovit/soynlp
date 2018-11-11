@@ -238,12 +238,10 @@ class PredicatorExtractor:
         # reset covered eojeol count
         self._num_of_covered_eojeols = 0
 
-        # TODO link parameters
         if self.extract_eomi:
             self._extract_eomi(min_num_of_features,
                 min_eomi_score, min_eomi_frequency)
 
-        # TODO link parameters
         if self.extract_stem:
             self._extract_stem(min_num_of_unique_R_char,
                 min_entropy_of_R_char, min_entropy_of_R,
