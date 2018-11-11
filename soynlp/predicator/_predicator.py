@@ -275,7 +275,7 @@ class PredicatorExtractor:
         )
 
         extracted_eomis = {eomi for eomi in extracted_eomis if not (eomi in self._eomis)}
-        # TODO: update adjective_stems & verb_stems ?
+
         self._eomis.update(extracted_eomis)
 
         if self.verbose:
