@@ -281,10 +281,12 @@ class PredicatorExtractor:
 
         extracted_eomis = {eomi for eomi in extracted_eomis if not (eomi in self._eomis)}
 
+        n_before = len(self._eomis)
         self._eomis.update(extracted_eomis)
+        n_after = len(self._eomis)
 
         if self.verbose:
-            message = '{} eomis have been extracted'.format(len(extracted_eomis))
+            message = 'eomis: {} -> {}'.format(n_before, n_after)
             self._print(message, replace=False, newline=True)
 
     def _extract_stem(self, lrgraph, min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
@@ -306,10 +308,13 @@ class PredicatorExtractor:
         )
 
         extracted_stems = {stem for stem in extracted_stems if not (stem in self._stems)}
+
+        n_before = len(self._stems)
         self._stems.update(extracted_stems)
+        n_after = len(self._stems)
 
         if self.verbose:
-            message = '{} stems have been extracted'.format(len(extracted_stems))
+            message = 'stems: {} -> {}'.format(n_before, n_after)
             self._print(message, replace=False, newline=True)
 
     def _extract_predicator(self, eojeol_counter=None, min_frequency=1):
