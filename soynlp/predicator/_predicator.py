@@ -35,12 +35,12 @@ Predicator = namedtuple('Predicator', 'frequency lemma')
 
 class PredicatorExtractor:
 
-    def __init__(self, nouns, noun_pos_features=None, adjectives=None,
+    def __init__(self, nouns, josas=None, adjectives=None,
         verbs=None, eomis=None, extract_eomi=False, extract_stem=False,
         verbose=True, ensure_normalized=False):
 
-        if not noun_pos_features:
-            noun_pos_features = self._load_default_noun_pos_features()
+        if not josas:
+            josas = self._load_default_josa()
 
         if (adjectives is None) or (verbs is None):
             adjectives, verbs = self._load_default_stems()
@@ -48,7 +48,7 @@ class PredicatorExtractor:
         if eomis is None:
             eomis = self._load_default_eomis()
 
-        self._noun_pos_features = noun_pos_features
+        self._josas = josas
         self._adjective_stems = adjectives
         self._verb_stems = verbs
         self._stems = {stem for stem in adjectives}
@@ -65,11 +65,11 @@ class PredicatorExtractor:
         nouns = self._remove_stem_prefix(nouns)
         self._nouns = nouns
 
-    def _load_default_noun_pos_features(self):
-        path = '%s/trained_models/noun_predictor_ver2_pos' % installpath
+    def _load_default_josa(self):
+        path = '%s/postagger/dictionary/default/Josa/josa.txt' % installpath
         with open(path, encoding='utf-8') as f:
-            pos_features = {word.split()[0] for word in f}
-        return pos_features
+            josas = {word.strip() for word in f}
+        return josas
 
     def _load_default_stems(self, min_frequency=2):
         def load(path):
@@ -375,7 +375,7 @@ class PredicatorExtractor:
         def is_noun_josa(eojeol):
             for i in range(1, len(eojeol)):
                 if ((eojeol[:i] in self._nouns) and
-                    (eojeol[i:] in self._noun_pos_features)):
+                    (eojeol[i:] in self._josas)):
                     return True
             return False
 
