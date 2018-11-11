@@ -60,7 +60,7 @@ class PredicatorExtractor:
         self.ensure_normalized = ensure_normalized
 
         self._stem_surfaces = self._transform_stem_as_surfaces()
-        self.lrgraph = None
+        self.eojeol_counter = None
 
         nouns = self._remove_stem_prefix(nouns)
         self._nouns = nouns
@@ -136,34 +136,28 @@ class PredicatorExtractor:
 
     def train_extract(self, inputs, min_eojeol_frequency=2,
         filtering_checkpoint=100000, candidates=None,
-        min_predicator_frequency=10, reset_lrgraph=True, ensure_lrgraph=False,
+        min_predicator_frequency=10, reset_lrgraph=True,
         # Eomi extractor
         min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
         # Stem extractor
         min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
         min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
 
-        self.train(inputs, min_eojeol_frequency, filtering_checkpoint, ensure_lrgraph)
+        self.train(inputs, min_eojeol_frequency, filtering_checkpoint)
 
         predicators = self.extract(
-            candidates, min_predicator_frequency, reset_lrgraph,
+            candidates, min_predicator_frequency,
             min_num_of_features, min_eomi_score, min_eomi_frequency,
             min_num_of_unique_R_char, min_entropy_of_R_char,
             min_entropy_of_R, min_stem_score, min_stem_frequency)
         return predicators
 
     def train(self, inputs, min_eojeol_frequency=2,
-        filtering_checkpoint=100000, ensure_lrgraph=False):
+        filtering_checkpoint=100000):
 
         if isinstance(inputs, LRGraph):
-            if ensure_lrgraph:
-                self._train_with_lrgraph(inputs)
-            else:
-                if self.verbose:
-                    message = 'LRGraph is converted to EojeolCounter for removing Noun [+Josa]'
-                    self._print(message, replace=False, newline=True)
-                eojeol_counter = inputs.to_EojeolCounter()
-                self._train_with_eojeol_counter(eojeol_counter)
+            self._train_with_eojeol_counter(
+                inputs.to_EojeolCounter(), min_eojeol_frequency)
         elif isinstance(inputs, EojeolCounter):
             self._train_with_eojeol_counter(
                 inputs, min_eojeol_frequency)
@@ -200,6 +194,60 @@ class PredicatorExtractor:
         self._train_with_eojeol_counter(eojeol_counter)
 
     def _train_with_eojeol_counter(self, eojeol_counter, min_eojeol_frequency=2):
+        eojeol_counter._counter = {
+            eojeol:count for eojeol, count in eojeol_counter._counter.items()
+            if count >= min_eojeol_frequency}
+
+        eojeol_counter._set_count_sum()
+        self._num_of_eojeols = len(eojeol_counter)
+        self._num_of_covered_eojeols = 0
+        self._count_of_eojeols = eojeol_counter._count_sum
+        self._count_of_covered_eojeols = 0
+
+        self.eojeol_counter = eojeol_counter
+
+        if self.verbose:
+            mem = '%.3f' % get_process_memory()
+            message = '#eojeols={}, mem={} Gb'.format(self._num_of_eojeols, mem)
+            self._print(message, replace=True, newline=True)
+
+    def extract(self, candidates=None,
+        min_predicator_frequency=10,
+        # Eomi extractor
+        min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
+        # Stem extractor
+        min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
+        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
+
+        """candidates is EojeolCounter or dict format"""
+
+        # reset covered eojeol count
+        self._num_of_covered_eojeols = 0
+
+        # prepare predicator lrgraph
+        if self.extract_eomi or self.extract_stem:
+            lrgraph = self._prepare_predicator_lrgraph()
+
+        if self.extract_eomi:
+            self._extract_eomi(lrgraph, min_num_of_features,
+                min_eomi_score, min_eomi_frequency)
+
+        if self.extract_stem:
+            if self.extract_eomi:
+                lrgraph.reset_lrgraph()
+            self._extract_stem(lrgraph, min_num_of_unique_R_char,
+                min_entropy_of_R_char, min_entropy_of_R,
+                min_stem_score, min_stem_frequency)
+
+        predicators = self._extract_predicator(
+            candidates, min_predicator_frequency)
+
+        adjectives, verbs = self._separate_adjective_verb(predicators)
+
+        return adjectives, verbs
+
+    def _prepare_predicator_lrgraph(self):
+
         def contains_noun(eojeol):
             n = len(eojeol)
             for e in range(2, n + 1):
@@ -207,64 +255,17 @@ class PredicatorExtractor:
                     return True
             return False
 
-        eojeol_counter._counter = {
-            eojeol:count for eojeol, count in eojeol_counter._counter.items()
-            if ((count >= min_eojeol_frequency) and
-                (len(eojeol) > 1) and
-                (not contains_noun(eojeol)))
-        }
+        eojeols = {k:v for k, v in self.eojeol_counter._counter.items()}
+        eojeols = {eojeol:count for eojeol, count in eojeols.items()
+                   if len(eojeol) > 1 and not contains_noun(eojeol)}
+        lrgraph = EojeolCounter()._to_lrgraph(eojeols)
+        return lrgraph
 
-        eojeol_counter._set_count_sum()
-        num_of_eojeols = len(eojeol_counter)
-        lrgraph = eojeol_counter.to_lrgraph(l_max_length=10, r_max_length=9)
-
-        self._train_with_lrgraph(lrgraph, num_of_eojeols)
-
-    def _train_with_lrgraph(self, lrgraph, num_of_eojeols=-1):
-        self.lrgraph = lrgraph
-
-        if num_of_eojeols == -1:
-            num_of_eojeols = lrgraph.to_EojeolCounter()._count_sum
-
-        self._num_of_eojeols = num_of_eojeols
-        self._num_of_covered_eojeols = 0
-
-        if self.verbose:
-            mem = '%.3f' % get_process_memory()
-            message = '#eojeols={}, mem={} Gb'.format(num_of_eojeols, mem)
-            self._print(message, replace=True, newline=True)
-
-    def extract(self, candidates=None,
-        min_predicator_frequency=10, reset_lrgraph=True,
-        # Eomi extractor
-        min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
-        # Stem extractor
-        min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
-        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
-
-        # reset covered eojeol count
-        self._num_of_covered_eojeols = 0
-
-        if self.extract_eomi:
-            self._extract_eomi(min_num_of_features,
-                min_eomi_score, min_eomi_frequency)
-
-        if self.extract_stem:
-            self._extract_stem(min_num_of_unique_R_char,
-                min_entropy_of_R_char, min_entropy_of_R,
-                min_stem_score, min_stem_frequency)
-
-        predicators = self._extract_predicator(
-            candidates, min_predicator_frequency, reset_lrgraph)
-
-        adjectives, verbs = self._separate_adjective_verb(predicators)
-
-        return adjectives, verbs
-
-    def _extract_eomi(self, min_num_of_features=5, min_eomi_score=0.3, min_eomi_frequency=1):
+    def _extract_eomi(self, lrgraph, min_num_of_features=5,
+        min_eomi_score=0.3, min_eomi_frequency=1):
 
         eomi_extractor = EomiExtractor(
-            lrgraph = self.lrgraph,
+            lrgraph = lrgraph,
             stems = self._stems,
             nouns = self._nouns,
             min_num_of_features = min_num_of_features,
@@ -287,11 +288,11 @@ class PredicatorExtractor:
             message = '{} eomis have been extracted'.format(len(extracted_eomis))
             self._print(message, replace=False, newline=True)
 
-    def _extract_stem(self, min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
+    def _extract_stem(self, lrgraph_, min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
         min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
 
         stem_extractor = StemExtractor(
-            lrgraph = self.lrgraph,
+            lrgraph = lrgraph,
             stems = self._stems,
             eomis = self._eomis,
             min_num_of_unique_R_char = min_num_of_unique_R_char,
@@ -312,10 +313,21 @@ class PredicatorExtractor:
             message = '{} stems have been extracted'.format(len(extracted_stems))
             self._print(message, replace=False, newline=True)
 
-    def _extract_predicator(self, eojeols=None, min_frequency=1, reset_lrgraph=True):
-        lemmas = self._as_lemma_candidates(eojeols, min_frequency)
+    def _extract_predicator(self, eojeol_counter=None, min_frequency=1):
 
-        lemmas = self._remove_noun_josa(lemmas)
+        def all_character_are_complete_korean(s):
+            for c in s:
+                if not character_is_complete_korean(c):
+                    return False
+            return True
+
+        if (eojeol_counter is None) or (not eojeol_counter):
+            eojeol_counter = {
+                eojeol:count for eojeol, count in self.eojeol_counter.items()
+                if (count > min_frequency) and all_character_are_complete_korean(eojeol)
+            }
+
+        lemmas = self._as_lemma_candidates(eojeol_counter)
 
         # TODO
         # evaluation
@@ -326,28 +338,23 @@ class PredicatorExtractor:
 
         return lemmas
 
-    def _as_lemma_candidates(self, eojeols=None,  min_frequency=10):
+    def _as_lemma_candidates(self, eojeol_counter=None):
 
-        def all_character_are_complete_korean(s):
-            for c in s:
-                if not character_is_complete_korean(c):
-                    return False
-            return True
+        def is_noun_josa(eojeol):
+            for i in range(1, len(eojeol)):
+                if ((eojeol[:i] in self._nouns) and
+                    (eojeol[i:] in self._josas)):
+                    return True
+            return False
 
-        if not eojeols:
-            eojeols = {l:rdict.get('', 0) for l, rdict in self.lrgraph._lr.items()}
-            eojeols = {eojeol:count for eojeol, count in eojeols.items()
-                       if (count > min_frequency) and all_character_are_complete_korean(eojeol)}
+        self._num_of_covered_eojeols = 0
+        self._count_of_covered_eojeols = 0
 
-        n_eojeols = len(eojeols)
         lemmas = {}
 
-        for i_eojeol, eojeol in enumerate(eojeols):
-
-            if self.verbose and i_eojeol % 5000 == 0:
-                perc = '%.3f'% (100 * i_eojeol / n_eojeols)
-                message = 'lemma candidates ... {} %'.format(perc)
-                self._print(message, replace=True, newline=False)
+        for eojeol, count in eojeol_counter.items():
+            if is_noun_josa(eojeol):
+                continue
 
             n = len(eojeol)
             lemma_candidates = set()
@@ -364,30 +371,16 @@ class PredicatorExtractor:
                     lemma_candidates_.add((stem, eomi))
 
             if lemma_candidates_:
-                count = eojeols[eojeol]
                 lemmas[eojeol] = Predicator(count, lemma_candidates_)
-                self._num_of_covered_eojeols += count
+                self._num_of_covered_eojeols += 1
+                self._count_of_covered_eojeols += count
 
         if self.verbose:
-            message = 'lemma candidating was done. {} % eojeols are covered'.format(
-                '%.3f' % (100 * self._num_of_covered_eojeols / self._num_of_eojeols))
+            perc = '%.3f' % (100 * self._count_of_covered_eojeols / self._count_of_eojeols)
+            message = 'lemma candidating was done'
             self._print(message, replace=True, newline=True)
 
         return lemmas
-
-    def _remove_noun_josa(self, lemmas):
-
-        def is_noun_josa(eojeol):
-            for i in range(1, len(eojeol)):
-                if ((eojeol[:i] in self._nouns) and
-                    (eojeol[i:] in self._josas)):
-                    return True
-            return False
-
-        def do_remove(eojeol):
-            return (eojeol in self._nouns) or (is_noun_josa(eojeol))
-
-        return {eojeol:lemma for eojeol, lemma in lemmas.items() if not do_remove(eojeol)}
 
     def _separate_adjective_verb(self, predicators, num_threshold=3):
         adjectives = {}
