@@ -36,7 +36,7 @@ class Lemmatizer:
             candidates.update(self._lemma_candidate(l, r, self._predefined))
         return candidates
 
-def _lemma_candidate(l, r, predefined=None):
+def _lemma_candidate(l, r, predefined=None, debug=False):
     def add_lemma(stem, ending):
         candidates.add((stem, ending))
 
@@ -162,6 +162,9 @@ def _lemma_candidate(l, r, predefined=None):
     if predefined and (l, r) in predefined:
         for stem in predefined[(l, r)]:
             candidates.add(stem)
+
+    if debug:
+        print(l, r, candidates)
 
     # check whether lemma is conjugatable
     candidates_ = []
