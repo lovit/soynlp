@@ -469,7 +469,7 @@ class LRNounExtractor_v2:
 
         self._compound_decomposer = MaxScoreTokenizer(scores=noun_scores)
 
-        candidates = {l:sum(rdict.values()) for l,rdict in self.lrgraph._lr.items()
+        candidates = {l:rdict.get('', 0) for l,rdict in self.lrgraph._lr_origin.items()
             if (len(l) >= 4) and not (l in noun_scores)}
 
         n = len(candidates)
@@ -482,10 +482,6 @@ class LRNounExtractor_v2:
             if self.verbose and i % 1000 == 999:
                 percentage = '%.2f' % (100 * i / n)
                 print('\r  -- check compound {} %'.format(percentage), flush=True, end='')
-
-            # skip if candidate is substring of longer compound
-            if candidates.get(word, 0) <= 0:
-                continue
 
             tokens = self._compound_decomposer.tokenize(word, flatten=False)[0]
             compound_parts = self._parse_compound(tokens)
