@@ -3,6 +3,7 @@ from collections import defaultdict
 from soynlp.lemmatizer import _lemma_candidate
 from soynlp.lemmatizer import conjugate
 from soynlp.noun import LRNounExtractor_v2
+from soynlp.predicator import Predicator
 from soynlp.predicator import PredicatorExtractor
 from soynlp.tokenizer import MaxScoreTokenizer
 from soynlp.utils import LRGraph
