@@ -1,9 +1,10 @@
 from collections import defaultdict
 
-from soynlp.noun import LRNounExtractor_v2
-from soynlp.predicator import PredicatorExtractor
 from soynlp.lemmatizer import _lemma_candidate
 from soynlp.lemmatizer import conjugate
+from soynlp.noun import LRNounExtractor_v2
+from soynlp.predicator import PredicatorExtractor
+from soynlp.tokenizer import MaxScoreTokenizer
 from soynlp.utils import LRGraph
 
 
@@ -59,7 +60,7 @@ class POSExtractor:
         verb_stems = self.predicator_extractor._verb_stems
         eomis = self.predicator_extractor._eomis
 
-        nouns_, confused_nouns, adjectives_, verbs_ = self._word_match_postprocessing(
+        nouns_, confused_nouns, adjectives_, verbs_, not_covered = self._word_match_postprocessing(
             nouns, adjectives, adjective_stems, verbs, verb_stems, eomis)
 
         wordtags = {
@@ -73,6 +74,7 @@ class POSExtractor:
 
         if debug:
             wordtags['ConfusedNoun'] = confused_nouns
+            wordtags['NotCovered'] = not_covered
 
         return wordtags
 
@@ -90,6 +92,7 @@ class POSExtractor:
         self.noun_extractor = LRNounExtractor_v2(
             extract_pos_feature = False,
             extract_determiner = self._extract_determiner,
+            extract_compound = False,
             ensure_normalized = self._ensure_normalized,
             verbose = self._verbose,
             min_num_of_features = min_num_of_features,
@@ -161,6 +164,7 @@ class POSExtractor:
         confused_nouns = defaultdict(int)
         adjectives_ = {}
         verbs_ = {}
+        not_covered = {}
 
         for i, (eojeol, count) in enumerate(eojeol_counter.items()):
 
@@ -170,11 +174,13 @@ class POSExtractor:
 
             # cumulate total frequency
             total_frequency += count
+            covered = False
 
             # check eojeol is noun + predicator compound
             noun = self._separate_predicator_from_noun(
                 eojeol, nouns, adjectives, verbs)
             if noun is not None:
+                covered = True
                 nouns_[noun] += count
                 # debug noun extraction results
                 if eojeol in nouns:
@@ -187,6 +193,7 @@ class POSExtractor:
                 self.noun_extractor._pos_features,
                 self.noun_extractor._common_features)
             if noun is not None:
+                covered = True
                 nouns_[noun] += count
                 continue
 
@@ -194,6 +201,7 @@ class POSExtractor:
             noun = self._separate_predicator_suspect_from_noun(
                 eojeol, nouns, stems, eomis)
             if noun is not None:
+                covered = True
                 nouns_[noun] += count
                 # debug noun extraction results
                 if eojeol in nouns:
@@ -202,15 +210,19 @@ class POSExtractor:
 
             # check whether eojeol is predicator or noun
             if self._word_match(eojeol, adjectives):
+                covered = True
                 adjectives_[eojeol] = count
             if self._word_match(eojeol, verbs):
+                covered = True
                 verbs_[eojeol] = count
             if eojeol in nouns:
+                covered = True
                 nouns_[eojeol] += count
 
             # check eojeol is stem + eomi
             lemmas = self._conjugatable(eojeol, stems, eomis)
             if lemmas is not None:
+                covered = True
                 stem_adjs = {stem for stem, _ in lemmas if stem in adjective_stems}
                 stem_v = {stem for stem, _ in lemmas if stem in verb_stems}
                 if stem_adjs:
@@ -221,19 +233,33 @@ class POSExtractor:
                     confused_nouns[eojeol] = count
                 continue
 
+            if not covered:
+                not_covered[eojeol] = count
+
+        josas = self.predicator_extractor._josas
+        compound_nouns = self._extract_compound_nouns(
+            not_covered, nouns, josas, adjectives_, verbs_)
+
+        not_covered = {eojeol:count for eojeol, count in not_covered.items()
+                       if not (eojeol in compound_nouns)}
+
         if self._verbose:
             print('\r[POS Extractor] postprocessing was done 100.00 %    ')
             print('[POS Extractor] ## statistics ##')
-            print('[POS Extractor] Noun + [Josa/Predicator]: ({}, {:.3f} %)'.format(
+            print('[POS Extractor] {} ({:.3f} %): Noun + [Josa/Predicator]'.format(
                 len(nouns_), as_percent(sum(nouns_.values()), total_frequency)))
-            print('[POS Extractor] Confused nouns          : ({}, {:.3f} %)'.format(
+            print('[POS Extractor] {} ({:.3f} %): Confused nouns'.format(
                 len(confused_nouns), as_percent(sum(confused_nouns.values()), total_frequency)))
-            print('[POS Extractor] Adjective : ({}, {:.3f} %)'.format(
+            print('[POS Extractor] {} ({:.3f} %): Adjective'.format(
                 len(adjectives_), as_percent(sum(adjectives_.values()), total_frequency)))
-            print('[POS Extractor] Verb      : ({}, {:.3f} %)'.format(
+            print('[POS Extractor] {} ({:.3f} %) Verb'.format(
                 len(verbs_), as_percent(sum(verbs_.values()), total_frequency)))
+            print('[POS Extractor] {} ({:.3f} %) not covered'.format(
+                len(not_covered), as_percent(sum(not_covered.values()), total_frequency)))
+            print('[POS Extractor] {} ({:.3f} %) compound nouns'.format(
+                len(compound_nouns), as_percent(sum(compound_nouns.values()), total_frequency)))
 
-        return nouns_, confused_nouns, adjectives_, verbs_
+        return nouns_, confused_nouns, adjectives_, verbs_, not_covered
 
     def _word_match(self, word, references):
         if word in references:
@@ -275,3 +301,36 @@ class POSExtractor:
             if lemmas:
                 return lemmas
         return None
+
+    def _extract_compound_nouns(self, words, nouns, josa, adjectives, verbs):
+        def parse_compound(tokens):
+            def has_r(word):
+                return (word in josa) or (word in adjectives) or (word in verbs)
+
+            # format: (word, begin, end, score, length)
+            for token in tokens[:-1]:
+                if token[3] <= 0:
+                    return None
+            # Noun* + Josa
+            if len(tokens) >= 3 and has_r(tokens[-1][0]):
+                return tuple(t[0] for t in tokens[:-1])
+            # all tokens are noun
+            if tokens[-1][3] > 0:
+                return tuple(t[0] for t in tokens)
+            # else, not compound
+            return None
+
+        # TODO: replace scores with noun scores
+        tokenizer = MaxScoreTokenizer(scores = {noun:1 for noun in nouns})
+
+        compounds = {}
+        for word, count in words.items():
+            tokens = tokenizer.tokenize(word, flatten=False)[0]
+            compound_parts = parse_compound(tokens, )
+            if compound_parts:
+                word = ''.join(compound_parts)
+                compounds[word] = compounds.get(word, 0) + count
+                if word in words:
+                    words[word] = words.get(word, 0) - count
+
+        return compounds
