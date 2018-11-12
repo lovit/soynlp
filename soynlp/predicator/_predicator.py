@@ -356,8 +356,12 @@ class PredicatorExtractor:
 
         lemmas = {}
         eomi_to_word_count = defaultdict(lambda: [])
+        num_eojeol = len(eojeol_counter)
 
-        for eojeol, count in eojeol_counter.items():
+        for i, (eojeol, count) in enumerate(eojeol_counter.items()):
+            if self.verbose and i % 5000 == 4999:
+                message = 'lemmatizing {} / {} words'.format(i+1, num_eojeol)
+                self._print(message, replace=True, newline=False)
             if is_noun_josa(eojeol):
                 continue
 
@@ -400,7 +404,7 @@ class PredicatorExtractor:
                 prop_len2 = sum_ / sum(1 for w, v in word_count)
             return prop, prop_len2
 
-        checks = {
+        #checks = {
         #    '안서', '어든', '아기', 'ㄴ라', 'ㄴ대', 'ㄴ기', '아두',
         #    'ㄴ단', 'ㄴ지', '어자', 'ㄴ물', 'ㄴ장', 'ㄴ타', 'ㄴ어',
         #    'ㄴ물', 'ㄴ고', 'ㄴ터', '물', '애', 'ㄴ가', '앙위'
