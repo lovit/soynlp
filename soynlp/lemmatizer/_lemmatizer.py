@@ -168,8 +168,10 @@ def _lemma_candidate(l, r, predefined=None):
     for stem, eomi in candidates:
         if not eomi:
             continue
+        # hard rule
+        if decompose(eomi[0])[2] == 'ㅎ':
+            continue
         surfaces = conjugate(stem, eomi)
         if word in surfaces:
             candidates_.append((stem, eomi))
     return candidates_
-    return candidates
