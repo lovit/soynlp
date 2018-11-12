@@ -145,7 +145,7 @@ class EojeolCounter:
             preprocess = lambda x:x
         self.preprocess = preprocess
 
-        if sents:
+        if sents is not None:
             self._counter = self._counting_from_sents(sents)
         else:
             self._counter = {}
