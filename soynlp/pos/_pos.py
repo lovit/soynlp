@@ -236,7 +236,7 @@ class POSExtractor:
                     confused_nouns[eojeol] = count
                 continue
 
-            l, r = eojeol[1:], eojeol[:1]
+            l, r = eojeol[:1], eojeol[1:]
             if (r in verbs):
                 nouns_[l] += count
                 verbs_[r] += count
