@@ -9,7 +9,7 @@ from soynlp.tokenizer import MaxScoreTokenizer
 from soynlp.utils import LRGraph
 
 
-class POSExtractor:
+class NewsPOSExtractor:
 
     def __init__(self, verbose=True, extract_noun_pos_feature=True,
         extract_determiner=True, ensure_normalized=True, extract_eomi=True,

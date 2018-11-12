@@ -1,1 +1,1 @@
-from ._pos import POSExtractor
+from ._news_pos import NewsPOSExtractor
