@@ -43,10 +43,10 @@ def conjugate(stem, ending, enforce_moum_harmoney=False, debug=False):
             ending = compose(*r_first) + ending[1:]
 
     # -는 vs -ㄴ / -ㄴ, -ㄹ, -ㅂ, -ㅆ
-    if ((l_last[2] == ' ') and
-        ((r_first[0] == 'ㅇ' or r_first[0] == r_first[2]) and (r_first[1] == 'ㅣ' or r_first[1] == 'ㅡ'))):
-        r_first = [r_first[2], ' ', ' ']
-        ending = r_first[2] + ending[1:]
+    #if ((l_last[2] == ' ') and
+    #    ((r_first[0] == 'ㅇ' or r_first[0] == r_first[2]) and (r_first[1] == 'ㅣ' or r_first[1] == 'ㅡ'))):
+    #    r_first = [r_first[2], ' ', ' ']
+    #    ending = r_first[2] + ending[1:]
 
     r_first_ = compose(r_first[0], r_first[1], ' ') if r_first[1] != ' ' else ending[0]
 
@@ -116,6 +116,7 @@ def conjugate(stem, ending, enforce_moum_harmoney=False, debug=False):
         r = ending[1:]
         surface = l + r
         candidates.add(surface)
+        candidates.add(stem + ending)
         if debug:
             print('어미의 첫 글자가 -ㄴ, -ㄹ, -ㅂ, -ㅆ 인 경우: {}'.format(surface))
 
