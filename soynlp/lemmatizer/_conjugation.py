@@ -67,6 +67,7 @@ def conjugate(stem, ending, enforce_moum_harmoney=False, debug=False):
         l = stem[:-1] + compose(l_last[0], l_last[1], 'ㄹ')
         surface = l + ending
         candidates.add(surface)
+        candidates.add(stem + ending) # 받 + 았다 -> 받았다
         if debug:
             print('ㄷ 불규칙: {}'.format(surface))
 
