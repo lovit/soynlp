@@ -355,6 +355,7 @@ class PredicatorExtractor:
         self._count_of_covered_eojeols = 0
 
         lemmas = {}
+        eomi_to_word_count = defaultdict(lambda: [])
 
         for eojeol, count in eojeol_counter.items():
             if is_noun_josa(eojeol):
@@ -376,13 +377,79 @@ class PredicatorExtractor:
 
             if lemma_candidates_:
                 lemmas[eojeol] = Predicator(count, lemma_candidates_)
+                for stem, eomi in lemma_candidates_:
+                    eomi_to_word_count[eomi].append((eojeol, count))
                 self._num_of_covered_eojeols += 1
                 self._count_of_covered_eojeols += count
 
+        lemmas = self._remove_wrong_eomis(lemmas, eomi_to_word_count)
         if self.verbose:
             perc = '%.3f' % (100 * self._count_of_covered_eojeols / self._count_of_eojeols)
             message = 'lemma candidating was done'
             self._print(message, replace=True, newline=True)
+
+        return lemmas
+
+    def _remove_wrong_eomis(self, lemmas, eomi_to_word_count):
+        def noun_proportion(word_count):
+            sum_ = sum(1 for w, v in word_count if len(w) == 2)
+            prop = sum(1 for w, v in word_count if (w in self._nouns) and (len(w) == 2))
+            prop_len2 = 0
+            if sum_ > 0:
+                prop /= sum_
+                prop_len2 = sum_ / sum(1 for w, v in word_count)
+            return prop, prop_len2
+
+        #checks = {
+        #    '안서', '어든', '아기', 'ㄴ라', 'ㄴ대', 'ㄴ기', '아두',
+        #    'ㄴ단', 'ㄴ지', '어자', 'ㄴ물', 'ㄴ장', 'ㄴ타', 'ㄴ어',
+        #    'ㄴ물', 'ㄴ고', 'ㄴ터', '물', '애', 'ㄴ가'
+        #}
+        remove_eomis = set()
+        remove_morphs = {}
+
+        # find
+        for eomi, word_count in eomi_to_word_count.items():
+            if len(eomi) >= 3:
+                continue
+
+            prop, prop_len2 = noun_proportion(word_count)
+            if prop < 0.66:
+                continue
+
+            if prop_len2 == 1:
+                remove_eomis.add(eomi)
+                remove_words = tuple(word for word, _ in word_count if len(word) == 2)
+            else:
+                remove_words = tuple(
+                    word for word, _ in word_count if len(word) == 2 and word in self._nouns)
+            remove_morphs[eomi] = remove_words
+
+            # debug code
+            #if eomi in checks:
+            #    print(eomi, prop, prop_len2)
+            #    for word in remove_words:
+            #        print('  {}, {}'.format(word, word in self._nouns))
+
+        # remove
+        self._eomis = {eomi for eomi in self._eomis if not (eomi in remove_eomis)}
+        if self.verbose:
+            words = {word for words in remove_morphs.values() for word in words}
+            message = '{} eomis are removed, {} words are modified.'.format(
+                len(remove_eomis), len(words))
+            self._print(message, replace=True, newline=True)
+
+        for eomi, words in remove_morphs.items():
+            for word in words:
+                if not (word in lemmas):
+                    continue
+                predicator = lemmas[word]
+                if len(predicator.lemma) == 1:
+                    lemmas.pop(word)
+                else:
+                    lemmas[word] = Predicator(
+                        predicator.count,
+                        {lemma for lemma in predicator.lemma if lemma[1] != eomi})
 
         return lemmas
 
