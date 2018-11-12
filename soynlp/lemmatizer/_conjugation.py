@@ -116,7 +116,8 @@ def conjugate(stem, ending, enforce_moum_harmoney=False, debug=False):
         r = ending[1:]
         surface = l + r
         candidates.add(surface)
-        candidates.add(stem + ending)
+        if r_first[1] != ' ':
+            candidates.add(stem + ending)
         if debug:
             print('어미의 첫 글자가 -ㄴ, -ㄹ, -ㅂ, -ㅆ 인 경우: {}'.format(surface))
 
