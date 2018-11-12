@@ -162,9 +162,11 @@ class POSExtractor:
         total_frequency = 0
         nouns_ = defaultdict(int)
         confused_nouns = defaultdict(int)
-        adjectives_ = {}
-        verbs_ = {}
+        adjectives_ = defaultdict(int)
+        verbs_ = defaultdict(int)
         not_covered = {}
+
+        compound_stems = set()
 
         for i, (eojeol, count) in enumerate(eojeol_counter.items()):
 
@@ -211,10 +213,10 @@ class POSExtractor:
             # check whether eojeol is predicator or noun
             if self._word_match(eojeol, adjectives):
                 covered = True
-                adjectives_[eojeol] = count
+                adjectives_[eojeol] += count
             if self._word_match(eojeol, verbs):
                 covered = True
-                verbs_[eojeol] = count
+                verbs_[eojeol] += count
             if eojeol in nouns:
                 covered = True
                 nouns_[eojeol] += count
@@ -226,9 +228,9 @@ class POSExtractor:
                 stem_adjs = {stem for stem, _ in lemmas if stem in adjective_stems}
                 stem_v = {stem for stem, _ in lemmas if stem in verb_stems}
                 if stem_adjs:
-                    adjectives_[eojeol] = count
+                    adjectives_[eojeol] += count
                 if stem_v:
-                    verbs_[eojeol] = count
+                    verbs_[eojeol] += count
                 if eojeol in nouns:
                     confused_nouns[eojeol] = count
                 continue
@@ -242,6 +244,21 @@ class POSExtractor:
                 nouns_[l] += count
                 adjectives_[r] += count
                 covered = True
+
+            two_predicators = self._separate_two_predicator(eojeol, adjectives, verbs)
+            if two_predicators is not None:
+                covered = True
+                l, r, tag = two_predicators
+                lemma = (adjectives[r] if tag == 'Adjective' else verbs[r]).lemma
+                lemma = {(l+stem, eomi) for stem, eomi in lemma}
+                predicator_compound = Predicator(count, lemma)
+                if tag == 'Adjective':
+                    adjectives[eojeol] = predicator_compound
+                    adjectives_[eojeol] += count
+                else:
+                    verbs[eojeol] = predicator_compound
+                    verbs_[eojeol] += count
+                compound_stems.update({stem for stem, _ in lemma})
 
             if not covered:
                 not_covered[eojeol] = count
@@ -292,6 +309,16 @@ class POSExtractor:
                 continue
             if self._conjugatable(r, stems, eomis) is not None:
                 return l
+        return None
+
+    def _separate_two_predicator(self, word, adjectives, verbs):
+        for i in range(2, len(word)):
+            l, r = word[:i], word[i:]
+            if ((l in adjectives) or (l in verbs)):
+                if r in verbs:
+                    return (l, r, 'Verb')
+                elif r in adjectives:
+                    return (l, r, 'Adjective')
         return None
 
     def _conjugatable(self, word, stems, eomis):
