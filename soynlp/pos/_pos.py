@@ -237,11 +237,8 @@ class POSExtractor:
                 not_covered[eojeol] = count
 
         josas = self.predicator_extractor._josas
-        compound_nouns = self._extract_compound_nouns(
+        nouns, compound_nouns, not_covered = self._extract_compound_nouns(
             not_covered, nouns, josas, adjectives_, verbs_)
-
-        not_covered = {eojeol:count for eojeol, count in not_covered.items()
-                       if not (eojeol in compound_nouns)}
 
         if self._verbose:
             print('\r[POS Extractor] postprocessing was done 100.00 %    ')
@@ -320,17 +317,22 @@ class POSExtractor:
             # else, not compound
             return None
 
-        # TODO: replace scores with noun scores
         tokenizer = MaxScoreTokenizer(scores = {noun:1 for noun in nouns})
 
         compounds = {}
+        removals = set()
         for word, count in words.items():
             tokens = tokenizer.tokenize(word, flatten=False)[0]
             compound_parts = parse_compound(tokens, )
             if compound_parts:
+                removals.add(word)
                 word = ''.join(compound_parts)
-                compounds[word] = compounds.get(word, 0) + count
+                if word in nouns:
+                    nouns[word] = nouns[word] + count
+                else:
+                    compounds[word] = compounds.get(word, 0) + count
                 if word in words:
                     words[word] = words.get(word, 0) - count
 
-        return compounds
+        words = {word:count for word, count in words.items() if not (word in removals)}
+        return nouns, compounds, words
