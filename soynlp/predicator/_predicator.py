@@ -400,10 +400,10 @@ class PredicatorExtractor:
                 prop_len2 = sum_ / sum(1 for w, v in word_count)
             return prop, prop_len2
 
-        #checks = {
+        checks = {
         #    '안서', '어든', '아기', 'ㄴ라', 'ㄴ대', 'ㄴ기', '아두',
         #    'ㄴ단', 'ㄴ지', '어자', 'ㄴ물', 'ㄴ장', 'ㄴ타', 'ㄴ어',
-        #    'ㄴ물', 'ㄴ고', 'ㄴ터', '물', '애', 'ㄴ가'
+        #    'ㄴ물', 'ㄴ고', 'ㄴ터', '물', '애', 'ㄴ가', '앙위'
         #}
         remove_eomis = set()
         remove_morphs = {}
@@ -414,7 +414,7 @@ class PredicatorExtractor:
                 continue
 
             prop, prop_len2 = noun_proportion(word_count)
-            if prop < 0.66:
+            if prop < 0.5:
                 continue
 
             if prop_len2 == 1:
@@ -422,7 +422,10 @@ class PredicatorExtractor:
                 remove_words = tuple(word for word, _ in word_count if len(word) == 2)
             else:
                 remove_words = tuple(
-                    word for word, _ in word_count if len(word) == 2 and word in self._nouns)
+                    word for word, _ in word_count
+                    if ((len(word) == 2 and word in self._nouns) or
+                        (len(word) == 3 and len(eomi) == 2))
+                )
             remove_morphs[eomi] = remove_words
 
             # debug code
