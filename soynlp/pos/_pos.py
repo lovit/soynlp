@@ -166,6 +166,7 @@ class POSExtractor:
         verbs_ = defaultdict(int)
         not_covered = {}
 
+        josas = self.predicator_extractor._josas
         compound_stems = set()
 
         for i, (eojeol, count) in enumerate(eojeol_counter.items()):
@@ -244,6 +245,9 @@ class POSExtractor:
                 nouns_[l] += count
                 adjectives_[r] += count
                 covered = True
+            elif (r in josas):
+                nouns_[l] += count
+                covered = True
 
             two_predicators = self._separate_two_predicator(eojeol, adjectives, verbs)
             if two_predicators is not None:
@@ -260,10 +264,12 @@ class POSExtractor:
                     verbs_[eojeol] += count
                 compound_stems.update({stem for stem, _ in lemma})
 
+            if eojeol in josas:
+                covered = True
+
             if not covered:
                 not_covered[eojeol] = count
 
-        josas = self.predicator_extractor._josas
         nouns, compound_nouns, not_covered = self._extract_compound_nouns(
             not_covered, nouns, josas, adjectives_, verbs_)
 
