@@ -275,7 +275,7 @@ class PredicatorExtractor:
         extracted_eomis = eomi_extractor.extract(
             condition=None,
             min_eomi_score = min_eomi_score,
-            min_frequency = min_eomi_frequency,
+            min_eomi_frequency = min_eomi_frequency,
             reset_lrgraph=True
         )
 
