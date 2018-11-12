@@ -371,10 +371,7 @@ class POSExtractor:
             if compound_parts:
                 removals.add(word)
                 word = ''.join(compound_parts)
-                if word in nouns:
-                    nouns[word] = nouns[word] + count
-                else:
-                    compounds[word] = compounds.get(word, 0) + count
+                compounds[word] = compounds.get(word, 0) + count
                 if word in words:
                     words[word] = words.get(word, 0) - count
 
