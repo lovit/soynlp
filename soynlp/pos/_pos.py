@@ -233,6 +233,16 @@ class POSExtractor:
                     confused_nouns[eojeol] = count
                 continue
 
+            l, r = eojeol[1:], eojeol[:1]
+            if (r in verbs):
+                nouns_[l] += count
+                verbs_[r] += count
+                covered = True
+            elif (r in adjectives):
+                nouns_[l] += count
+                adjectives_[r] += count
+                covered = True
+
             if not covered:
                 not_covered[eojeol] = count
 
