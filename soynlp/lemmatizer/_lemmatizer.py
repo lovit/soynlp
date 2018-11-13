@@ -72,12 +72,13 @@ def _lemma_candidate(l, r, predefined=None, debug=False):
             r_canon = r
         add_lemma(l_stem, r_canon)
 
-    # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅂ, -ㅅ)
+    # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅁ-, -ㅂ, -ㅆ)
     # 입 + 니다 -> 이 + ㅂ니다
-    if l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ':
-        l_stem = l_front + compose(l_last[0], l_last[1], ' ')
-        r_canon = l_last[2] + r
-        add_lemma(l_stem, r_canon)
+    if l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅁ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ':
+        for jongsung in ' ㄹㅂㅎ':
+            l_stem = l_front + compose(l_last[0], l_last[1], jongsung)
+            r_canon = l_last[2] + r
+            add_lemma(l_stem, r_canon)
 
     # ㅅ 불규칙 활용: 부 + 어 -> 붓 + 어
     # exception : 벗 + 어 -> 벗어

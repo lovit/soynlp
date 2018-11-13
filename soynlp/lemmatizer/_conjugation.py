@@ -111,7 +111,7 @@ def conjugate(stem, ending, enforce_moum_harmoney=False, debug=False):
 
     # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅂ, -ㅆ)
     # 이 + ㅂ니다 -> 입니다
-    if l_last[2] == ' ' and r_first[1] == ' ' and (r_first[0] == 'ㄴ' or r_first[0] == 'ㄹ' or r_first[0] == 'ㅂ' or r_first[0] == 'ㅆ'):
+    if r_first[1] == ' ' and (r_first[0] == 'ㄴ' or r_first[0] == 'ㄹ' or r_first[0] == 'ㅁ' or r_first[0] == 'ㅂ' or r_first[0] == 'ㅆ'):
         l = stem[:-1] + compose(l_last[0], l_last[1], r_first[0])
         r = ending[1:]
         surface = l + r
@@ -119,7 +119,7 @@ def conjugate(stem, ending, enforce_moum_harmoney=False, debug=False):
         if r_first[1] != ' ':
             candidates.add(stem + ending)
         if debug:
-            print('어미의 첫 글자가 -ㄴ, -ㄹ, -ㅂ, -ㅆ 인 경우: {}'.format(surface))
+            print('어미의 첫 글자가 -ㄴ, -ㄹ, -ㅁ-, -ㅂ, -ㅆ 인 경우: {}'.format(surface))
 
     # ㅅ 불규칙 활용: 붓 + 어 -> 부어
     # exception : 벗 + 어 -> 벗어    
@@ -219,16 +219,10 @@ def conjugate(stem, ending, enforce_moum_harmoney=False, debug=False):
             print('여 불규칙: {}, {}'.format(surface0, surface1))
 
     # ㅎ (탈락) 불규칙 활용
-    # 파라 + 면 -> 파랗다 / 동그랗 + ㄴ -> 동그란
-    if l_last[2] == 'ㅎ' and l_last_ != '좋' and not (r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ'):
-        if r_first[1] == ' ':
-            l = stem[:-1] + compose(l_last[0], l_last[1], r_first[0])
-        else:
-            l = stem[:-1] + compose(l_last[0], l_last[1], ' ')
-        if r_first_ == '으' or r_first[1] == ' ':
-            r = ending[1:]
-        else:
-            r = ending
+    # 파라 + 면 -> 파랗다
+    if l_last[2] == 'ㅎ' and l_last_ != '좋' and r_first[1] != ' ':
+        l = stem[:-1] + compose(l_last[0], l_last[1], ' ')
+        r = ending
         surface = l + r
         candidates.add(surface)
         if debug:
