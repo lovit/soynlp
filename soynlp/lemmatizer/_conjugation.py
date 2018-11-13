@@ -155,11 +155,16 @@ def conjugate(stem, ending, enforce_moum_harmoney=False, debug=False):
             print('오 활용: {}'.format(surface))
 
     # ㅡ 탈락 불규칙 활용: 끄 + 어 -> 꺼 / 트 + 었다 -> 텄다
-    if ( ((l_last[1] == 'ㅡ') and (l_last[0] != 'ㄹ') and (l_last[2] == ' ')) and
-         ((r_first[0] == 'ㅇ') and (r_first[1] == 'ㅓ')) ):
-        surface = stem[:-1] + compose(l_last[0], r_first[1], r_first[2]) + ending[1:]
-        candidates.add(surface)
-        if debug:
+    if ((l_last[1] == 'ㅡ') and (l_last[2] == ' ') and (r_first[0] == 'ㅇ')):
+        if l_last[0] == 'ㅇ' and len(stem) > 1:
+            surface = stem[:-1] + ending
+        elif l_last[0] != 'ㄹ':
+            surface = stem[:-1] + compose(l_last[0], r_first[1], r_first[2]) + ending[1:]
+        else:
+            surface = None
+        if surface is not None:
+            candidates.add(surface)
+        if debug and surface is not None:
             print('ㅡ 탈락 불규칙: {}'.format(surface))
 
     # 거라, 너라 불규칙 활용
@@ -344,6 +349,8 @@ def _conjugate_stem(stem, debug=False):
     if l_last[1] == 'ㅡ' and l_last[2] == ' ':
         candidates.add(stem[:-1] + compose(l_last[0], 'ㅓ', ' '))
         candidates.add(stem[:-1] + compose(l_last[0], 'ㅓ', 'ㅆ'))
+        if l_last[0] == 'ㅇ' and len(stem) > 1:
+            candidates.add(stem[:-1])
         if debug:
             print('ㅡ 탈락 불규칙')
 
