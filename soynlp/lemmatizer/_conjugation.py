@@ -254,13 +254,10 @@ def conjugate(stem, ending, enforce_moum_harmoney=False, debug=False):
     if r_first_ == '어' and l_last[1] == 'ㅣ' and l_last[2] == ' ':
         surface = stem[:-1] + compose(l_last[0], 'ㅕ', r_first[2]) + ending[1:]
         candidates.add(surface)
+        surface = stem + ending
+        candidates.add(surface)
         if debug:
             print('이 + 어 -> 여 규칙: {}'.format(surface))
-        if l_last[0] == 'ㅇ':
-            surface = stem + ending
-            candidates.add(surface)
-            if debug:
-                print('이 + 어 -> 여 규칙: {}'.format(surface))
 
     if not candidates and r_first[1] != ' ':
         if (l_last[2] == ' ') and (r_first[0] == 'ㅇ') and (r_first[1] == l_last[1]):
