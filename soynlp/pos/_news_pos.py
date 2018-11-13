@@ -208,6 +208,8 @@ class NewsPOSExtractor:
             elif (r in adjectives):
                 covered = add_count(nouns_, l, count)
                 covered = add_count(adjectives_, r, count)
+            elif (len(r) == 1) and (r in josas):
+                covered = add_count(nouns_, l, count)
 
             two_predicators = self._predicator_compound_to_lr(eojeol, adjectives, verbs)
             if two_predicators is not None:
@@ -235,13 +237,16 @@ class NewsPOSExtractor:
 
         if self._verbose:
             print('\r[POS Extractor] postprocessing was done 100.00 %    ')
-            print('[POS Extractor] ## statistics ##')
-            templates = '[POS Extractor] {} ({:.3f} %): {}'
-            print(templates.format(len(nouns_), as_percent(nouns_), 'Noun + [Josa/Predicator]'))
-            print(templates.format(len(confused_nouns), as_percent(confused_nouns), 'Confused nouns'))
-            print(templates.format(len(adjectives_), as_percent(adjectives_), '[Noun] + Adjective'))
-            print(templates.format(len(verbs_), as_percent(verbs_), '[Noun] + Verb'))
-            print(templates.format(len(not_covered), as_percent(not_covered), 'not covered'))
+            print('\n[POS Extractor] ## statistics ##')
+            statistics = [
+                (len(nouns_), as_percent(nouns_), 'Noun + [Josa/Predicator]'),
+                (len(confused_nouns), as_percent(confused_nouns), 'Confused nouns'),
+                (len(adjectives_), as_percent(adjectives_), '[Noun] + Adjective'),
+                (len(verbs_), as_percent(verbs_), '[Noun] + Verb'),
+                (len(not_covered), as_percent(not_covered), 'not covered')
+            ]
+            for stats in statistics:
+                print('[POS Extractor] {} ({:.3f} %): {}'.format(*stats))
 
         return nouns_, confused_nouns, adjectives_, verbs_, not_covered
 
