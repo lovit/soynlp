@@ -16,7 +16,7 @@ class NewsPOSExtractor:
         self._ensure_normalized = ensure_normalized
         self._extract_eomi = extract_eomi
 
-    def extract(self, sents,
+    def train(self, sents,
         # noun init
         min_num_of_noun_features=1, max_frequency_when_noun_is_eojeol=30,
         # noun extraction
@@ -27,40 +27,21 @@ class NewsPOSExtractor:
         min_num_of_eomi_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
         debug=False):
 
-        nouns = self._extract_nouns(sents, min_num_of_noun_features,
+        self.nouns = self._extract_nouns(sents, min_num_of_noun_features,
             max_frequency_when_noun_is_eojeol, min_noun_score,
             min_noun_frequency, min_eojeol_frequency)
 
-        adjectives, verbs = self._extract_predicators(
-            nouns, sents, min_predicator_frequency, min_eojeol_frequency,
+        self.adjectives, self.verbs = self._extract_predicators(
+            sents, min_predicator_frequency, min_eojeol_frequency,
             min_num_of_eomi_features, min_eomi_score, min_eomi_frequency)
 
-        adjective_stems = self.predicator_extractor._adjective_stems
-        verb_stems = self.predicator_extractor._verb_stems
-        eomis = self.predicator_extractor._eomis
+        self.adjective_stems = self.predicator_extractor._adjective_stems
+        self.verb_stems = self.predicator_extractor._verb_stems
+        self.eomis = self.predicator_extractor._eomis
+        self.josas = self.predicator_extractor._josas
 
-        nouns_, confused_nouns, adjectives_, verbs_, not_covered = self._word_match_postprocessing(
-            nouns, adjectives, adjective_stems, verbs, verb_stems, eomis)
-
-        adjectives_ = self._value_as_Predicator(
-            adjectives_, adjectives, adjective_stems, eomis)
-        verbs_ = self._value_as_Predicator(
-            verbs_, verbs, verb_stems, eomis)
-
-        wordtags = {
-            'Noun': nouns_,
-            'Eomi': eomis,
-            'Adjective': adjectives_,
-            'AdjectiveStem': adjective_stems,
-            'Verb': verbs_,
-            'VerbStem': verb_stems
-        }
-
-        if debug:
-            wordtags['ConfusedNoun'] = confused_nouns
-            wordtags['NotCovered'] = not_covered
-
-        return wordtags
+        self.eojeols = self.noun_extractor.lrgraph.to_EojeolCounter(reset_lrgraph=True)
+        self.eojeols = self.eojeols._counter
 
     def _extract_nouns(self, sents,
         min_num_of_features=1, max_frequency_when_noun_is_eojeol=30, # noun init
@@ -82,7 +63,7 @@ class NewsPOSExtractor:
 
         return nouns
 
-    def _extract_predicators(self, nouns, sents,
+    def _extract_predicators(self, sents,
         # predicator train
         min_predicator_frequency=1, min_eojeol_frequency=2,
         # Eomi extractor
@@ -95,7 +76,7 @@ class NewsPOSExtractor:
 
         # predicator extraction
         self.predicator_extractor = PredicatorExtractor(
-            nouns,
+            self.nouns,
             noun_pos_features,
             extract_eomi = self._extract_eomi,
             extract_stem = False,
@@ -109,8 +90,38 @@ class NewsPOSExtractor:
 
         return adjectives, verbs
 
-    def _word_match_postprocessing(self, nouns, adjectives,
-        adjective_stems, verbs, verb_stems, eomis):
+    def extract(self):
+
+        nouns, adjectives, verbs, josas, irrecognized = self._pattern_matching()
+
+        def as_Predicator(counter, lemma_dict, stem, eomis):
+            predicators = {}
+            for word, count in counter.items():
+                if word in lemma_dict:
+                    lemma = lemma_dict[word].lemma
+                else:
+                    lemma = self._lemmatize(word, stem, eomis)
+                predicators[word] = Predicator(count, lemma)
+            return predicators
+
+        adjectives = as_Predicator(adjectives,
+            self.adjectives, self.adjective_stems, self.eomis)
+        verbs = as_Predicator(verbs,
+            self.verbs, self.verb_stems, self.eomis)
+
+        wordtags = {
+            'Noun': nouns,
+            'Eomi': self.eomis,
+            'Adjective': adjectives,
+            'AdjectiveStem': self.adjective_stems,
+            'Verb': verbs,
+            'VerbStem': self.verb_stems,
+            'Irrecognized': irrecognized
+        }
+
+        return wordtags
+
+    def _pattern_matching(self):
 
         def as_percent(dic):
             return 100 * sum(dic.values()) / total_frequency
@@ -119,173 +130,174 @@ class NewsPOSExtractor:
             dic[word] += count
             return True
 
-        eojeol_counter = self.noun_extractor.lrgraph.to_EojeolCounter(
-            reset_lrgraph=True)
+        def match(word, reference):
+            return word in reference
 
-        stems = set(adjective_stems)
-        stems.update(set(verb_stems))
+        def separate_lr(word, lset, rset, begin=2):
+            for i in range(begin, len(word)):
+                l, r = word[:i], word[i:]
+                if (l in lset) and (r in rset):
+                    return l, r
+            return None
 
-        total_frequency = 0
-        nouns_ = defaultdict(int)
-        confused_nouns = defaultdict(int)
-        adjectives_ = defaultdict(int)
-        verbs_ = defaultdict(int)
-        not_covered = {}
+        def cumulate_counter(counter, word_count):
+            for word, count in word_count:
+                counter[word] = counter.get(word, 0) + count
+            return counter
 
-        noun_pos = self.noun_extractor._pos_features
-        noun_common = self.noun_extractor._common_features
-        josas = self.predicator_extractor._josas
-        compound_stems = set()
+        def parse_predicator_compounds(predicators, base):
+            stems = set()
+            predicator_compounds = {}
+            counter = {}
+            for word, count in eojeols.items():
+                lr = separate_lr(word, predicators, base)
+                if lr is None:
+                    continue
+                lemmas = base[lr[1]].lemma
+                lemmas = {(word[0]+stem, eomi) for stem, eomi in lemmas}
+                predicator_compounds[word] = Predicator(count, lemmas)
+                stems.update({stem for stem, _ in lemmas})
+                counter[word] = count
+            return predicator_compounds, stems, counter
 
-        for i, (eojeol, count) in enumerate(eojeol_counter.items()):
+        eojeols = self.eojeols
+        num_of_eojeols = len(eojeols)
+        total_frequency = sum(eojeols.values())
 
-            if self._verbose and i % 1000 == 0:
-                print('\r[POS Extractor] postprocessing {:.3f} % ...'.format(
-                    100 * i / len(eojeol_counter)), end='')
+        def remove_recognized(eojeols, removals):
+            return {word:count for word, count in eojeols.items() if not (word in removals)}
 
-            # cumulate total frequency
-            total_frequency += count
-            covered = False
+        # counter & match (Noun, Adjective, Verb)
+        if self._verbose:
+            print('    - matching "Noun, Adjectives, and Verbs" from {} eojeols'.format(len(eojeols)))
+        adjectives = {word:count for word, count in eojeols.items() if match(word, self.adjectives)}
+        verbs = {word:count for word, count in eojeols.items() if match(word, self.verbs)}
+        nouns = {word:count for word, count in eojeols.items() if match(word, self.nouns)}
 
-            # check eojeol is noun + predicator compound
-            noun = self._separate_predicator_from_noun(eojeol, nouns, adjectives, verbs)
-            if noun is not None:
-                covered = add_count(nouns_, noun, count)
-                if (eojeol in nouns) and (eojeol != noun):
-                    add_count(confused_nouns, eojeol, count)
-                continue
+        eojeols = remove_recognized(eojeols, adjectives)
+        eojeols = remove_recognized(eojeols, verbs)
+        eojeols = remove_recognized(eojeols, nouns)
 
-            # check eojeol is noun + josa (or pos feature of noun)
-            noun = self._separate_predicator_from_noun(eojeol, nouns, noun_pos, noun_common)
-            if noun is not None:
-                covered = add_count(nouns_, noun, count)
-                if (eojeol in nouns) and (eojeol != noun):
-                    add_count(confused_nouns, eojeol, count)
-                continue
+        # Noun + Josa
+        if self._verbose:
+            print('    - matching "Noun + Josa/Adjective/Verb" from {} eojeols'.format(len(eojeols)))
+        noun_josa = [(separate_lr(word, nouns, self.josas), count) for word, count in eojeols.items()]
+        noun_josa = [(word, count) for word, count in noun_josa if word is not None]
+        nouns = cumulate_counter(nouns, [(word[0], count) for word, count in noun_josa])
+        josas = cumulate_counter({}, [(word[1], count) for word, count in noun_josa])
+        removals = {''.join(word) for word, _ in noun_josa}
 
-            # check eojeol is noun + predicator-suspect compound
-            noun = self._separate_predicator_suspect_from_noun(eojeol, nouns, stems, eomis)
-            if noun is not None:
-                covered = add_count(nouns_, noun, count)
-                if (eojeol in nouns) and (eojeol != noun):
-                    add_count(confused_nouns, eojeol, count)
-                continue
+        # Noun + Adjective
+        noun_adjs = [(separate_lr(word, nouns, adjectives), count) for word, count in eojeols.items()]
+        noun_adjs = [(word, count) for word, count in noun_adjs if word is not None]
+        nouns = cumulate_counter(nouns, [(word[0], count) for word, count in noun_adjs])
+        adjectives = cumulate_counter(adjectives, [(word[1], count) for word, count in noun_adjs])
+        removals.update({''.join(word) for word, _ in noun_adjs})
 
-            # check whether eojeol is predicator or noun
-            if self._word_match(eojeol, adjectives):
-                covered = add_count(adjectives_, eojeol, count)
-            if self._word_match(eojeol, verbs):
-                covered = add_count(verbs_, eojeol, count)
-            if eojeol in nouns:
-                covered = add_count(nouns_, eojeol, count)
+        # Noun + Verb
+        noun_verbs = [(separate_lr(word, nouns, adjectives), count) for word, count in eojeols.items()]
+        noun_verbs = [(word, count) for word, count in noun_verbs if word is not None]
+        nouns = cumulate_counter(nouns, [(word[0], count) for word, count in noun_verbs])
+        verbs = cumulate_counter(verbs, [(word[1], count) for word, count in noun_verbs])
+        removals.update({''.join(word) for word, _ in noun_verbs})
 
-            # if matched, continue
-            if covered:
-                continue
+        # remove matched eojeols
+        eojeols = remove_recognized(eojeols, removals)
 
-            # check eojeol is stem + eomi
-            lemmas = self._conjugatable(eojeol, stems, eomis)
-            if lemmas is not None:
-                covered = True
-                stem_adj = {stem for stem, _ in lemmas if stem in adjective_stems}
-                stem_v = {stem for stem, _ in lemmas if stem in verb_stems}
-                if stem_adj:
-                    adjectives_[eojeol] += count
-                    adjectives[eojeol] = Predicator(
-                        count,
-                        {(stem, eomi) for stem, eomi in lemmas if stem in stem_adj})
-                if stem_v:
-                    verbs_[eojeol] += count
-                    verbs[eojeol] = Predicator(
-                        count,
-                        {(stem, eomi) for stem, eomi in lemmas if stem in stem_v})
-                continue
+        # Predicator compounds
+        predicators = set(adjectives.keys())
+        predicators.update(set(verbs))
 
-            two_predicators = self._predicator_compound_to_lr(eojeol, adjectives, verbs)
-            if two_predicators is not None:
-                covered = True
-                l, r, tag = two_predicators
-                lemma = (adjectives[r] if tag == 'Adjective' else verbs[r]).lemma
-                lemma = {(l+stem, eomi) for stem, eomi in lemma}
-                predicator_compound = Predicator(count, lemma)
-                if tag == 'Adjective':
-                    adjectives[eojeol] = predicator_compound
-                    adjectives_[eojeol] += count
-                else:
-                    verbs[eojeol] = predicator_compound
-                    verbs_[eojeol] += count
-                compound_stems.update({stem for stem, _ in lemma})
+        ## adjective compounds
+        if self._verbose:
+            print('    - matching "Predicator + Adjective/Verb" from {} eojeols'.format(len(eojeols)))
+        compounds, stems, counter = parse_predicator_compounds(predicators, self.adjectives)
+        self.adjectives.update(compounds)
+        self.adjective_stems.update(stems)
+        adjectives = cumulate_counter(adjectives, counter.items())
 
-            l, r = eojeol[:1], eojeol[1:]
-            if (r in verbs):
-                covered = add_count(nouns_, l, count)
-                covered = add_count(verbs_, r, count)
-            elif (r in adjectives):
-                covered = add_count(nouns_, l, count)
-                covered = add_count(adjectives_, r, count)
-            elif (r in josas):
-                covered = add_count(nouns_, l, count)
+        ## verb compounds
+        compounds, stems, counter = parse_predicator_compounds(predicators, self.verbs)
+        self.verbs.update(compounds)
+        self.verb_stems.update(stems)
+        verbs = cumulate_counter(verbs, counter.items())
 
-            if (eojeol in josas) or (eojeol in eomis) or (len(eojeol) == 1):
-                covered = True
+        ## remove matched eojeols
+        removals = {word for word in adjectives}
+        removals.update({word for word in verbs})
+        eojeols = remove_recognized(eojeols, removals)
 
-            if not covered:
-                not_covered[eojeol] = count
-
-        nouns_, not_covered = self._extract_compound_nouns(
-            not_covered, nouns_, josas, adjectives_, verbs_)
+        def lemmatize(stems, eomis, eojeols, verbose=True):
+            predicator = {}
+            n = len(eojeols)
+            for i, (word, count) in enumerate(eojeols.items()):
+                if verbose and i % 1000 == 0:
+                    print('\r    - lemmatizing {} / {}'.format(i, n), end='')
+                lemmas = self._lemmatize(word, stems, eomis)
+                if lemmas is None:
+                    continue
+                predicator[word] = Predicator(count, lemmas)
+            return predicator
 
         if self._verbose:
-            print('\r[POS Extractor] postprocessing was done 100.00 %    ')
-            print('\n[POS Extractor] ## statistics ##')
+            print('    - lemmatizing Adjective/Verb from {} eojeols'.format(len(eojeols)))
+        new_adjectives = lemmatize(self.adjective_stems, self.eomis, eojeols, self._verbose)
+        counter_adj = {word:count for word, count in eojeols.items() if word in new_adjectives}
+        adjectives = cumulate_counter(adjectives, counter_adj.items())
+        self.adjectives.update(new_adjectives)
+
+        new_verbs = lemmatize(self.adjective_stems, self.eomis, eojeols, self._verbose)
+        counter_verb = {word:count for word, count in eojeols.items() if word in new_adjectives}
+        verbs = cumulate_counter(verbs, counter_verb.items())
+        self.verbs.update(new_verbs)
+
+        eojeols = remove_recognized(eojeols, counter_adj)
+        eojeols = remove_recognized(eojeols, counter_verb)
+
+        def syllable_noun_and_r(rcounter, removals):
+            for word, count in eojeols.items():
+                l, r = word[:1], word[1:]
+                if r in rcounter:
+                    nouns[l] = nouns.get(l, 0) + count
+                    rcounter[r] = rcounter.get(r, 0) + count
+                    removals.add(word)
+            return removals
+
+        if self._verbose:
+            print('\r    - parse 1 syllable Noun + Adj/Verb/Josa from {} eojeols'.format(len(eojeols)))
+        removals = syllable_noun_and_r(adjectives, set())
+        removals = syllable_noun_and_r(verbs, set())
+        removals = syllable_noun_and_r(josas, set())
+        eojeols = remove_recognized(eojeols, removals)
+
+        eojeols = {word:count for word, count in eojeols.items()
+                   if not ((word in self.josas) or (word in self.eomis) or (len(word) == 1))}
+
+        if self._verbose:
+            print('    - extract compound nouns from {} eojeols'.format(len(eojeols)))
+        suffix = {word for word in nouns}
+        suffix.update({word for word in adjectives})
+        suffix.update({word for word in verbs})
+        suffix.update({word for word in josas})
+        compounds, removals = self._extract_compound_nouns(eojeols, nouns, suffix)
+        nouns = cumulate_counter(nouns, compounds.items())
+        eojeols = remove_recognized(eojeols, removals)
+
+        if self._verbose:
+            print('\n[POS Extractor] ## statistics ({} eojeols)'.format(num_of_eojeols))
             statistics = [
-                (len(nouns_), as_percent(nouns_), 'Noun + [Josa/Predicator]'),
-                (len(confused_nouns), as_percent(confused_nouns), 'Confused nouns'),
-                (len(adjectives_), as_percent(adjectives_), '[Noun] + Adjective'),
-                (len(verbs_), as_percent(verbs_), '[Noun] + Verb'),
-                (len(not_covered), as_percent(not_covered), 'not covered')
+                (len(nouns), as_percent(nouns), 'Noun + [Josa/Predicator]'),
+                (len(adjectives), as_percent(adjectives), '[Noun] + Adjective'),
+                (len(verbs), as_percent(verbs), '[Noun] + Verb'),
+                (len(josas), as_percent(josas), '[Noun] + Josas'),
+                (len(eojeols), as_percent(eojeols), 'Irrecognizable')
             ]
             for stats in statistics:
-                print('[POS Extractor] {} ({:.3f} %): {}'.format(*stats))
+                print('[POS Extractor] ({}, {:.3f} %) words in {}'.format(*stats))
 
-        return nouns_, confused_nouns, adjectives_, verbs_, not_covered
+        return nouns, adjectives, verbs, josas, eojeols
 
-    def _word_match(self, word, references):
-        if word in references:
-            return word
-        return None
-
-    def _separate_predicator_from_noun(self, word, nouns, adjectives, verbs):
-        # Ignore 1-syllable noun
-        # for i in range(len(word), 1, -1):
-        for i in range(2, len(word)):
-            l, r = word[:i], word[i:]
-            if not (l in nouns):
-                continue
-            if (r in adjectives) or (r in verbs):
-                return l
-        return None
-
-    def _separate_predicator_suspect_from_noun(self, word, nouns, stems, eomis):
-        for i in range(2, len(word)):
-            l, r = word[:i], word[i:]
-            if not (l in nouns):
-                continue
-            if self._conjugatable(r, stems, eomis) is not None:
-                return l
-        return None
-
-    def _predicator_compound_to_lr(self, word, adjectives, verbs):
-        for i in range(2, len(word)):
-            l, r = word[:i], word[i:]
-            if ((l in adjectives) or (l in verbs)):
-                if r in verbs:
-                    return (l, r, 'Verb')
-                elif r in adjectives:
-                    return (l, r, 'Adjective')
-        return None
-
-    def _conjugatable(self, word, stems, eomis):
+    def _lemmatize(self, word, stems, eomis):
         def only_knowns(lemmas):
             return [lemma for lemma in lemmas if
                     (lemma[0] in stems) and (lemma[1] in eomis)]
@@ -300,46 +312,29 @@ class NewsPOSExtractor:
                 return lemmas
         return None
 
-    def _extract_compound_nouns(self, words, nouns_, josa, adjectives, verbs):
+    def _extract_compound_nouns(self, eojeols, nouns, suffix):
         def parse_compound(tokens):
-            def has_r(word):
-                return (word in josa) or (word in adjectives) or (word in verbs)
-
-            # format: (word, begin, end, score, length)
             for token in tokens[:-1]:
                 if token[3] <= 0:
                     return None
             # Noun* + Josa
-            if len(tokens) >= 3 and has_r(tokens[-1][0]):
-                return tuple(t[0] for t in tokens[:-1])
+            if len(tokens) >= 3 and (tokens[-1][0] in suffix):
+                return ''.join(t[0] for t in tokens[:-1])
             # all tokens are noun
             if tokens[-1][3] > 0:
-                return tuple(t[0] for t in tokens)
+                return ''.join(t[0] for t in tokens)
             # else, not compound
             return None
 
-        tokenizer = MaxScoreTokenizer(scores = {noun:1 for noun in nouns_ if len(noun) > 1})
+        tokenizer = MaxScoreTokenizer(scores = {noun:1 for noun in nouns if len(noun) > 1})
 
-        for word, count in words.items():
+        compounds, removals = {}, set()
+        for word, count in eojeols.items():
+            # format: [(word, begin, end, score, length)]
             tokens = tokenizer.tokenize(word, flatten=False)[0]
-            compound_parts = parse_compound(tokens)
-            if compound_parts:
-                word = ''.join(compound_parts)
-                nouns_[word] = nouns_.get(word, 0) + count
-                if word in words:
-                    words[word] = max(0, words.get(word, 0) - count)
+            noun = parse_compound(tokens)
+            if noun is not None:
+                compounds[noun] = compounds.get(noun, 0) + count
+                removals.add(word)
 
-        words = {word:count for word, count in words.items()
-                 if (not (word in nouns_)) and (count > 0)}
-
-        return nouns_, words
-
-    def _value_as_Predicator(self, counter, lemma_dict, stem, eomis):
-        predicators = {}
-        for word, count in counter.items():
-            if word in lemma_dict:
-                lemma = lemma_dict[word].lemma
-            else:
-                lemma = self._conjugatable(word, stem, eomis)
-            predicators[word] = Predicator(count, lemma)
-        return predicators
+        return compounds, removals
