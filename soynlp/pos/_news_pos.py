@@ -16,6 +16,25 @@ class NewsPOSExtractor:
         self._ensure_normalized = ensure_normalized
         self._extract_eomi = extract_eomi
 
+    def train_extract(self, sents,
+        # noun init
+        min_num_of_noun_features=1, max_frequency_when_noun_is_eojeol=30,
+        # noun extraction
+        min_noun_score=0.3, min_noun_frequency=1, min_eojeol_frequency=1,
+        # predicator train
+        min_predicator_frequency=1,
+        # Eomi extractor
+        min_num_of_eomi_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
+        debug=False):
+
+        self.train(sents, min_num_of_noun_features,
+            max_frequency_when_noun_is_eojeol, min_noun_score,
+            min_noun_frequency, min_eojeol_frequency,
+            min_predicator_frequency, min_num_of_eomi_features,
+            min_eomi_score, min_eomi_frequency)
+
+        return self.extract()
+
     def train(self, sents,
         # noun init
         min_num_of_noun_features=1, max_frequency_when_noun_is_eojeol=30,
@@ -27,11 +46,11 @@ class NewsPOSExtractor:
         min_num_of_eomi_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
         debug=False):
 
-        self.nouns = self._extract_nouns(sents, min_num_of_noun_features,
+        self.nouns = self._train_noun_extractor(sents, min_num_of_noun_features,
             max_frequency_when_noun_is_eojeol, min_noun_score,
             min_noun_frequency, min_eojeol_frequency)
 
-        self.adjectives, self.verbs = self._extract_predicators(
+        self.adjectives, self.verbs = self._train_predicator_extractor(
             sents, min_predicator_frequency, min_eojeol_frequency,
             min_num_of_eomi_features, min_eomi_score, min_eomi_frequency)
 
@@ -43,7 +62,28 @@ class NewsPOSExtractor:
         self.eojeols = self.noun_extractor.lrgraph.to_EojeolCounter(reset_lrgraph=True)
         self.eojeols = self.eojeols._counter
 
-    def _extract_nouns(self, sents,
+    def extract(self):
+
+        nouns, adjectives, verbs, josas, irrecognized = self._count_matched_patterns()
+
+        adjectives = self._as_predicator(adjectives,
+            self.adjectives, self.adjective_stems, self.eomis)
+        verbs = self._as_predicator(verbs,
+            self.verbs, self.verb_stems, self.eomis)
+
+        wordtags = {
+            'Noun': nouns,
+            'Eomi': self.eomis,
+            'Adjective': adjectives,
+            'AdjectiveStem': self.adjective_stems,
+            'Verb': verbs,
+            'VerbStem': self.verb_stems,
+            'Irrecognized': irrecognized
+        }
+
+        return wordtags
+
+    def _train_noun_extractor(self, sents,
         min_num_of_features=1, max_frequency_when_noun_is_eojeol=30, # noun init
         min_noun_score=0.3, min_noun_frequency=1, min_eojeol_frequency=1): # noun extraction
 
@@ -63,7 +103,7 @@ class NewsPOSExtractor:
 
         return nouns
 
-    def _extract_predicators(self, sents,
+    def _train_predicator_extractor(self, sents,
         # predicator train
         min_predicator_frequency=1, min_eojeol_frequency=2,
         # Eomi extractor
@@ -89,27 +129,6 @@ class NewsPOSExtractor:
             min_num_of_eomi_features, min_eomi_score, min_eomi_frequency) # Eomi extractor
 
         return adjectives, verbs
-
-    def extract(self):
-
-        nouns, adjectives, verbs, josas, irrecognized = self._count_matched_patterns()
-
-        adjectives = self._as_predicator(adjectives,
-            self.adjectives, self.adjective_stems, self.eomis)
-        verbs = self._as_predicator(verbs,
-            self.verbs, self.verb_stems, self.eomis)
-
-        wordtags = {
-            'Noun': nouns,
-            'Eomi': self.eomis,
-            'Adjective': adjectives,
-            'AdjectiveStem': self.adjective_stems,
-            'Verb': verbs,
-            'VerbStem': self.verb_stems,
-            'Irrecognized': irrecognized
-        }
-
-        return wordtags
 
     def _as_predicator(self, counter, lemma_dict, stem, eomis):
         predicators = {}
