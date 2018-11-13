@@ -228,6 +228,10 @@ class NewsPOSExtractor:
                 covered = True
                 nouns_[eojeol] += count
 
+            # if matched, continue
+            if covered:
+                continue
+
             # check eojeol is stem + eomi
             lemmas = self._conjugatable(eojeol, stems, eomis)
             if lemmas is not None:
