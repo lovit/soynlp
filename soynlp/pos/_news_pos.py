@@ -11,51 +11,29 @@ from soynlp.utils import LRGraph
 
 class NewsPOSExtractor:
 
-    def __init__(self, verbose=True, extract_noun_pos_feature=True,
-        extract_determiner=True, ensure_normalized=True, extract_eomi=True,
-        extract_stem=False):
-
+    def __init__(self, verbose=True, ensure_normalized=True, extract_eomi=True):
         self._verbose = verbose
-        # noun extraction
-        self._extract_noun_pos_feature = extract_noun_pos_feature
-        self._extract_determiner = extract_determiner
         self._ensure_normalized = ensure_normalized
-        # predicator extraction
         self._extract_eomi = extract_eomi
-        self._extract_stem = extract_stem
 
     def extract(self, sents,
         # noun init
         min_num_of_noun_features=1, max_frequency_when_noun_is_eojeol=30,
         # noun extraction
         min_noun_score=0.3, min_noun_frequency=1, min_eojeol_frequency=1,
-        # noun domain pos features
-        ignore_features=None, min_noun_frequency_in_pos_extraction=100,
-        min_pos_score=0.3, min_pos_feature_frequency=1000,
-        min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5,
-        min_noun_entropy=1.5,
         # predicator train
         min_predicator_frequency=1,
         # Eomi extractor
         min_num_of_eomi_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
-        # Stem extractor
-        min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
-        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100, debug=False):
+        debug=False):
 
         nouns = self._extract_nouns(sents, min_num_of_noun_features,
             max_frequency_when_noun_is_eojeol, min_noun_score,
-            min_noun_frequency, min_eojeol_frequency,
-            # noun domain pos features
-            ignore_features, min_noun_frequency_in_pos_extraction,
-            min_pos_score, min_pos_feature_frequency,
-            min_num_of_unique_lastchar, min_entropy_of_lastchar,
-            min_noun_entropy)
+            min_noun_frequency, min_eojeol_frequency)
 
         adjectives, verbs = self._extract_predicators(
-            nouns, sents, min_predicator_frequency,
-            min_eojeol_frequency, min_num_of_eomi_features, min_eomi_score,
-            min_eomi_frequency, min_num_of_unique_R_char, min_entropy_of_R_char,
-            min_entropy_of_R, min_stem_score, min_stem_frequency)
+            nouns, sents, min_predicator_frequency, min_eojeol_frequency,
+            min_num_of_eomi_features, min_eomi_score, min_eomi_frequency)
 
         adjective_stems = self.predicator_extractor._adjective_stems
         verb_stems = self.predicator_extractor._verb_stems
@@ -85,20 +63,13 @@ class NewsPOSExtractor:
         return wordtags
 
     def _extract_nouns(self, sents,
-        # noun init
-        min_num_of_features=1, max_frequency_when_noun_is_eojeol=30,
-        # noun extraction
-        min_noun_score=0.3, min_noun_frequency=1, min_eojeol_frequency=1,
-        # noun domain pos features
-        ignore_features=None, min_noun_frequency_in_pos_extraction=100,
-        min_pos_score=0.3, min_pos_feature_frequency=1000,
-        min_num_of_unique_lastchar=4, min_entropy_of_lastchar=0.5,
-        min_noun_entropy=1.5):
+        min_num_of_features=1, max_frequency_when_noun_is_eojeol=30, # noun init
+        min_noun_score=0.3, min_noun_frequency=1, min_eojeol_frequency=1): # noun extraction
 
         self.noun_extractor = LRNounExtractor_v2(
             extract_pos_feature = False,
-            extract_determiner = self._extract_determiner,
-            extract_compound = False,
+            extract_determiner = False,
+            extract_compound = True,
             ensure_normalized = self._ensure_normalized,
             verbose = self._verbose,
             min_num_of_features = min_num_of_features,
@@ -106,14 +77,6 @@ class NewsPOSExtractor:
         )
 
         self.noun_extractor.train(sents, min_eojeol_frequency)
-
-        if self._extract_noun_pos_feature:
-            self.noun_extractor.extract_domain_pos_features(None, # noun candidates
-                ignore_features, True, # append_extracted_features
-                min_noun_score, min_noun_frequency_in_pos_extraction, min_pos_score,
-                min_pos_feature_frequency, min_num_of_unique_lastchar,
-                min_entropy_of_lastchar, min_noun_entropy)
-
         nouns = self.noun_extractor.extract(min_noun_score,
             min_noun_frequency, reset_lrgraph=False)
 
@@ -123,10 +86,7 @@ class NewsPOSExtractor:
         # predicator train
         min_predicator_frequency=1, min_eojeol_frequency=2,
         # Eomi extractor
-        min_num_of_eomi_features=5, min_eomi_score=0.3, min_eomi_frequency=1,
-        # Stem extractor
-        min_num_of_unique_R_char=10, min_entropy_of_R_char=0.5,
-        min_entropy_of_R=1.5, min_stem_score=0.7, min_stem_frequency=100):
+        min_num_of_eomi_features=5, min_eomi_score=0.3, min_eomi_frequency=1):
 
         # prepare predicator_lrgraph
         predicator_lrgraph = LRGraph(self.noun_extractor.lrgraph._lr)
@@ -138,18 +98,14 @@ class NewsPOSExtractor:
             nouns,
             noun_pos_features,
             extract_eomi = self._extract_eomi,
-            extract_stem = self._extract_stem,
+            extract_stem = False,
             verbose = self._verbose
         )
 
         adjectives, verbs = self.predicator_extractor.train_extract(
             sents, min_eojeol_frequency, 100000, #filtering_checkpoint
             None, min_predicator_frequency, True, # filtering_checkpoint, lrgraph_reset
-            # Eomi extractor
-            min_num_of_eomi_features, min_eomi_score, min_eomi_frequency,
-            # Stem extractor
-            min_num_of_unique_R_char, min_entropy_of_R_char,
-            min_entropy_of_R, min_stem_score, min_stem_frequency)
+            min_num_of_eomi_features, min_eomi_score, min_eomi_frequency) # Eomi extractor
 
         return adjectives, verbs
 
