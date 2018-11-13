@@ -64,6 +64,11 @@ class NewsPOSExtractor:
         nouns_, confused_nouns, adjectives_, verbs_, not_covered = self._word_match_postprocessing(
             nouns, adjectives, adjective_stems, verbs, verb_stems, eomis)
 
+        adjectives_ = self._value_as_Predicator(
+            adjectives_, adjectives, adjective_stems, eomis)
+        verbs_ = self._value_as_Predicator(
+            verbs_, verbs, verb_stems, eomis)
+
         wordtags = {
             'Noun': nouns_,
             'Eomi': eomis,
@@ -151,8 +156,8 @@ class NewsPOSExtractor:
     def _word_match_postprocessing(self, nouns, adjectives,
         adjective_stems, verbs, verb_stems, eomis):
 
-        def as_percent(value, total):
-            return 100 * value / total
+        def as_percent(dic):
+            return 100 * sum(dic.values()) / total_frequency
 
         eojeol_counter = self.noun_extractor.lrgraph.to_EojeolCounter(
             reset_lrgraph=True)
@@ -174,7 +179,7 @@ class NewsPOSExtractor:
 
             if self._verbose and i % 1000 == 0:
                 print('\r[POS Extractor] postprocessing {:.3f} % ...'.format(
-                    as_percent(i, len(eojeol_counter))), end='')
+                    100 * i / len(eojeol_counter)), end='')
 
             # cumulate total frequency
             total_frequency += count
@@ -227,12 +232,18 @@ class NewsPOSExtractor:
             lemmas = self._conjugatable(eojeol, stems, eomis)
             if lemmas is not None:
                 covered = True
-                stem_adjs = {stem for stem, _ in lemmas if stem in adjective_stems}
+                stem_adj = {stem for stem, _ in lemmas if stem in adjective_stems}
                 stem_v = {stem for stem, _ in lemmas if stem in verb_stems}
-                if stem_adjs:
+                if stem_adj:
                     adjectives_[eojeol] += count
+                    adjectives[eojeol] = Predicator(
+                        count,
+                        {(stem, eomi) for stem, eomi in lemmas if stem in stem_adj})
                 if stem_v:
                     verbs_[eojeol] += count
+                    verbs[eojeol] = Predicator(
+                        count,
+                        {(stem, eomi) for stem, eomi in lemmas if stem in stem_v})
                 if eojeol in nouns:
                     confused_nouns[eojeol] = count
                 continue
@@ -277,18 +288,13 @@ class NewsPOSExtractor:
         if self._verbose:
             print('\r[POS Extractor] postprocessing was done 100.00 %    ')
             print('[POS Extractor] ## statistics ##')
-            print('[POS Extractor] {} ({:.3f} %): Noun + [Josa/Predicator]'.format(
-                len(nouns_), as_percent(sum(nouns_.values()), total_frequency)))
-            print('[POS Extractor] {} ({:.3f} %): Confused nouns'.format(
-                len(confused_nouns), as_percent(sum(confused_nouns.values()), total_frequency)))
-            print('[POS Extractor] {} ({:.3f} %): Adjective'.format(
-                len(adjectives_), as_percent(sum(adjectives_.values()), total_frequency)))
-            print('[POS Extractor] {} ({:.3f} %) Verb'.format(
-                len(verbs_), as_percent(sum(verbs_.values()), total_frequency)))
-            print('[POS Extractor] {} ({:.3f} %) not covered'.format(
-                len(not_covered), as_percent(sum(not_covered.values()), total_frequency)))
-            print('[POS Extractor] {} ({:.3f} %) compound nouns'.format(
-                len(compound_nouns), as_percent(sum(compound_nouns.values()), total_frequency)))
+            templates = '[POS Extractor] {} ({:.3f} %): {}'
+            print(templates.format(len(nouns_), as_percent(nouns_), 'Noun + [Josa/Predicator]'))
+            print(templates.format(len(confused_nouns), as_percent(confused_nouns), 'Confused nouns'))
+            print(templates.format(len(adjectives_), as_percent(adjectives_), '[Noun] + Adjective'))
+            print(templates.format(len(verbs_), as_percent(verbs_), '[Noun] + Verb'))
+            print(templates.format(len(not_covered), as_percent(not_covered), 'not covered'))
+            print(templates.format(len(compound_nouns), as_percent(compound_nouns), 'compound nouns'))
 
         return nouns_, confused_nouns, adjectives_, verbs_, not_covered
 
@@ -377,3 +383,13 @@ class NewsPOSExtractor:
 
         words = {word:count for word, count in words.items() if not (word in removals)}
         return nouns, compounds, words
+
+    def _value_as_Predicator(self, counter, lemma_dict, stem, eomis):
+        predicators = {}
+        for word, count in counter.items():
+            if word in lemma_dict:
+                lemma = lemma_dict[word].lemma
+            else:
+                lemma = self._conjugatable(word, stem, eomis)
+            predicators[word] = Predicator(count, lemma)
+        return predicators
