@@ -159,6 +159,10 @@ class NewsPOSExtractor:
         def as_percent(dic):
             return 100 * sum(dic.values()) / total_frequency
 
+        def add_count(dic, word, count):
+            dic[word] += count
+            return True
+
         eojeol_counter = self.noun_extractor.lrgraph.to_EojeolCounter(
             reset_lrgraph=True)
 
@@ -172,6 +176,8 @@ class NewsPOSExtractor:
         verbs_ = defaultdict(int)
         not_covered = {}
 
+        noun_pos = self.noun_extractor._pos_features
+        noun_common = self.noun_extractor._common_features
         josas = self.predicator_extractor._josas
         compound_stems = set()
 
@@ -186,47 +192,36 @@ class NewsPOSExtractor:
             covered = False
 
             # check eojeol is noun + predicator compound
-            noun = self._separate_predicator_from_noun(
-                eojeol, nouns, adjectives, verbs)
+            noun = self._separate_predicator_from_noun(eojeol, nouns, adjectives, verbs)
             if noun is not None:
-                covered = True
-                nouns_[noun] += count
-                # debug noun extraction results
-                if eojeol in nouns:
-                    confused_nouns[eojeol] += count
+                covered = add_count(nouns_, noun, count)
+                if (eojeol in nouns) and (eojeol != noun):
+                    add_count(confused_nouns, eojeol, count)
                 continue
 
             # check eojeol is noun + josa (or pos feature of noun)
-            noun = self._separate_predicator_from_noun(
-                eojeol, nouns,
-                self.noun_extractor._pos_features,
-                self.noun_extractor._common_features)
+            noun = self._separate_predicator_from_noun(eojeol, nouns, noun_pos, noun_common)
             if noun is not None:
-                covered = True
-                nouns_[noun] += count
+                covered = add_count(nouns_, noun, count)
+                if (eojeol in nouns) and (eojeol != noun):
+                    add_count(confused_nouns, eojeol, count)
                 continue
 
             # check eojeol is noun + predicator-suspect compound
-            noun = self._separate_predicator_suspect_from_noun(
-                eojeol, nouns, stems, eomis)
+            noun = self._separate_predicator_suspect_from_noun(eojeol, nouns, stems, eomis)
             if noun is not None:
-                covered = True
-                nouns_[noun] += count
-                # debug noun extraction results
-                if eojeol in nouns:
-                    confused_nouns[eojeol] += count
+                covered = add_count(nouns_, noun, count)
+                if (eojeol in nouns) and (eojeol != noun):
+                    add_count(confused_nouns, eojeol, count)
                 continue
 
             # check whether eojeol is predicator or noun
             if self._word_match(eojeol, adjectives):
-                covered = True
-                adjectives_[eojeol] += count
+                covered = add_count(adjectives_, eojeol, count)
             if self._word_match(eojeol, verbs):
-                covered = True
-                verbs_[eojeol] += count
+                covered = add_count(verbs_, eojeol, count)
             if eojeol in nouns:
-                covered = True
-                nouns_[eojeol] += count
+                covered = add_count(nouns_, eojeol, count)
 
             # if matched, continue
             if covered:
@@ -248,24 +243,19 @@ class NewsPOSExtractor:
                     verbs[eojeol] = Predicator(
                         count,
                         {(stem, eomi) for stem, eomi in lemmas if stem in stem_v})
-                if eojeol in nouns:
-                    confused_nouns[eojeol] = count
                 continue
 
             l, r = eojeol[:1], eojeol[1:]
             if (r in verbs):
-                nouns_[l] += count
-                verbs_[r] += count
-                covered = True
+                covered = add_count(nouns_, l, count)
+                covered = add_count(verbs_, r, count)
             elif (r in adjectives):
-                nouns_[l] += count
-                adjectives_[r] += count
-                covered = True
+                covered = add_count(nouns_, l, count)
+                covered = add_count(adjectives_, r, count)
             elif (r in josas):
-                nouns_[l] += count
-                covered = True
+                covered = add_count(nouns_, l, count)
 
-            two_predicators = self._separate_two_predicator(eojeol, adjectives, verbs)
+            two_predicators = self._predicator_compound_to_lr(eojeol, adjectives, verbs)
             if two_predicators is not None:
                 covered = True
                 l, r, tag = two_predicators
@@ -280,14 +270,14 @@ class NewsPOSExtractor:
                     verbs_[eojeol] += count
                 compound_stems.update({stem for stem, _ in lemma})
 
-            if eojeol in josas:
+            if (eojeol in josas) or (eojeol in eomis) or (len(eojeol) == 1):
                 covered = True
 
             if not covered:
                 not_covered[eojeol] = count
 
-        nouns, compound_nouns, not_covered = self._extract_compound_nouns(
-            not_covered, nouns, josas, adjectives_, verbs_)
+        nouns_, not_covered = self._extract_compound_nouns(
+            not_covered, nouns_, josas, adjectives_, verbs_)
 
         if self._verbose:
             print('\r[POS Extractor] postprocessing was done 100.00 %    ')
@@ -298,7 +288,6 @@ class NewsPOSExtractor:
             print(templates.format(len(adjectives_), as_percent(adjectives_), '[Noun] + Adjective'))
             print(templates.format(len(verbs_), as_percent(verbs_), '[Noun] + Verb'))
             print(templates.format(len(not_covered), as_percent(not_covered), 'not covered'))
-            print(templates.format(len(compound_nouns), as_percent(compound_nouns), 'compound nouns'))
 
         return nouns_, confused_nouns, adjectives_, verbs_, not_covered
 
@@ -308,9 +297,8 @@ class NewsPOSExtractor:
         return None
 
     def _separate_predicator_from_noun(self, word, nouns, adjectives, verbs):
-
         # Ignore 1-syllable noun
-#             for i in range(len(word), 1, -1):
+        # for i in range(len(word), 1, -1):
         for i in range(2, len(word)):
             l, r = word[:i], word[i:]
             if not (l in nouns):
@@ -328,7 +316,7 @@ class NewsPOSExtractor:
                 return l
         return None
 
-    def _separate_two_predicator(self, word, adjectives, verbs):
+    def _predicator_compound_to_lr(self, word, adjectives, verbs):
         for i in range(2, len(word)):
             l, r = word[:i], word[i:]
             if ((l in adjectives) or (l in verbs)):
@@ -353,7 +341,7 @@ class NewsPOSExtractor:
                 return lemmas
         return None
 
-    def _extract_compound_nouns(self, words, nouns, josa, adjectives, verbs):
+    def _extract_compound_nouns(self, words, nouns_, josa, adjectives, verbs):
         def parse_compound(tokens):
             def has_r(word):
                 return (word in josa) or (word in adjectives) or (word in verbs)
@@ -371,22 +359,21 @@ class NewsPOSExtractor:
             # else, not compound
             return None
 
-        tokenizer = MaxScoreTokenizer(scores = {noun:1 for noun in nouns})
+        tokenizer = MaxScoreTokenizer(scores = {noun:1 for noun in nouns_ if len(noun) > 1})
 
-        compounds = {}
-        removals = set()
         for word, count in words.items():
             tokens = tokenizer.tokenize(word, flatten=False)[0]
-            compound_parts = parse_compound(tokens, )
+            compound_parts = parse_compound(tokens)
             if compound_parts:
-                removals.add(word)
                 word = ''.join(compound_parts)
-                compounds[word] = compounds.get(word, 0) + count
+                nouns_[word] = nouns_.get(word, 0) + count
                 if word in words:
-                    words[word] = words.get(word, 0) - count
+                    words[word] = max(0, words.get(word, 0) - count)
 
-        words = {word:count for word, count in words.items() if not (word in removals)}
-        return nouns, compounds, words
+        words = {word:count for word, count in words.items()
+                 if (not (word in nouns_)) and (count > 0)}
+
+        return nouns_, words
 
     def _value_as_Predicator(self, counter, lemma_dict, stem, eomis):
         predicators = {}
