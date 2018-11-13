@@ -109,6 +109,12 @@ def _lemma_candidate(l, r, predefined=None, debug=False):
         r_canon = compose('ㅇ', l_last[1], l_last[2]) + r
         add_lemma(l_stem, r_canon)
 
+    # ㅡ 탈락 불규칙 활용: 모 + 았다 -> 모으 + 았다
+    if l_last[2] == ' ' and r_first[0] == 'ㅇ' and (r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ'):
+        l_stem = l + '으'
+        r_canon = r
+        add_lemma(l_stem, r_canon)
+
     # 거라, 너라 불규칙 활용
     # '-거라/-너라'를 어미로 취급하면 규칙 활용
     # if (l[-1] == '가') and (r and (r[0] == '라' or r[:2] == '거라')):
