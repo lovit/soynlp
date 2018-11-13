@@ -220,8 +220,11 @@ def conjugate(stem, ending, enforce_moum_harmoney=False, debug=False):
 
     # ㅎ (탈락) 불규칙 활용
     # 파라 + 면 -> 파랗다
-    if l_last[2] == 'ㅎ' and l_last_ != '좋' and r_first[1] != ' ':
-        l = stem[:-1] + compose(l_last[0], l_last[1], ' ')
+    if l_last[2] == 'ㅎ' and r_first[1] != ' ':
+        if l_last_ == '좋' or l_last_ == '놓':
+            l = stem
+        else:
+            l = stem[:-1] + compose(l_last[0], l_last[1], ' ')
         r = ending
         surface = l + r
         candidates.add(surface)
