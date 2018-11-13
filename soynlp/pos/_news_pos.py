@@ -3,6 +3,8 @@ from collections import defaultdict
 from soynlp.lemmatizer import _lemma_candidate
 from soynlp.lemmatizer import conjugate
 from soynlp.noun import LRNounExtractor_v2
+from soynlp.pos import load_default_adverbs
+from soynlp.pos import stem_to_adverb
 from soynlp.predicator import Predicator
 from soynlp.predicator import PredicatorExtractor
 from soynlp.tokenizer import MaxScoreTokenizer
@@ -58,13 +60,16 @@ class NewsPOSExtractor:
         self.verb_stems = self.predicator_extractor._verb_stems
         self.eomis = self.predicator_extractor._eomis
         self.josas = self.predicator_extractor._josas
+        self.adverbs = load_default_adverbs()
+        self.adverbs.update(stem_to_adverb(self.adjective_stems))
+        self.adverbs.update(stem_to_adverb(self.verb_stems))
 
         self.eojeols = self.noun_extractor.lrgraph.to_EojeolCounter(reset_lrgraph=True)
         self.eojeols = self.eojeols._counter
 
     def extract(self):
 
-        nouns, adjectives, verbs, josas, irrecognized = self._count_matched_patterns()
+        nouns, adjectives, verbs, adverbs, josas, irrecognized = self._count_matched_patterns()
 
         adjectives = self._as_predicator(adjectives,
             self.adjectives, self.adjective_stems, self.eomis)
@@ -78,6 +83,7 @@ class NewsPOSExtractor:
             'AdjectiveStem': self.adjective_stems,
             'Verb': verbs,
             'VerbStem': self.verb_stems,
+            'Adverb': adverbs,
             'Irrecognized': irrecognized
         }
 
@@ -192,8 +198,7 @@ class NewsPOSExtractor:
         eojeols = self.eojeols
         total_frequency = sum(eojeols.values())
 
-        # counter & match (Noun, Adjective, Verb)
-        eojeols, nouns, adjectives, verbs = self._match_word(eojeols)
+        eojeols, nouns, adjectives, verbs, adverbs = self._match_word(eojeols)
 
         eojeols, nouns, adjectives, verbs, josas = self._match_noun_and_word(
             eojeols, nouns, adjectives, verbs, self.josas)
@@ -213,22 +218,24 @@ class NewsPOSExtractor:
             eojeols, nouns, adjectives, verbs, josas)
 
         if self._verbose:
-            self._print_stats(total_frequency,
-                nouns, adjectives, verbs, josas, eojeols)
+            self._print_stats(total_frequency, nouns,
+                adjectives, verbs, adverbs, josas, eojeols)
 
-        return nouns, adjectives, verbs, josas, eojeols
+        return nouns, adjectives, verbs, adverbs, josas, eojeols
 
     def _match_word(self, eojeols):
         if self._verbose:
-            print('    - matching "Noun, Adjectives, and Verbs" from {} eojeols'.format(len(eojeols)))
+            print('    - matching "Noun, Adjectives, Verbs, and Adverbs" from {} eojeols'.format(len(eojeols)))
 
         nouns = {word:count for word, count in eojeols.items() if self._match(word, self.nouns)}
         adjectives = {word:count for word, count in eojeols.items() if self._match(word, self.adjectives)}
         verbs = {word:count for word, count in eojeols.items() if self._match(word, self.verbs)}
+        adverbs = {word:count for word, count in eojeols.items() if self._match(word, self.adverbs)}
 
-        for removals in (nouns, adjectives, verbs):
+        for removals in (nouns, adjectives, verbs, adverbs):
             eojeols = self._remove_recognized(eojeols, removals)
-        return eojeols, nouns, adjectives, verbs
+
+        return eojeols, nouns, adjectives, verbs, adverbs
 
     def _match_noun_and_word(self, eojeols, nouns, adjectives, verbs, josas):
         if self._verbose:
@@ -348,7 +355,9 @@ class NewsPOSExtractor:
 
         return eojeols, nouns
 
-    def _print_stats(self, total_frequency, nouns, adjectives, verbs, josas, eojeols):
+    def _print_stats(self, total_frequency, nouns,
+        adjectives, verbs, adverbs, josas, eojeols):
+
         print('\n[POS Extractor] ## statistics')
 
         as_percent = lambda dic: 100 * sum(dic.values()) / total_frequency
@@ -357,7 +366,8 @@ class NewsPOSExtractor:
             (len(nouns), as_percent(nouns), 'Noun + [Josa/Predicator]'),
             (len(adjectives), as_percent(adjectives), '[Noun] + Adjective'),
             (len(verbs), as_percent(verbs), '[Noun] + Verb'),
-            (len(josas), as_percent(josas), '[Noun] + Josas'),
+            (len(josas), as_percent(josas), '[Noun] + Josa'),
+            (len(adverbs), as_percent(adverbs), 'Adverb'),
             (len(eojeols), as_percent(eojeols), 'Irrecognizable')
         ]
         for args in stats:
