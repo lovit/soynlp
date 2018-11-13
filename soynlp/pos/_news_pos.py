@@ -208,8 +208,6 @@ class NewsPOSExtractor:
             elif (r in adjectives):
                 covered = add_count(nouns_, l, count)
                 covered = add_count(adjectives_, r, count)
-            elif (r in josas):
-                covered = add_count(nouns_, l, count)
 
             two_predicators = self._predicator_compound_to_lr(eojeol, adjectives, verbs)
             if two_predicators is not None:
