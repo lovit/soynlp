@@ -201,16 +201,6 @@ class NewsPOSExtractor:
                         {(stem, eomi) for stem, eomi in lemmas if stem in stem_v})
                 continue
 
-            l, r = eojeol[:1], eojeol[1:]
-            if (r in verbs):
-                covered = add_count(nouns_, l, count)
-                covered = add_count(verbs_, r, count)
-            elif (r in adjectives):
-                covered = add_count(nouns_, l, count)
-                covered = add_count(adjectives_, r, count)
-            elif (len(r) == 1) and (r in josas):
-                covered = add_count(nouns_, l, count)
-
             two_predicators = self._predicator_compound_to_lr(eojeol, adjectives, verbs)
             if two_predicators is not None:
                 covered = True
@@ -225,6 +215,16 @@ class NewsPOSExtractor:
                     verbs[eojeol] = predicator_compound
                     verbs_[eojeol] += count
                 compound_stems.update({stem for stem, _ in lemma})
+
+            l, r = eojeol[:1], eojeol[1:]
+            if (r in verbs):
+                covered = add_count(nouns_, l, count)
+                covered = add_count(verbs_, r, count)
+            elif (r in adjectives):
+                covered = add_count(nouns_, l, count)
+                covered = add_count(adjectives_, r, count)
+            elif (r in josas):
+                covered = add_count(nouns_, l, count)
 
             if (eojeol in josas) or (eojeol in eomis) or (len(eojeol) == 1):
                 covered = True
