@@ -50,7 +50,7 @@ class NewsPOSExtractor:
         self.noun_extractor = LRNounExtractor_v2(
             extract_pos_feature = False,
             extract_determiner = False,
-            extract_compound = True,
+            extract_compound = False,
             ensure_normalized = self._ensure_normalized,
             verbose = self._verbose,
             min_num_of_features = min_num_of_features,
@@ -92,7 +92,7 @@ class NewsPOSExtractor:
 
     def extract(self):
 
-        nouns, adjectives, verbs, josas, irrecognized = self._pattern_matching()
+        nouns, adjectives, verbs, josas, irrecognized = self._count_matched_patterns()
 
         adjectives = self._as_predicator(adjectives,
             self.adjectives, self.adjective_stems, self.eomis)
@@ -169,7 +169,7 @@ class NewsPOSExtractor:
             counter[word] = count
         return predicator_compounds, stems, counter
 
-    def _pattern_matching(self):
+    def _count_matched_patterns(self):
         eojeols = self.eojeols
         total_frequency = sum(eojeols.values())
 
@@ -177,7 +177,7 @@ class NewsPOSExtractor:
         eojeols, nouns, adjectives, verbs = self._match_word(eojeols)
 
         eojeols, nouns, adjectives, verbs, josas = self._match_noun_and_word(
-            eojeols, nouns, adjectives, verbs, {})
+            eojeols, nouns, adjectives, verbs, self.josas)
 
         eojeols, adjectives, verbs = self._match_predicator_compounds(
             eojeols, adjectives, verbs)
@@ -216,7 +216,7 @@ class NewsPOSExtractor:
             print('    - matching "Noun + Josa/Adjective/Verb" from {} eojeols'.format(len(eojeols)))
 
         def match_process(eojeols, nouns, rset, rcounter, removals):
-            noun_r = [(self._separate_lr(word, nouns, rset), count) for word, count in eojeols.items()]
+            noun_r = [(self._separate_lr(word, self.nouns, rset), count) for word, count in eojeols.items()]
             noun_r = [(word, count) for word, count in noun_r if word is not None]
             nouns = self._cumulate_counter(nouns, [(word[0], count) for word, count in noun_r])
             rcounter = self._cumulate_counter(rcounter, [(word[1], count) for word, count in noun_r])
@@ -224,8 +224,8 @@ class NewsPOSExtractor:
             return nouns, rcounter, removals
 
         nouns, josas, removals = match_process(eojeols, nouns, self.josas, {}, set())
-        nouns, adjectives, removals = match_process(eojeols, nouns, adjectives, adjectives, removals)
-        nouns, verbs, removals = match_process(eojeols, nouns, verbs, verbs, removals)
+        nouns, adjectives, removals = match_process(eojeols, nouns, self.adjectives, adjectives, removals)
+        nouns, verbs, removals = match_process(eojeols, nouns, self.verbs, verbs, removals)
         eojeols = self._remove_recognized(eojeols, removals)
 
         return eojeols, nouns, adjectives, verbs, josas
@@ -234,8 +234,8 @@ class NewsPOSExtractor:
         if self._verbose:
             print('    - matching "Predicator + Adjective/Verb" from {} eojeols'.format(len(eojeols)))
 
-        predicators = set(adjectives.keys())
-        predicators.update(set(verbs.keys()))
+        predicators = set(self.adjectives.keys())
+        predicators.update(set(self.verbs.keys()))
 
         compounds, stems, counter = self._parse_predicator_compounds(
             eojeols, predicators, self.adjectives)
@@ -258,7 +258,7 @@ class NewsPOSExtractor:
         return eojeols, adjectives, verbs
 
     def _lemmatizing_predicators(self, eojeols, adjectives, verbs):
-        def lemmatize(stems, eomis, eojeols, verbose=True):
+        def lemmatize(eojeols, stems, eomis, verbose=True):
             predicator = {}
             n = len(eojeols)
             for i, (word, count) in enumerate(eojeols.items()):
@@ -273,13 +273,13 @@ class NewsPOSExtractor:
         if self._verbose:
             print('    - lemmatizing Adjective/Verb from {} eojeols'.format(len(eojeols)))
 
-        new_adjectives = lemmatize(self.adjective_stems, self.eomis, eojeols, self._verbose)
+        new_adjectives = lemmatize(eojeols, self.adjective_stems, self.eomis, self._verbose)
         counter_adj = {word:count for word, count in eojeols.items() if word in new_adjectives}
         adjectives = self._cumulate_counter(adjectives, counter_adj.items())
         self.adjectives.update(new_adjectives)
 
-        new_verbs = lemmatize(self.adjective_stems, self.eomis, eojeols, self._verbose)
-        counter_verb = {word:count for word, count in eojeols.items() if word in new_adjectives}
+        new_verbs = lemmatize(eojeols, self.verb_stems, self.eomis, self._verbose)
+        counter_verb = {word:count for word, count in eojeols.items() if word in new_verbs}
         verbs = self._cumulate_counter(verbs, counter_verb.items())
         self.verbs.update(new_verbs)
 
@@ -289,7 +289,7 @@ class NewsPOSExtractor:
         return eojeols, adjectives, verbs
 
     def _match_syllable_noun_and_r(self, eojeols, nouns, adjectives, verbs, josas):
-        def syllable_noun_and_r(rcounter, removals):
+        def syllable_noun_and_r(rset, rcounter, removals):
             for word, count in eojeols.items():
                 l, r = word[:1], word[1:]
                 if r in rcounter:
@@ -301,9 +301,9 @@ class NewsPOSExtractor:
         if self._verbose:
             print('\r    - parse 1 syllable Noun + Adj/Verb/Josa from {} eojeols'.format(len(eojeols)))
 
-        removals = syllable_noun_and_r(adjectives, set())
-        removals = syllable_noun_and_r(verbs, removals)
-        removals = syllable_noun_and_r(josas, removals)
+        removals = syllable_noun_and_r(self.adjectives, adjectives, set())
+        removals = syllable_noun_and_r(self.verbs, verbs, removals)
+        removals = syllable_noun_and_r(self.josas, josas, removals)
 
         eojeols = self._remove_recognized(eojeols, removals)
 
