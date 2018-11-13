@@ -455,7 +455,7 @@ class PredicatorExtractor:
                     lemmas.pop(word)
                 else:
                     lemmas[word] = Predicator(
-                        predicator.count,
+                        predicator.frequency,
                         {lemma for lemma in predicator.lemma if lemma[1] != eomi})
 
         return lemmas
