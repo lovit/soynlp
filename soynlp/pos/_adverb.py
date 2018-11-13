@@ -2,7 +2,7 @@ from soynlp.utils.utils import installpath
 
 def load_default_adverbs(path=None):
     if path is None:
-        path = '%s/postagger/dictionary/default/Adverb/adverb.txt'.format(installpath)
+        path = '%s/postagger/dictionary/default/Adverb/adverb.txt' % installpath
     with open(path, encoding='utf-8') as f:
         words = {word.strip().split()[0] for word in f}
     return words
