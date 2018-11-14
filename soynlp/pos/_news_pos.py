@@ -217,7 +217,7 @@ class NewsPOSExtractor:
             if lr is None:
                 continue
             lemmas = base[lr[1]].lemma
-            lemmas = {(word[0]+stem, eomi) for stem, eomi in lemmas}
+            lemmas = {(lr[0]+stem, eomi) for stem, eomi in lemmas}
             predicator_compounds[word] = Predicator(count, lemmas)
             stems.update({stem for stem, _ in lemmas})
             counter[word] = count
