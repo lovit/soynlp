@@ -136,6 +136,35 @@ class NewsPOSExtractor:
 
         return adjectives, verbs
 
+    def _count_matched_patterns(self):
+        eojeols = self.eojeols
+        total_frequency = sum(eojeols.values())
+
+        eojeols, nouns, adjectives, verbs, adverbs = self._match_word(eojeols)
+
+        eojeols, nouns, adjectives, verbs, josas = self._match_noun_and_word(
+            eojeols, nouns, adjectives, verbs, self.josas)
+
+        eojeols, adjectives, verbs = self._match_predicator_compounds(
+            eojeols, adjectives, verbs)
+
+        eojeols, adjectives, verbs = self._lemmatizing_predicators(
+            eojeols, adjectives, verbs)
+
+        eojeols, nouns, adjectives, verbs, josas = self._match_syllable_noun_and_r(
+            eojeols, nouns, adjectives, verbs, josas)
+
+        eojeols = self._remove_irregular_words(eojeols)
+
+        eojeols, nouns = self._match_compound_nouns(
+            eojeols, nouns, adjectives, verbs, josas)
+
+        if self._verbose:
+            self._print_stats(total_frequency, nouns,
+                adjectives, verbs, adverbs, josas, eojeols)
+
+        return nouns, adjectives, verbs, adverbs, josas, eojeols
+
     def _as_predicator(self, counter, lemma_dict, stem, eomis):
         predicators = {}
         for word, count in counter.items():
@@ -193,35 +222,6 @@ class NewsPOSExtractor:
             stems.update({stem for stem, _ in lemmas})
             counter[word] = count
         return predicator_compounds, stems, counter
-
-    def _count_matched_patterns(self):
-        eojeols = self.eojeols
-        total_frequency = sum(eojeols.values())
-
-        eojeols, nouns, adjectives, verbs, adverbs = self._match_word(eojeols)
-
-        eojeols, nouns, adjectives, verbs, josas = self._match_noun_and_word(
-            eojeols, nouns, adjectives, verbs, self.josas)
-
-        eojeols, adjectives, verbs = self._match_predicator_compounds(
-            eojeols, adjectives, verbs)
-
-        eojeols, adjectives, verbs = self._lemmatizing_predicators(
-            eojeols, adjectives, verbs)
-
-        eojeols, nouns, adjectives, verbs, josas = self._match_syllable_noun_and_r(
-            eojeols, nouns, adjectives, verbs, josas)
-
-        eojeols = self._remove_irregular_words(eojeols)
-
-        eojeols, nouns = self._match_compound_nouns(
-            eojeols, nouns, adjectives, verbs, josas)
-
-        if self._verbose:
-            self._print_stats(total_frequency, nouns,
-                adjectives, verbs, adverbs, josas, eojeols)
-
-        return nouns, adjectives, verbs, adverbs, josas, eojeols
 
     def _match_word(self, eojeols):
         if self._verbose:
