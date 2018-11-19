@@ -209,17 +209,27 @@ class NewsPOSExtractor:
         return None
 
     def _parse_predicator_compounds(self, eojeols, predicators, base):
+        def check_suffix_prefix(stem, eomi):
+            l = decompose(stem[-1])
+            r = decompose(eomi[0])
+            jongcho_l = set('ㄹㅂ')
+            jongcho_r = set('ㄴㄹㅁㅂ')
+            if (l[2] in jongcho_l) and (r[0] in jongcho_r):
+                return False
+            if (l[1] == 'ㅡ' and l[2] == ' ' and r[0] == 'ㅇ' and (r[1] == 'ㅓ' or r[1] == 'ㅏ')):
+                return False
+            return True
+
         stems = set()
         predicator_compounds = {}
         counter = {}
         for word, count in eojeols.items():
-            if word in predicators:
-                continue
             lr = self._separate_lr(word, predicators, base)
             if lr is None:
                 continue
             lemmas = base[lr[1]].lemma
             lemmas = {(lr[0]+stem, eomi) for stem, eomi in lemmas}
+            lemmas = {(stem, eomi) for stem, eomi in lemmas if check_suffix_prefix(stem, eomi)}
             lemmas = {(stem, eomi) for stem, eomi in lemmas
                 if not (stem in self.verb_stems) and not (stem in self.adjective_stems)}
             if not lemmas:
