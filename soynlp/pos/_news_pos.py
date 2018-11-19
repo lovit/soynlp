@@ -213,6 +213,8 @@ class NewsPOSExtractor:
         predicator_compounds = {}
         counter = {}
         for word, count in eojeols.items():
+            if word in predicators:
+                continue
             lr = self._separate_lr(word, predicators, base)
             if lr is None:
                 continue
