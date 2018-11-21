@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from soynlp.hangle import decompose
+from soynlp.hangle._hangle import jaum_list
 from soynlp.lemmatizer import _lemma_candidate
 from soynlp.lemmatizer import conjugate
 from soynlp.noun import LRNounExtractor_v2
@@ -47,6 +49,44 @@ class ChatPOSExtractor(NewsPOSExtractor):
 
         return nouns, adjectives, verbs, adverbs, josas, eojeols
 
+    def _match_predicator_compounds(self, eojeols, adjectives, verbs):
+        if self._verbose:
+            print('[POS Extractor] matching "Predicator + Adjective/Verb" from {} eojeols'.format(len(eojeols)))
+
+        predicators = set(self.adjectives.keys())
+        predicators.update(set(self.verbs.keys()))
+        before_adj, before_verb = len(self.adjectives), len(self.verbs)
+
+        # adjective compounds
+        compounds, stems, counter = self._parse_predicator_compounds(
+            eojeols, predicators, self.adjectives)
+        self.adjectives.update(compounds)
+        self.adjective_stems.update(stems)
+        wrong_eomis = find_wrong_eomi(self.adjectives, compounds) # additional code
+        adjectives = self._cumulate_counter(adjectives, counter.items())
+
+        ## verb compounds
+        compounds, stems, counter = self._parse_predicator_compounds(
+            eojeols, predicators, self.verbs)
+        self.verbs.update(compounds)
+        self.verb_stems.update(stems)
+        wrong_eomis.update(find_wrong_eomi(self.verbs, compounds)) # additional code
+        verbs = self._cumulate_counter(verbs, counter.items())
+
+        ## remove matched eojeols
+        wrong_stems = {word for word in adjectives}
+        wrong_stems.update({word for word in verbs})
+        eojeols = self._remove_recognized(eojeols, wrong_stems)
+
+        # additional code
+        self.eomis = {eomi for eomi in self.eomis if not (eomi in wrong_eomis)}
+
+        if self._verbose:
+            after_adj, after_verb = len(self.adjectives), len(self.verbs)
+            print('[POS Extractor] adjective: %d -> %d, verb: %d -> %d' % (
+                before_adj, after_adj, before_verb, after_verb))
+        return eojeols, adjectives, verbs
+
     def _parse_predicator_compounds(self, eojeols, predicators, base):
         def check_suffix_prefix(stem, eomi):
             if stem[-1] == '업' or stem[-1] == '닿' or stem[-1] == '땋':
@@ -86,7 +126,7 @@ class ChatPOSExtractor(NewsPOSExtractor):
         wrong_stems = find_wrong_stem(predicator_compounds)
         predicator_compounds = delete_predicators_having_wrong_stem(
             predicator_compounds, wrong_stems)
-        stems = {stem for stem in stem if not (stem in wrong_stems)}
+        stems = {stem for stem in wrong_stems if not (stem in wrong_stems)}
         counter = {word:count for word, count in counter.items() if word in predicator_compounds}
         return predicator_compounds, stems, counter
 
@@ -106,6 +146,21 @@ def find_wrong_stem(compounds):
         for stem, eomi in predicator.lemma:
             lrgraph[stem][eomi] += count
     return {stem for stem in lrgraph if jaum_begin_prop(stem) >= 0.9}
+
+def find_wrong_eomi(predicators, compounds):
+    candidates = defaultdict(int)
+    for word, predicator in predicators.items():
+        if not (word in compounds):
+            continue
+        for _, eomi in predicator.lemma:
+            candidates[eomi] += 1
+    for word, predicator in predicators.items():
+        if (word in compounds):
+            continue
+        for _, eomi in predicator.lemma:
+            candidates[eomi] -= 1
+    removals = {eomi for eomi, count in candidates.items() if count > 0}
+    return removals
 
 def delete_predicators_having_wrong_stem(predicators, wrong_stems):
     predicators_ = {}
