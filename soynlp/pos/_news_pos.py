@@ -279,6 +279,7 @@ class NewsPOSExtractor:
         predicators = set(self.adjectives.keys())
         predicators.update(set(self.verbs.keys()))
 
+        # adjective compounds
         compounds, stems, counter = self._parse_predicator_compounds(
             eojeols, predicators, self.adjectives)
         self.adjectives.update(compounds)
