@@ -12,6 +12,7 @@ from soynlp.predicator import Predicator
 from soynlp.predicator import PredicatorExtractor
 from soynlp.tokenizer import MaxScoreTokenizer
 from soynlp.utils import LRGraph
+from soynlp.utils.utils import installpath
 from ._news_pos import NewsPOSExtractor
 
 
@@ -23,6 +24,10 @@ class ChatPOSExtractor(NewsPOSExtractor):
     def _count_matched_patterns(self):
         eojeols = self.eojeols
         total_frequency = sum(eojeols.values())
+
+        path = '%s/postagger/dictionary/default/Josa/josa_chat.txt' % installpath
+        with open(path, encoding='utf-8') as f:
+            self.josas = {word.strip() for word in f}
 
         eojeols, nouns, adjectives, verbs, adverbs = self._match_word(eojeols)
 
