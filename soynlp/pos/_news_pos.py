@@ -241,7 +241,7 @@ class NewsPOSExtractor:
 
     def _match_word(self, eojeols):
         if self._verbose:
-            print('    - matching "Noun, Adjectives, Verbs, and Adverbs" from {} eojeols'.format(len(eojeols)))
+            print('    - matching "Noun, Adjective, Verb, and Adverb" from {} eojeols'.format(len(eojeols)))
 
         nouns = {word:count for word, count in eojeols.items() if self._match(word, self.nouns)}
         adjectives = {word:count for word, count in eojeols.items() if self._match(word, self.adjectives)}
