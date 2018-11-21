@@ -64,9 +64,10 @@ class PredicatorExtractor:
 
         nouns = self._remove_stem_prefix(nouns)
         self._nouns = nouns
+        self._eomis_ = {eomi for eomi in self._eomis} # original eomis
 
     def _load_default_josa(self):
-        path = '%s/postagger/dictionary/default/Josa/josa.txt' % installpath
+        path = '%s/postagger/dictionary/default/Josa/josa_chat.txt' % installpath
         with open(path, encoding='utf-8') as f:
             josas = {word.strip() for word in f}
         return josas
