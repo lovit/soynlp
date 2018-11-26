@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections import namedtuple
 from soynlp.hangle import decompose
-from soynlp.lemmatizer import _lemma_candidate
+from soynlp.lemmatizer import lemma_candidate
 from soynlp.lemmatizer import _conjugate_stem
 
 EomiScore = namedtuple('EomiScore', 'frequency score')
@@ -215,7 +215,7 @@ class EomiExtractor:
         for eomi, (_, score0) in eomis.items():
             for stem_surface, count in self.lrgraph.get_l(eomi, -1):
                 try:
-                    for stem_, eomi_ in _lemma_candidate(stem_surface, eomi):
+                    for stem_, eomi_ in lemma_candidate(stem_surface, eomi):
                         if not (stem_ in self._stems):
                             continue
                         eomis_[eomi_] = merge_score(count, score0, *eomis_.get(eomi_, (0, 0)))

@@ -20,7 +20,7 @@ class Lemmatizer:
         candidates = set()
         for i in range(1, len(word)+1):
             l, r = word[:i], word[i:]
-            for stem, ending in _lemma_candidate(l, r, self._predefined):
+            for stem, ending in lemma_candidate(l, r, self._predefined):
                 if stem in self._stems:
                     if check_only_stem:
                         candidates.add((stem, ending))
@@ -33,10 +33,10 @@ class Lemmatizer:
         for i in range(1, len(word) + 1):
             l = word[:i]
             r = word[i:]
-            candidates.update(self._lemma_candidate(l, r, self._predefined))
+            candidates.update(self.lemma_candidate(l, r, self._predefined))
         return candidates
 
-def _lemma_candidate(l, r, predefined=None, debug=False):
+def lemma_candidate(l, r, predefined=None, debug=False):
     def add_lemma(stem, ending):
         candidates.add((stem, ending))
 
