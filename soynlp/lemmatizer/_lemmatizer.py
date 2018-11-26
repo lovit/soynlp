@@ -1,7 +1,7 @@
 # -*- encoding:utf8 -*-
 
 from soynlp.hangle import compose, decompose
-from ._conjugation import conjugate
+from ._conjugation import conjugate, conjugate_chat
 
 class Lemmatizer:
     def __init__(self, stems, endings, predefined=None):
@@ -36,12 +36,31 @@ class Lemmatizer:
             candidates.update(self.lemma_candidate(l, r, self._predefined))
         return candidates
 
-def lemma_candidate(l, r, predefined=None, debug=False):
+def debug_message(message, l, r):
+    print('{}: {} + {}'.format(message, l, r))
+
+def lemma_candidate_chat(l, r, predefined=None, debug=False):
     def add_lemma(stem, ending):
         candidates.add((stem, ending))
 
-    def debug_message(message, l, r):
-        print('{}: {} + {}'.format(message, l, r))
+    def character_is_emoticon(c):
+        return c in set('ㄷㅅㅇㅋㅎ')
+
+    candidates = lemma_candidate(l, r, predefined, debug)
+    l_last = decompose(l[-1])
+
+    # 어미가 ㄷ, ㅅ, ㅇ, ㅋ, ㅎ 일 경우 (아닏, 아닛, 아닝, 아닠, 아닣)
+    if not r and character_is_emoticon(l_last[2]):
+        l_ = l[:-1] + compose(l_last[0], l_last[1], ' ')
+        if debug:
+            debug_message('마지막 종성이 이모티콘으로 의심되는 경우', l_, '()')
+        candidates.update(lemma_candidate(l_, r, predefined, debug))
+
+    return candidates
+
+def lemma_candidate(l, r, predefined=None, debug=False):
+    def add_lemma(stem, ending):
+        candidates.add((stem, ending))
 
     candidates = {(l, r)}
     word = l + r
@@ -206,7 +225,7 @@ def lemma_candidate(l, r, predefined=None, debug=False):
                 debug_message('Predefined', l_stem, r_canon)
 
     # check whether lemma is conjugatable
-    candidates_ = []
+    candidates_ = set()
     for stem, eomi in candidates:
         if not eomi:
             continue
@@ -215,5 +234,5 @@ def lemma_candidate(l, r, predefined=None, debug=False):
             continue
         surfaces = conjugate(stem, eomi)
         if word in surfaces:
-            candidates_.append((stem, eomi))
+            candidates_.add((stem, eomi))
     return candidates_
