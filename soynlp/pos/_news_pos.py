@@ -85,7 +85,8 @@ class NewsPOSExtractor:
             'VerbStem': self.verb_stems,
             'Adverb': adverbs,
             'Josa': self.josas,
-            'Irrecognizable': irrecognized
+            'Irrecognizable': irrecognized,
+            'ConfusedNouns': confused_nouns
         }
 
         return wordtags
