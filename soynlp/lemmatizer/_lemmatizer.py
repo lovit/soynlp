@@ -1,7 +1,7 @@
 # -*- encoding:utf8 -*-
 
 from soynlp.hangle import compose, decompose
-from ._conjugation import conjugate
+from ._conjugation import conjugate, conjugate_chat
 
 class Lemmatizer:
     def __init__(self, stems, endings, predefined=None):
@@ -20,7 +20,7 @@ class Lemmatizer:
         candidates = set()
         for i in range(1, len(word)+1):
             l, r = word[:i], word[i:]
-            for stem, ending in _lemma_candidate(l, r, self._predefined):
+            for stem, ending in lemma_candidate(l, r, self._predefined):
                 if stem in self._stems:
                     if check_only_stem:
                         candidates.add((stem, ending))
@@ -33,10 +33,32 @@ class Lemmatizer:
         for i in range(1, len(word) + 1):
             l = word[:i]
             r = word[i:]
-            candidates.update(self._lemma_candidate(l, r, self._predefined))
+            candidates.update(self.lemma_candidate(l, r, self._predefined))
         return candidates
 
-def _lemma_candidate(l, r, predefined=None, debug=False):
+def debug_message(message, l, r):
+    print('{}: {} + {}'.format(message, l, r))
+
+def lemma_candidate_chat(l, r, predefined=None, debug=False):
+    def add_lemma(stem, ending):
+        candidates.add((stem, ending))
+
+    def character_is_emoticon(c):
+        return c in set('ㄷㅅㅇㅋㅎ')
+
+    candidates = lemma_candidate(l, r, predefined, debug)
+    l_last = decompose(l[-1])
+
+    # 어미가 ㄷ, ㅅ, ㅇ, ㅋ, ㅎ 일 경우 (아닏, 아닛, 아닝, 아닠, 아닣)
+    if not r and character_is_emoticon(l_last[2]):
+        l_ = l[:-1] + compose(l_last[0], l_last[1], ' ')
+        if debug:
+            debug_message('마지막 종성이 이모티콘으로 의심되는 경우', l_, '()')
+        candidates.update(lemma_candidate(l_, r, predefined, debug))
+
+    return candidates
+
+def lemma_candidate(l, r, predefined=None, debug=False):
     def add_lemma(stem, ending):
         candidates.add((stem, ending))
 
@@ -54,12 +76,16 @@ def _lemma_candidate(l, r, predefined=None, debug=False):
     if l_last[2] == 'ㄹ' and r_first[0] == 'ㅇ':
         l_stem = l_front + compose(l_last[0], l_last[1], 'ㄷ')
         add_lemma(l_stem, r)
+        if debug:
+            debug_message('ㄷ 불규칙 활용', l_stem, r)
 
     # 르 불규칙 활용: 굴 + 러 -> 구르 + 어
     if (l_last[2] == 'ㄹ') and (r_first_ == '러' or r_first_ == '라'):
         l_stem = l_front + compose(l_last[0], l_last[1], ' ') + '르'
         r_canon = compose('ㅇ', r_first[1], r_first[2]) + r_end
         add_lemma(l_stem, r_canon)
+        if debug:
+            debug_message('르 불규칙 활용', l_stem, r_canon)
 
     # ㅂ 불규칙 활용: 더러 + 워서 -> 더럽 + 어서
     if (l_last[2] == ' '):
@@ -71,6 +97,8 @@ def _lemma_candidate(l, r, predefined=None, debug=False):
         else:
             r_canon = r
         add_lemma(l_stem, r_canon)
+        if debug:
+            debug_message('ㅂ 불규칙 활용', l_stem, r_canon)
 
     # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅁ-, -ㅂ, -ㅆ)
     # 입 + 니다 -> 이 + ㅂ니다
@@ -79,42 +107,56 @@ def _lemma_candidate(l, r, predefined=None, debug=False):
             l_stem = l_front + compose(l_last[0], l_last[1], jongsung)
             r_canon = l_last[2] + r
             add_lemma(l_stem, r_canon)
+            if debug:
+                debug_message('어미의 첫글자가 종성일 경우 (%s)'%jongsung, l_stem, r_canon)
 
     # ㅅ 불규칙 활용: 부 + 어 -> 붓 + 어
     # exception : 벗 + 어 -> 벗어
     if (l_last[2] == ' ' and l[-1] != '벗') and (r_first[0] == 'ㅇ'):
         l_stem = l_front + compose(l_last[0], l_last[1], 'ㅅ')
         add_lemma(l_stem, r)
+        if debug:
+            debug_message('ㅅ 불규칙 활용', l_stem, r)
 
     # 우 불규칙 활용: 똥퍼 + '' -> 똥푸 + 어
     if l_last_ == '퍼':
         l_stem = l_front + '푸'
         r_canon = compose('ㅇ', l_last[1], l_last[2]) + r
         add_lemma(l_stem, r_canon)
+        if debug:
+            debug_message('우 불규칙 활용 (퍼)', l_stem, r_canon)
 
     # 우 불규칙 활용: 줬 + 어 -> 주 + 었어
     if l_last[1] == 'ㅝ':
         l_stem = l_front + compose(l_last[0], 'ㅜ', ' ')
         r_canon = compose('ㅇ', 'ㅓ', l_last[2]) + r
         add_lemma(l_stem, r_canon)
+        if debug:
+            debug_message('우 불규칙 활용', l_stem, r_canon)
 
     # 오 불규칙 활용: 왔 + 어 -> 오 + 았어
     if l_last[1] == 'ㅘ':
         l_stem = l_front + compose(l_last[0], 'ㅗ', ' ')
         r_canon = compose('ㅇ', 'ㅏ', l_last[2]) + r
         add_lemma(l_stem, r_canon)
+        if debug:
+            debug_message('오 불규칙 활용', l_stem, r_canon)
 
     # ㅡ 탈락 불규칙 활용: 꺼 + '' -> 끄 + 어 / 텄 + 어 -> 트 + 었어
     if (l_last[1] == 'ㅓ' or l_last[1] == 'ㅏ'):
         l_stem = l_front + compose(l_last[0], 'ㅡ', ' ')
         r_canon = compose('ㅇ', l_last[1], l_last[2]) + r
         add_lemma(l_stem, r_canon)
+        if debug:
+            debug_message('ㅡ 탈락 불규칙 활용 (꺼)', l_stem, r_canon)
 
     # ㅡ 탈락 불규칙 활용: 모 + 았다 -> 모으 + 았다
     if l_last[2] == ' ' and r_first[0] == 'ㅇ' and (r_first[1] == 'ㅏ' or r_first[1] == 'ㅓ'):
         l_stem = l + '으'
         r_canon = r
         add_lemma(l_stem, r_canon)
+        if debug:
+            debug_message('ㅡ 탈락 불규칙 활용 (모으)', l_stem, r_canon)
 
     # 거라, 너라 불규칙 활용
     # '-거라/-너라'를 어미로 취급하면 규칙 활용
@@ -135,6 +177,8 @@ def _lemma_candidate(l, r, predefined=None, debug=False):
         l_stem = l_front + '하'
         r_canon = compose('ㅇ', 'ㅏ', l_last[2]) + r
         add_lemma(l_stem, r_canon)
+        if debug:
+            debug_message('여 불규칙 활용', l_stem, r_canon)
 
     # ㅎ (탈락) 불규칙 활용
     if (l_last[2] == ' ' or l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ'):
@@ -143,6 +187,8 @@ def _lemma_candidate(l, r, predefined=None, debug=False):
             l_stem = l_front + compose(l_last[0], l_last[1], 'ㅎ')
             r_canon = r if l_last[2] == ' ' else l_last[2] + r
             add_lemma(l_stem, r_canon)
+            if debug:
+                debug_message('ㅎ 탈락 불규칙 활용', l_stem, r_canon)
         # ㅎ (축약) 불규칙 할용
         # 시퍼렜 + 다 -> 시퍼렇 + 었다, 파랬 + 다 -> 파랗 + 았다
         if (l_last[1] == 'ㅐ') or (l_last[1] == 'ㅔ'):
@@ -153,6 +199,8 @@ def _lemma_candidate(l, r, predefined=None, debug=False):
                 l_stem = l_front + compose(l_last[0], 'ㅓ' if l_last[1] == 'ㅔ' else 'ㅏ', 'ㅎ')
             r_canon = compose('ㅇ', 'ㅓ' if l_last[1] == 'ㅔ' else 'ㅏ', l_last[2]) + r
             add_lemma(l_stem, r_canon)
+            if debug:
+                debug_message('ㅎ 축약 불규칙 활용', l_stem, r_canon)
 
     # 이었 -> 였 규칙활용
     # 좋아졌 + 어 -> 좋아지 + 었어, 좋아졋 + 던 -> 좋아지 + 었던, 좋아져 + 서 -> 좋아지 + 어서
@@ -166,17 +214,18 @@ def _lemma_candidate(l, r, predefined=None, debug=False):
             l_stem = l_front + compose(l_last[0], 'ㅣ', ' ')
             r_canon = compose('ㅇ', 'ㅓ', l_last[2])+ r
             add_lemma(l_stem, r_canon)
+            if debug:
+                debug_message('이었 -> 였 규칙 활용', l_stem, r_canon)
 
     ## Pre-defined set
     if predefined and (l, r) in predefined:
         for stem in predefined[(l, r)]:
             candidates.add(stem)
-
-    if debug:
-        print(l, r, candidates)
+            if debug:
+                debug_message('Predefined', l_stem, r_canon)
 
     # check whether lemma is conjugatable
-    candidates_ = []
+    candidates_ = set()
     for stem, eomi in candidates:
         if not eomi:
             continue
@@ -185,5 +234,5 @@ def _lemma_candidate(l, r, predefined=None, debug=False):
             continue
         surfaces = conjugate(stem, eomi)
         if word in surfaces:
-            candidates_.append((stem, eomi))
+            candidates_.add((stem, eomi))
     return candidates_

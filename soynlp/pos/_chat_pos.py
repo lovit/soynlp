@@ -2,7 +2,6 @@ from collections import defaultdict
 
 from soynlp.hangle import decompose
 from soynlp.hangle._hangle import jaum_list
-from soynlp.lemmatizer import _lemma_candidate
 from soynlp.lemmatizer import conjugate
 from soynlp.noun import LRNounExtractor_v2
 from soynlp.noun import NounScore

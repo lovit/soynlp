@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from soynlp.lemmatizer import _lemma_candidate
+from soynlp.lemmatizer import lemma_candidate
 from soynlp.lemmatizer import conjugate
 from soynlp.noun import LRNounExtractor_v2
 from soynlp.pos import load_default_adverbs
@@ -201,7 +201,7 @@ class NewsPOSExtractor:
 
         for i in range(len(word) + 1, 0, -1):
             try:
-                lemmas = _lemma_candidate(word[:i], word[i:])
+                lemmas = lemma_candidate(word[:i], word[i:])
             except:
                 continue
             lemmas = only_knowns(lemmas)

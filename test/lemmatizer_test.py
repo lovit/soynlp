@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, '../')
 import soynlp
 from soynlp.lemmatizer import Lemmatizer
-from soynlp.lemmatizer import _lemma_candidate
+from soynlp.lemmatizer import lemma_candidate
 
 def main():
     test_stems = {

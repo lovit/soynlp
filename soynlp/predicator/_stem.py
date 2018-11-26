@@ -1,6 +1,6 @@
 import math
 from soynlp.lemmatizer import conjugate
-from soynlp.lemmatizer import _lemma_candidate
+from soynlp.lemmatizer import lemma_candidate
 
 class StemExtractor:
 
@@ -253,7 +253,7 @@ class StemExtractor:
         for l, (freq0, score0) in surfaces.items():
             for r, count in self.lrgraph.get_r(l, -1):
                 try:
-                    for stem, eomi in _lemma_candidate(l, r):
+                    for stem, eomi in lemma_candidate(l, r):
                         if eomi in self.eomis:
                             continue
                         stems[stem] = merge_score(

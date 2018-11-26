@@ -21,7 +21,7 @@ from soynlp.utils import get_process_memory
 from soynlp.utils import LRGraph
 from soynlp.utils.utils import installpath
 from soynlp.lemmatizer import conjugate
-from soynlp.lemmatizer import _lemma_candidate
+from soynlp.lemmatizer import lemma_candidate
 from soynlp.lemmatizer import _conjugate_stem
 from soynlp.normalizer import normalize_sent_for_lrgraph
 from ._eomi import EomiExtractor
@@ -371,7 +371,7 @@ class PredicatorExtractor:
 
             for i in range(1, n+1):
                 l, r = eojeol[:i], eojeol[i:]
-                for stem, eomi in _lemma_candidate(l, r):
+                for stem, eomi in lemma_candidate(l, r):
                     if (stem in self._stems) and (eomi in self._eomis):
                         lemma_candidates.add((stem, eomi))
 
