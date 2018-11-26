@@ -47,11 +47,17 @@ class ChatPOSExtractor(NewsPOSExtractor):
         #eojeols, nouns = self._match_compound_nouns(
         #    eojeols, nouns, adjectives, verbs, josas)
 
+        confused_nouns = {word:count for word, count in nouns.items()
+            if (word in adjectives) or (word in verbs) or (word in adverbs)}
+
+        nouns = {word:count for word, count in nouns.items()
+                 if not (word in confused_nouns)}
+
         if self._verbose:
             self._print_stats(total_frequency, nouns,
                 adjectives, verbs, adverbs, josas, eojeols)
 
-        return nouns, adjectives, verbs, adverbs, josas, eojeols
+        return nouns, adjectives, verbs, adverbs, josas, eojeols, confused_nouns
 
     def _match_predicator_compounds(self, eojeols, adjectives, verbs):
         if self._verbose:

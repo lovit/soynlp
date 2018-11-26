@@ -69,7 +69,7 @@ class NewsPOSExtractor:
 
     def extract(self):
 
-        nouns, adjectives, verbs, adverbs, josas, irrecognized = self._count_matched_patterns()
+        nouns, adjectives, verbs, adverbs, josas, irrecognized, confused_nouns = self._count_matched_patterns()
 
         adjectives = self._as_predicator(adjectives,
             self.adjectives, self.adjective_stems, self.eomis)
@@ -160,11 +160,17 @@ class NewsPOSExtractor:
         eojeols, nouns = self._match_compound_nouns(
             eojeols, nouns, adjectives, verbs, josas)
 
+        confused_nouns = {word:count for word, count in nouns.items()
+            if (word in adjectives) or (word in verbs) or (word in adverbs)}
+
+        nouns = {word:count for word, count in nouns.items()
+                 if not (word in confused_nouns)}
+
         if self._verbose:
             self._print_stats(total_frequency, nouns,
                 adjectives, verbs, adverbs, josas, eojeols)
 
-        return nouns, adjectives, verbs, adverbs, josas, eojeols
+        return nouns, adjectives, verbs, adverbs, josas, eojeols, confused_nouns
 
     def _as_predicator(self, counter, lemma_dict, stem, eomis):
         predicators = {}
