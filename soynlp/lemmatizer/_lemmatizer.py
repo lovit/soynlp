@@ -44,12 +44,14 @@ def lemma_candidate_chat(l, r, predefined=None, debug=False):
         candidates.add((stem, ending))
 
     def character_is_emoticon(c):
-        return c in set('ㄷㅅㅇㅋㅎ')
+        return c in set('ㄷㅂㅅㅇㅋㅎ')
 
     candidates = lemma_candidate(l, r, predefined, debug)
     l_last = decompose(l[-1])
 
-    # 어미가 ㄷ, ㅅ, ㅇ, ㅋ, ㅎ 일 경우 (아닏, 아닛, 아닝, 아닠, 아닣)
+    # 어미가 ㄷ, ㅂ, ㅅ, ㅇ, ㅋ, ㅎ 일 경우,
+    # (아닏, 아닙, 아닛, 아닝, 아닠, 아닣)
+    # (그랟, 그랩, 그랫, 그랭, 그랰, 그랳)
     if not r and character_is_emoticon(l_last[2]):
         l_ = l[:-1] + compose(l_last[0], l_last[1], ' ')
         if debug:
