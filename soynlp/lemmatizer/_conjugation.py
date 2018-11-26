@@ -18,6 +18,31 @@ neg_to_pos = {
     'ㅠ': 'ㅛ'
 }
 
+def conjugate_chat(stem, ending, enforce_moum_harmoney=False, debug=False):
+    if not ending:
+        return {stem}
+
+    candidates = conjugate(stem, ending, enforce_moum_harmoney, debug)
+
+    l_len = len(stem)
+    l_last = list(decompose(stem[-1]))
+    l_last_ = stem[-1]
+    r_first = list(decompose(ending[0]))
+
+    # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅂ, -ㅆ)
+    # 이 + ㅂ니다 -> 입니다
+    if r_first[1] == ' ' and r_first[0] != ' ':
+        l = stem[:-1] + compose(l_last[0], l_last[1], r_first[0])
+        r = ending[1:]
+        surface = l + r
+        candidates.add(surface)
+        if r_first[1] != ' ':
+            candidates.add(stem + ending)
+        if debug:
+            print('어미의 첫 글자가 자음인 경우: {}'.format(surface))
+
+    return candidates
+
 def conjugate(stem, ending, enforce_moum_harmoney=False, debug=False):
 
     assert ending # ending must be inserted
