@@ -42,6 +42,7 @@ $ pip install soynlp
 - numpy >= 1.12.1
 - psutil >= 5.0.1
 - scipy >= 1.1.0
+- scikit-learn >= 0.20.0
 
 ## Word Extraction 
 

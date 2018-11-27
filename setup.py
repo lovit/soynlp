@@ -21,6 +21,7 @@ setuptools.setup(
             'trained_models/*',
             'pos/dictionary/*.txt',
             'pos/dictionary/*/*.txt',
+            'postagger/dictionary/default/*/*.txt',
             'noun/*.txt',
             'lemmatizer/dictionary/default/*/*.txt'
         ]
@@ -36,7 +37,8 @@ setuptools.setup(
     install_requires=[
         "numpy>=1.12.1",
         "psutil>=5.0.1",
-        "scipy>=1.1.0"
+        "scipy>=1.1.0",
+        "scikit-learn>=0.20.0",
     ],
     classifiers=(
         "Programming Language :: Python :: 3.6",
