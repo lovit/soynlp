@@ -106,6 +106,8 @@ def lemma_candidate(l, r, predefined=None, debug=False):
     # 입 + 니다 -> 이 + ㅂ니다
     if l_last[2] == 'ㄴ' or l_last[2] == 'ㄹ' or l_last[2] == 'ㅁ' or l_last[2] == 'ㅂ' or l_last[2] == 'ㅆ':
         for jongsung in ' ㄹㅂㅎ':
+            if l_last[2] == jongsung:
+                continue
             l_stem = l_front + compose(l_last[0], l_last[1], jongsung)
             r_canon = l_last[2] + r
             add_lemma(l_stem, r_canon)
