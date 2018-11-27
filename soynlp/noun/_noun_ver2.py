@@ -156,7 +156,7 @@ class LRNounExtractor_v2:
         if self.verbose:
             print('[Noun Extractor] counting eojeols')
 
-        if self.ensure_normalized:
+        if not self.ensure_normalized:
             preprocess = lambda x:x
         else:
             preprocess = normalize_sent_for_lrgraph
