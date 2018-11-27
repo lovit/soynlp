@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from soynlp.hangle import decompose
 from soynlp.lemmatizer import lemma_candidate
 from soynlp.lemmatizer import conjugate
 from soynlp.noun import LRNounExtractor_v2
