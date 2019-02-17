@@ -453,6 +453,8 @@ pmi_dok = pmi(
 - https://github.com/lovit/soykeyword
 - pip install soykeyword
 
+[![Analytics](https://ga-beacon.appspot.com/UA-129549627-2/soynlp/readme)](https://github.com/lovit/soynlp)
+
 [wordextraction_lecture]: https://github.com/lovit/soynlp/blob/master/tutorials/wordextractor_lecture.ipynb
 [nounextractor-v1_usage]: https://github.com/lovit/soynlp/blob/master/tutorials/nounextractor-v1_usage.ipynb
 [nounextractor-v2_usage]: https://github.com/lovit/soynlp/blob/master/tutorials/nounextractor-v2_usage.ipynb
