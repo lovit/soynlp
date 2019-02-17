@@ -192,7 +192,7 @@ def pos_tagger_test():
     print('all pos tagger tests have been successed\n\n')
 
 def pmi_test(corpus_path):
-    print('PMI test\n{}'.format('-'*40))
+    print('pmi test\n{}'.format('-'*40))
 
     from soynlp import DoublespaceLineCorpus
     from soynlp.word import WordExtractor
@@ -219,16 +219,25 @@ def pmi_test(corpus_path):
         dynamic_weight=False,
         verbose=True)
 
-    pmi_dok = pmi(
+    x_pmi, x, y = pmi(
         x,
         min_pmi=0,
-        alpha=0.0001,
-        verbose=True)
+        alpha=0.0001)
 
-    for pair, pmi in sorted(pmi_dok.items(), key=lambda x:-x[1])[100:110]:
-        pair_ = (idx2vocab[pair[0]], idx2vocab[pair[1]])
-        print('pmi {} = {:.3f}'.format(pair_, pmi))
-    print('computed PMI')
+    rows, cols = x_pmi.nonzero()
+    data = x_pmi.data
+
+    print('row  shape = {}'.format(rows.shape))
+    print('col  shape = {}'.format(cols.shape))
+    print('data shape = {}'.format(data.shape))
+
+    for indpt in data.argsort()[-150:-100]:
+        i = rows[indpt]
+        j = cols[indpt]
+        pair = (idx2vocab[i], idx2vocab[j])
+        value = data[indpt]
+        print('pmi {} = {:.3f}'.format(pair, value))
+    print('computed pmi')
 
 
 def main():
