@@ -1,5 +1,5 @@
 __title__ = 'soynlp'
-__version__ = '0.0.49'
+__version__ = '0.0.491'
 __author__ = 'Lovit'
 __license__ = 'GPL v3'
 __copyright__ = 'Copyright 2017 Lovit'
