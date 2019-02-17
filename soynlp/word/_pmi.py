@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.sparse import csr_matrix
 from scipy.sparse import diags
 from scipy.sparse import dok_matrix
 from sklearn.metrics import pairwise_distances
@@ -11,13 +12,23 @@ def _as_diag(px, alpha):
     return px_diag
 
 def _logarithm_and_ppmi(exp_pmi, min_exp_pmi):
+    n, m = exp_pmi.shape
+
     # because exp_pmi is sparse matrix and type of exp_pmi.data is numpy.ndarray
-    indices = np.where(exp_pmi.data < min_exp_pmi)[0]
-    exp_pmi.data[indices] = 1
+    rows, cols = exp_pmi.nonzero()
+    data = exp_pmi.data
+
+    indices = np.where(data >= min_exp_pmi)[0]
+    rows = rows[indices]
+    cols = cols[indices]
+    data = data[indices]
 
     # apply logarithm
-    exp_pmi.data = np.log(exp_pmi.data)
-    return exp_pmi
+    data = np.log(data)
+
+    # new matrix
+    exp_pmi_ = csr_matrix((data, (rows, cols)), shape=(n, m))
+    return exp_pmi_
 
 def pmi(X, py=None, min_pmi=0, alpha=0.0, beta=1):
     """
