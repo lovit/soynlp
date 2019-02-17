@@ -35,14 +35,19 @@ def pmi(X, py=None, min_pmi=0, alpha=0.0, beta=1):
     :param beta: float
         Smoothing factor. pmi(x,y) = log ( Pxy / (Px x Py^beta) )
         Default is 1.0
-    It returns
+
+    Returns
     ----------
-    pmi : scipy.sparse.dok_matrix or scipy.sparse.csr_matrix
+    pmi : scipy.sparse.csr_matrix
         (word, contexts) pmi value sparse matrix
     px : numpy.ndarray
         Probability of rows (items)
     py : numpy.ndarray
         Probability of columns (features)
+
+    Usage
+    -----
+        >>> pmi, px, py = pmi_memory_friendly(X, py=None, min_pmi=0, alpha=0, beta=1.0)
     """
 
     assert 0 < beta <= 1
@@ -69,12 +74,53 @@ def pmi(X, py=None, min_pmi=0, alpha=0.0, beta=1):
 
     return pmi, px, py
 
-def pmi_memory_friendly(x, min_pmi=0, alpha=0.0001, verbose=False):
+def pmi_memory_friendly(X, py=None, min_pmi=0, alpha=0.0, beta=1.0, verbose=False):
+    """
+    :param X: scipy.sparse.csr_matrix
+        (word, contexts) sparse matrix
+    :param py: numpy.ndarray
+        (1, word) shape, probability of context words.
+    :param min_pmi: float
+        Minimum value of pmi. all the values that smaller than min_pmi
+        are reset to zero.
+        Default is zero.
+    :param alpha: float
+        Smoothing factor. pmi(x,y; alpha) = p_xy /(p_x * (p_y + alpha))
+        Default is 0.0
+    :param beta: float
+        Smoothing factor. pmi(x,y) = log ( Pxy / (Px x Py^beta) )
+        Default is 1.0
+    :param verbose: Boolean
+        If True, verbose mode on
+
+    Returns
+    ----------
+    pmi : scipy.sparse.dok_matrix
+        (word, contexts) pmi value sparse matrix
+    px : numpy.ndarray
+        Probability of rows (items)
+    py : numpy.ndarray
+        Probability of columns (features)
+
+    Usage
+    -----
+        >>> pmi, px, py = pmi_memory_friendly(X, py=None, min_pmi=0, alpha=0, beta=1.0)
+    """
+
+    assert 0 < beta <= 1
+
     # convert x to probability matrix & marginal probability 
-    px = (x.sum(axis=1) / x.sum()).reshape(-1)
-    py = (x.sum(axis=0) / x.sum()).reshape(-1)
-    pxy = x / x.sum()
-    
+    px = (X.sum(axis=1) / X.sum()).reshape(-1)
+    if py is None:
+        py = (X.sum(axis=0) / X.sum()).reshape(-1)
+    pxy = X / X.sum()
+
+    assert py.shape[0] == pxy.shape[1]
+
+    if beta < 1:
+        py = py ** beta
+        py /= py.sum()
+
     # transform px and py to diagonal matrix
     # using scipy.sparse.diags
     px_diag = diags(px.tolist()[0])
