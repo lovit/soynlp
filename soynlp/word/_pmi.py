@@ -5,7 +5,7 @@ from sklearn.metrics import pairwise_distances
 from soynlp.utils import get_process_memory
 from soynlp.vectorizer import sent_to_word_contexts_matrix
 
-def pmi(x, min_pmi=0, alpha=0.0001, verbose=False):
+def pmi_memory_friendly(x, min_pmi=0, alpha=0.0001, verbose=False):
     # convert x to probability matrix & marginal probability 
     px = (x.sum(axis=1) / x.sum()).reshape(-1)
     py = (x.sum(axis=0) / x.sum()).reshape(-1)
@@ -46,7 +46,7 @@ def pmi(x, min_pmi=0, alpha=0.0001, verbose=False):
     if verbose:
         print('\rcomputing pmi was done{}'.format(' '*30), flush=True)
 
-    return pmi_dok
+    return pmi_dok, px, py
 
 class PMI:
     def __init__(self, windows=3, min_tf=10, verbose=True,
