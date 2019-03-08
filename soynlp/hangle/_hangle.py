@@ -136,7 +136,22 @@ class ConvolutionHangleEncoder:
         self.jong_begin = 40 # self.jung_begin + len(jungsung_list)
         self.number_begin = 68 # self.jong_begin + len(jongsung_list)
         self.space = 78 # len(chosung_list) + len(jungsung_list) + len(jongsung_list) + 10
-        self.dim = 79
+        self.unk = 79
+        self.dim = 80
+        num = [str(i) for i in range(10)]
+        space = ' '
+        unk = '<unk>'
+        idx_to_char = chosung_list + jungsung_list + jongsung_list + num + [space] + [unk]
+        self.idx_to_char = np.asarray(idx_to_char)
+        self.jamo_to_idx = {
+            'ㄱ': 0, 'ㄲ': 1, 'ㄴ': 2, 'ㄷ': 3, 'ㄸ': 4, 'ㄹ': 5, 'ㅁ': 6, 'ㅂ': 7,
+            'ㅃ': 8, 'ㅅ': 9, 'ㅆ': 10, 'ㅇ': 11, 'ㅈ': 12, 'ㅉ': 13, 'ㅊ': 14, 'ㅋ': 15,
+            'ㅌ': 16, 'ㅍ': 17, 'ㅎ': 18, 'ㅏ': 19, 'ㅐ': 20, 'ㅑ': 21, 'ㅒ': 22, 'ㅓ': 23,
+            'ㅔ': 24, 'ㅕ': 25, 'ㅖ': 26, 'ㅗ': 27, 'ㅘ': 28, 'ㅙ': 29, 'ㅚ': 30, 'ㅛ': 31,
+            'ㅜ': 32, 'ㅝ': 33, 'ㅞ': 34, 'ㅟ': 35, 'ㅠ': 36, 'ㅡ': 37, 'ㅢ': 38, 'ㅣ': 39,
+            ' ': 40, 'ㄳ': 43, 'ㄵ': 45, 'ㄶ': 46, 'ㄺ': 49, 'ㄻ': 50, 'ㄼ': 51, 'ㄽ': 52,
+            'ㄾ': 53, 'ㄿ': 54, 'ㅀ': 55, 'ㅄ': 58
+        }
     
     def encode(self, sent):
         onehot = self.sent_to_onehot(sent)
@@ -147,34 +162,40 @@ class ConvolutionHangleEncoder:
         return x
     
     def sent_to_onehot(self, sent):
-        sent = self._normalize(sent)
-        sent = [ord(c) for c in sent]
-        sent_ = []
-        for i in sent:
-            if i == 32: sent_.append((self.space,))
-            elif 48 <= i <= 57: sent_.append((i - 48 + self.number_begin, ))
-            else: sent_.append(self._decompose(i))
-        return sent_
+        chars = self._normalize(sent)
+        ords = [ord(c) for c in chars]
+        onehot = []
+        for char, idx in zip(chars, ords):
+            if idx == 32:
+                onehot.append((self.space,))
+            elif 48 <= idx <= 57:
+                onehot.append((idx - 48 + self.number_begin, ))
+            else:
+                onehot.append(self._decompose(char, idx))
+        return onehot
     
     def onehot_to_sent(self, encoded_sent):
+        def check_cjj(c):
+            cho, jung, jong = c
+            if not (0 <= cho < self.jung_begin):
+                raise ValueError('Chosung %d is out of index' % cho)
+            if not (self.jung_begin <= jung < self.jong_begin):
+                raise ValueError('Jungsung %d is out of index' % jung)
+            if not (self.jong_begin <= jong < self.number_begin):
+                raise ValueError('Jongsung %d is out of index' % jong)
+
         chars = []
         for c in encoded_sent:
             if len(c) == 1:
-                idx = c[0] - self.number_begin
-                if idx == 10:
-                    chars.append(' ')
-                elif 0 <= idx < 10:
-                    chars.append(str(idx))
-                else:
-                    chars.append(None)
+                if not 0 <= c[0] < self.dim:
+                    raise ValueError('character index %d is out of index [0, %d]' % (c[0], self.dim))
+                chars.append(self.idx_to_char[c[0]])
             elif len(c) == 3:
-                cho, jung, jong = c
-                if (0 <= cho < self.jung_begin) and (self.jung_begin <= jung < self.jong_begin) and (self.jong_begin <= jong < self.number_begin):
-                    chars.append(compose(chosung_list[cho], jungsung_list[jung - self.jung_begin], jongsung_list[jong - self.jong_begin]))
-                else:
-                    chars.append(None)
+                check_cjj(c)
+                cho, jung, jong = tuple(self.idx_to_char[ci] for ci in c)
+                chars.append(compose(cho, jung, jong))
             else:
-                chars.append(None)
+                chars.append(unk)
         return ''.join(chars)
         
     def _normalize(self, sent):
@@ -187,13 +208,12 @@ class ConvolutionHangleEncoder:
     def _compose(self, cho, jung, jong):
         return chr(kor_begin + chosung_base * cho + jungsung_base * jung + jong)
 
-    def _decompose(self, i):
-        if (jaum_begin <= i <= jaum_end):
-            return (i - jaum_begin,)
-        if (moum_begin <= i <= moum_end):
-            return (i - moum_begin,)
-        i -= kor_begin
-        cho  = i // chosung_base
-        jung = ( i - cho * chosung_base ) // jungsung_base 
-        jong = ( i - cho * chosung_base - jung * jungsung_base )    
-        return (cho, self.jung_begin + jung, self.jong_begin + jong)
+    def _decompose(self, c, i):
+        if kor_begin <= i <= kor_end:
+            i -= kor_begin
+            cho  = i // chosung_base
+            jung = ( i - cho * chosung_base ) // jungsung_base
+            jong = ( i - cho * chosung_base - jung * jungsung_base )
+            return (cho, self.jung_begin + jung, self.jong_begin + jong)
+        else:
+            return (self.jamo_to_idx.get(c, self.unk), )
