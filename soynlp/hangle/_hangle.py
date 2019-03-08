@@ -195,7 +195,7 @@ class ConvolutionHangleEncoder:
                 cho, jung, jong = tuple(self.idx_to_char[ci] for ci in c)
                 chars.append(compose(cho, jung, jong))
             else:
-                chars.append(unk)
+                chars.append(self.idx_to_char[-1])
         return ''.join(chars)
         
     def _normalize(self, sent):
