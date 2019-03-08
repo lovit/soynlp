@@ -202,7 +202,7 @@ class ConvolutionHangleEncoder:
         import re
         regex = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣 0-9]')
         sent = regex.sub(' ', sent)
-        sent = doublespace_pattern.sub(' ', sent)
+        sent = doublespace_pattern.sub(' ', sent).strip()
         return sent
         
     def _compose(self, cho, jung, jong):
