@@ -140,7 +140,7 @@ class DoublespaceLineCorpus:
 
                     # yield doc
                     if not self.iter_sent:
-                        yield doc
+                        yield doc.strip()
                         if (self.num_doc > 0) and ((doc_idx + 1) >= self.num_doc):
                             stop = True
                         continue
