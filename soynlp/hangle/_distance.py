@@ -35,7 +35,13 @@ def jamo_levenshtein(s1, s2):
         return len(s1)
     
     def get_jamo_cost(c1, c2):
-        return 0 if (c1 == c2) else levenshtein(decompose(c1), decompose(c2))/3
+        if c1 == c2:
+            return 0
+        jamo1 = decompose(c1)
+        jamo2 = decompose(c2)
+        if jamo1 is None or jamo2 is None:
+            return 1
+        return levenshtein(decompose(c1), decompose(c2)) / 3
 
     previous_row = range(len(s2) + 1)
     for i, c1 in enumerate(s1):
