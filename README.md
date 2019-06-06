@@ -44,6 +44,89 @@ $ pip install soynlp
 - scipy >= 1.1.0
 - scikit-learn >= 0.20.0
 
+## Noun Extractor
+
+WordExtractor 는 통계를 이용하여 단어의 경계 점수를 학습하는 것일 뿐, 각 단어의 품사를 판단하지는 못합니다. 때로는 각 단어의 품사를 알아야 하는 경우가 있습니다. 또한 다른 품사보다도 명사에서 새로운 단어가 가장 많이 만들어집니다. 명사의 오른쪽에는 -은, -는, -라는, -하는 처럼 특정 글자들이 자주 등장합니다. 문서의 어절 (띄어쓰기 기준 유닛)에서 왼쪽에 위치한 substring 의 오른쪽에 어떤 글자들이 등장하는지 분포를 살펴보면 명사인지 아닌지 판단할 수 있습니다. soynlp 에서는 두 가지 종류의 명사 추출기를 제공합니다. 둘 모두 개발 단계이기 때문에 어떤 것이 더 우수하다 말하기는 어렵습니다만, NewsNounExtractor 가 좀 더 많은 기능을 포함하고 있습니다. 추후, 명사 추출기는 하나의 클래스로 정리될 예정입니다. 
+
+### Noun Extractor ver 1 & News Noun Extractor
+
+```python
+from soynlp.noun import LRNounExtractor
+noun_extractor = LRNounExtractor()
+nouns = noun_extractor.train_extract(sentences) # list of str like
+
+from soynlp.noun import NewsNounExtractor
+noun_extractor = NewsNounExtractor()
+nouns = noun_extractor.train_extract(sentences) # list of str like
+```
+
+2016-10-20 의 뉴스로부터 학습한 명사의 예시입니다. 
+
+    덴마크  웃돈  너무너무너무  가락동  매뉴얼  지도교수
+    전망치  강구  언니들  신산업  기뢰전  노스
+    할리우드  플라자  불법조업  월스트리트저널  2022년  불허
+    고씨  어플  1987년  불씨  적기  레스
+    스퀘어  충당금  건축물  뉴질랜드  사각  하나씩
+    근대  투자주체별  4위  태권  네트웍스  모바일게임
+    연동  런칭  만성  손질  제작법  현실화
+    오해영  심사위원들  단점  부장조리  차관급  게시물
+    인터폰  원화  단기간  편곡  무산  외국인들
+    세무조사  석유화학  워킹  원피스  서장  공범
+
+더 자세한 설명은 [튜토리얼][nounextractor-v1_usage]에 있습니다. 
+
+### Noun Extractor ver 2
+
+soynlp=0.0.46+ 에서는 명사 추출기 version 2 를 제공합니다. 이전 버전의 명사 추출의 정확성과 합성명사 인식 능력, 출력되는 정보의 오류를 수정한 버전입니다. 사용법은 version 1 과 비슷합니다.
+
+```python
+from soynlp.utils import DoublespaceLineCorpus
+from soynlp.noun import LRNounExtractor_v2
+
+corpus_path = '2016-10-20-news'
+sents = DoublespaceLineCorpus(corpus_path, iter_sent=True)
+
+noun_extractor = LRNounExtractor_v2(verbose=True)
+nouns = noun_extractor.train_extract(sents)
+```
+
+추출된 nouns 는 {str:namedtuple} 형식입니다. 
+
+```python
+print(nouns['뉴스']) # NounScore(frequency=4319, score=1.0)
+```
+
+_compounds_components 에는 복합명사를 구성하는 단일명사들의 정보가 저장되어 있습니다. '대한민국', '녹색성장'과 같이 실제로는 복합형태소이지만, 단일 명사로 이용되는 경우는 단일 명사로 인식합니다.
+
+```python
+list(noun_extractor._compounds_components.items())[:5]
+
+# [('잠수함발사탄도미사일', ('잠수함', '발사', '탄도미사일')),
+#  ('미사일대응능력위원회', ('미사일', '대응', '능력', '위원회')),
+#  ('글로벌녹색성장연구소', ('글로벌', '녹색성장', '연구소')),
+#  ('시카고옵션거래소', ('시카고', '옵션', '거래소')),
+#  ('대한민국특수임무유공', ('대한민국', '특수', '임무', '유공')),
+```
+
+LRGraph 는 학습된 corpus 에 등장한 어절의 L-R 구조를 저장하고 있습니다. get_r 과 get_l 을 이용하여 이를 확인할 수 있습니다.
+
+```python
+noun_extractor.lrgraph.get_r('아이오아이')
+
+# [('', 123),
+#  ('의', 47),
+#  ('는', 40),
+#  ('와', 18),
+#  ('가', 18),
+#  ('에', 7),
+#  ('에게', 6),
+#  ('까지', 2),
+#  ('랑', 2),
+#  ('부터', 1)]
+```
+
+더 자세한 설명은 [튜토리얼 2][nounextractor-v2_usage]에 있습니다.
+
 ## Word Extraction 
 
 2016 년 10월의 연예기사 뉴스에는 '트와이스', '아이오아이' 와 같은 단어가 존재합니다. 하지만 말뭉치를 기반으로 학습된 품사 판별기 / 형태소 분석기는 이런 단어를 본 적이 없습니다. 늘 새로운 단어가 만들어지기 때문에 학습하지 못한 단어를 제대로 인식하지 못하는 미등록단어 문제 (out of vocabulry, OOV) 가 발생합니다. 하지만 이 시기에 작성된 여러 개의 연예 뉴스 기사를 읽다보면 '트와이스', '아이오아이' 같은 단어가 등장함을 알 수 있고, 사람은 이를 학습할 수 있습니다. 문서집합에서 자주 등장하는 연속된 단어열을 단어라 정의한다면, 우리는 통계를 이용하여 이를 추출할 수 있습니다. 통계 기반으로 단어(의 경계)를 학습하는 방법은 다양합니다. soynlp는 그 중, Cohesion score, Branching Entropy, Accessor Variety 를 제공합니다. 
@@ -158,6 +241,24 @@ cohesion_score = {word:score.cohesion_forward for word, score in words.items()}
 tokenizer = LTokenizer(scores=cohesion_score)
 ```
 
+명사 추출기의 명사 점수와 Cohesion 을 함께 이용할 수도 있습니다. 한 예로, "Cohesion 점수 + 명사 점수"를 단어 점수로 이용하려면 아래처럼 작업할 수 있습니다.
+
+```python
+from soynlp.noun import LRNounExtractor_2
+noun_extractor = LRNounExtractor_v2()
+nouns = noun_extractor.train_extract(corpus) # list of str like
+
+noun_scores = {noun:score.score for noun, score in nouns.items()}
+combined_scores = {noun:score + cohesion_score.get(noun, 0)
+    for noun, score in noun_scores.items()}
+combined_scores = combined_scores.update(
+    {subword:cohesion for subword, cohesion in cohesion_score.items()
+    if not (subword in combine_scores)}
+)
+
+tokenizer = LTokenizer(scores=combined_scores)
+```
+
 ### MaxScoreTokenizer
 
 띄어쓰기가 제대로 지켜지지 않은 데이터라면, 문장의 띄어쓰기 기준으로 나뉘어진 단위가 L + [R] 구조라 가정할 수 없습니다. 하지만 사람은 띄어쓰기가 지켜지지 않은 문장에서 익숙한 단어부터 눈에 들어옵니다. 이 과정을 모델로 옮긴 MaxScoreTokenizer 역시 단어 점수를 이용합니다. 
@@ -193,89 +294,6 @@ print(tokenizer.tokenize('이렇게연속된문장은잘리지않습니다만'))
 print(tokenizer.tokenize('숫자123이영어abc에섞여있으면ㅋㅋ잘리겠죠'))
 # ['숫자', '123', '이영어', 'abc', '에섞여있으면', 'ㅋㅋ', '잘리겠죠']
 ```
-
-## Noun Extractor
-
-WordExtractor 는 통계를 이용하여 단어의 경계 점수를 학습하는 것일 뿐, 각 단어의 품사를 판단하지는 못합니다. 때로는 각 단어의 품사를 알아야 하는 경우가 있습니다. 또한 다른 품사보다도 명사에서 새로운 단어가 가장 많이 만들어집니다. 명사의 오른쪽에는 -은, -는, -라는, -하는 처럼 특정 글자들이 자주 등장합니다. 문서의 어절 (띄어쓰기 기준 유닛)에서 왼쪽에 위치한 substring 의 오른쪽에 어떤 글자들이 등장하는지 분포를 살펴보면 명사인지 아닌지 판단할 수 있습니다. soynlp 에서는 두 가지 종류의 명사 추출기를 제공합니다. 둘 모두 개발 단계이기 때문에 어떤 것이 더 우수하다 말하기는 어렵습니다만, NewsNounExtractor 가 좀 더 많은 기능을 포함하고 있습니다. 추후, 명사 추출기는 하나의 클래스로 정리될 예정입니다. 
-
-### Noun Extractor ver 1 & News Noun Extractor
-
-```python
-from soynlp.noun import LRNounExtractor
-noun_extractor = LRNounExtractor()
-nouns = noun_extractor.train_extract(sentences) # list of str like
-
-from soynlp.noun import NewsNounExtractor
-noun_extractor = NewsNounExtractor()
-nouns = noun_extractor.train_extract(sentences) # list of str like
-```
-
-2016-10-20 의 뉴스로부터 학습한 명사의 예시입니다. 
-
-    덴마크  웃돈  너무너무너무  가락동  매뉴얼  지도교수
-    전망치  강구  언니들  신산업  기뢰전  노스
-    할리우드  플라자  불법조업  월스트리트저널  2022년  불허
-    고씨  어플  1987년  불씨  적기  레스
-    스퀘어  충당금  건축물  뉴질랜드  사각  하나씩
-    근대  투자주체별  4위  태권  네트웍스  모바일게임
-    연동  런칭  만성  손질  제작법  현실화
-    오해영  심사위원들  단점  부장조리  차관급  게시물
-    인터폰  원화  단기간  편곡  무산  외국인들
-    세무조사  석유화학  워킹  원피스  서장  공범
-
-더 자세한 설명은 [튜토리얼][nounextractor-v1_usage]에 있습니다. 
-
-### Noun Extractor ver 2
-
-soynlp=0.0.46+ 에서는 명사 추출기 version 2 를 제공합니다. 이전 버전의 명사 추출의 정확성과 합성명사 인식 능력, 출력되는 정보의 오류를 수정한 버전입니다. 사용법은 version 1 과 비슷합니다.
-
-```python
-from soynlp.utils import DoublespaceLineCorpus
-from soynlp.noun import LRNounExtractor_v2
-
-corpus_path = '2016-10-20-news'
-sents = DoublespaceLineCorpus(corpus_path, iter_sent=True)
-
-noun_extractor = LRNounExtractor_v2(verbose=True)
-nouns = noun_extractor.train_extract(sents)
-```
-
-추출된 nouns 는 {str:namedtuple} 형식입니다. 
-
-```python
-print(nouns['뉴스']) # NounScore(frequency=4319, score=1.0)
-```
-
-_compounds_components 에는 복합명사를 구성하는 단일명사들의 정보가 저장되어 있습니다. '대한민국', '녹색성장'과 같이 실제로는 복합형태소이지만, 단일 명사로 이용되는 경우는 단일 명사로 인식합니다.
-
-```python
-list(noun_extractor._compounds_components.items())[:5]
-
-# [('잠수함발사탄도미사일', ('잠수함', '발사', '탄도미사일')),
-#  ('미사일대응능력위원회', ('미사일', '대응', '능력', '위원회')),
-#  ('글로벌녹색성장연구소', ('글로벌', '녹색성장', '연구소')),
-#  ('시카고옵션거래소', ('시카고', '옵션', '거래소')),
-#  ('대한민국특수임무유공', ('대한민국', '특수', '임무', '유공')),
-```
-
-LRGraph 는 학습된 corpus 에 등장한 어절의 L-R 구조를 저장하고 있습니다. get_r 과 get_l 을 이용하여 이를 확인할 수 있습니다.
-
-```python
-noun_extractor.lrgraph.get_r('아이오아이')
-
-# [('', 123),
-#  ('의', 47),
-#  ('는', 40),
-#  ('와', 18),
-#  ('가', 18),
-#  ('에', 7),
-#  ('에게', 6),
-#  ('까지', 2),
-#  ('랑', 2),
-#  ('부터', 1)]
-```
-
-더 자세한 설명은 [튜토리얼 2][nounextractor-v2_usage]에 있습니다.
 
 ## Part of Speech Tagger
 
