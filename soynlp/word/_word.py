@@ -117,16 +117,15 @@ class WordExtractor:
             scores = self.word_scores()
         scores_ = {}
         for word, score in sorted(scores.items(), key=lambda x:len(x[0])):
-            if len(word) <= 2:
-                scores_[word] = score
-                continue
-            if (score.cohesion_forward < self.min_cohesion_forward) or \
-                (score.cohesion_backward < self.min_cohesion_backward) or \
-                (score.left_branching_entropy < self.min_left_branching_entropy) or \
+            if (score.left_branching_entropy < self.min_left_branching_entropy) or \
                 (score.right_branching_entropy < self.min_right_branching_entropy) or \
                 (score.left_accessor_variety < self.min_left_accessor_variety) or \
                 (score.right_accessor_variety < self.min_right_accessor_variety) or \
                 (max(score.leftside_frequency, score.rightside_frequency) < self.min_frequency):
+                continue
+            if (len(word) >= 2) and (
+                (score.cohesion_forward < self.min_cohesion_forward) or
+                (score.cohesion_backward < self.min_cohesion_backward)):
                 continue
             scores_[word] = score
             if not self.remove_subwords:
