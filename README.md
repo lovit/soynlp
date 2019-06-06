@@ -121,7 +121,6 @@ WordExtractor 로부터 단어 점수를 학습하였다면, 이를 이용하여
 
 L parts 에는 명사/동사/형용사/부사가 위치할 수 있습니다. 어절에서 L 만 잘 인식한다면 나머지 부분이 R parts 가 됩니다. LTokenizer 에는 L parts 의 단어 점수를 입력합니다. 
 
-
 ```python
 from soynlp.tokenizer import LTokenizer
 
@@ -135,6 +134,28 @@ print(tokenizer.tokenize(sent, flatten=False))
 
 print(tokenizer.tokenize(sent))
 # ['데이터마이닝', '을', '공부', '중이다']
+```
+
+만약 WordExtractor 를 이용하여 단어 점수를 계산하였다면, 단어 점수 중 하나를 택하여 scores 를 만들 수 있습니다. 아래는 Forward cohesion 의 점수만을 이용하는 경우입니다. 그 외에도 다양하게 단어 점수를 정의하여 이용할 수 있습니다.
+
+```python
+from soynlp.word import WordExtractor
+from soynlp.utils import DoublespaceLineCorpus
+
+file_path = 'your file path'
+corpus = DoublespaceLineCorpus(file_path, iter_sent=True)
+
+word_extractor = WordExtractor(
+    min_frequency=100, # example
+    min_cohesion_forward=0.05,
+    min_right_branching_entropy=0.0
+)
+
+word_extractor.train(sentences)
+words = word_extractor.extract()
+
+cohesion_score = {word:score.forward_cohesion for word, score in words.items()}
+tokenizer = LTokenizer(scores=cohesion_score)
 ```
 
 ### MaxScoreTokenizer
@@ -155,7 +176,7 @@ print(tokenizer.tokenize('난파스타가 좋아요'), flatten=False)
 #  [('좋아', 0, 2, 0.5, 2), ('요', 2, 3, 0.0, 1)]]
 ```
 
-LTokenizer 와 MaxScoreTokenizer 에 들어갈 dict[str]=float 의 scores dictionary 는 WordExtractor 로부터 학습된 단어 점수들을 이용하면 됩니다. 혹은 이미 알고 있는 단어들이 있다면, 다른 어떤 단어보다도 더 큰 점수를 부여하면 그 단어는 토크나이저가 하나의 단어로 잘라냅니다. 
+MaxScoreTokenizer 역시 WordExtractor 의 결과를 이용하실 때에는 위의 예시처럼 적절히 scores 를 만들어 사용합니다. 이미 알려진 단어 사전이 있다면 이 단어들은 다른 어떤 단어보다도 더 큰 점수를 부여하면 그 단어는 토크나이저가 하나의 단어로 잘라냅니다. 
 
 ### RegexTokenizer
 
