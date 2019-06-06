@@ -29,7 +29,7 @@ class WordExtractor:
                 max_droprate_cohesion=0.98, max_droprate_leftside_frequency=0.98,
                 min_left_branching_entropy=0.0, min_right_branching_entropy=0.0,
                 min_left_accessor_variety=0, min_right_accessor_variety=0,
-                remove_subwords=True):
+                remove_subwords=False):
         self.max_left_length = max_left_length
         self.max_right_length = max_right_length
         self.min_frequency = min_frequency
