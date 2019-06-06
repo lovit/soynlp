@@ -154,7 +154,7 @@ word_extractor = WordExtractor(
 word_extractor.train(sentences)
 words = word_extractor.extract()
 
-cohesion_score = {word:score.forward_cohesion for word, score in words.items()}
+cohesion_score = {word:score.cohesion_forward for word, score in words.items()}
 tokenizer = LTokenizer(scores=cohesion_score)
 ```
 
