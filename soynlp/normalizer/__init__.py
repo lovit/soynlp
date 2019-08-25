@@ -1,4 +1,5 @@
 from ._normalizer import emoticon_normalize
+from ._normalizer import remove_doublespace
 from ._normalizer import repeat_normalize
 from ._normalizer import only_hangle
 from ._normalizer import only_hangle_number
