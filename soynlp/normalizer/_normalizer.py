@@ -36,6 +36,9 @@ def normalize(doc, alphabet=False, number=False,
 
     return doublespace_pattern.sub(' ', doc).strip()
 
+def remove_doublespace(sent):
+    return doublespace_pattern.sub(' ', sent)
+
 def repeat_normalize(sent, num_repeats=2):
     if num_repeats > 0:
         sent = repeatchars_pattern.sub('\\1' * num_repeats, sent)

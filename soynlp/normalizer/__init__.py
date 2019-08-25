@@ -10,6 +10,7 @@ from ._normalizer import normalize_sent_for_lrgraph
 __all__ = [
     'normalize',
     'emoticon_normalize',
+    'remove_doublespace',
     'repeat_normalize',
     'only_hangle',
     'only_hangle_number',
