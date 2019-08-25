@@ -274,7 +274,7 @@ tokenizer = MaxScoreTokenizer(scores=scores)
 print(tokenizer.tokenize('난파스타가좋아요'))
 # ['난', '파스타', '가', '좋아', '요']
 
-print(tokenizer.tokenize('난파스타가 좋아요'), flatten=False)
+print(tokenizer.tokenize('난파스타가 좋아요', flatten=False))
 # [[('난', 0, 1, 0.0, 1), ('파스타', 1, 4, 0.7, 3),  ('가', 4, 5, 0.0, 1)],
 #  [('좋아', 0, 2, 0.5, 2), ('요', 2, 3, 0.0, 1)]]
 ```
