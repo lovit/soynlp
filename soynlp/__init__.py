@@ -1,7 +1,7 @@
 __title__ = 'soynlp'
 __version__ = '0.0.493'
 __author__ = 'Lovit'
-__license__ = 'GPL v3'
+__license__ = 'LGPL'
 __copyright__ = 'Copyright 2017 Lovit'
 
 from . import hangle
