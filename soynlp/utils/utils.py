@@ -90,36 +90,37 @@ class DoublespaceLineCorpus:
 
     def _check_length(self, num_doc, num_sent):
         num_sent_ = 0
+
+        # python version check
         try:
-            try:
-                # python version check
-                if sys.version.split('.')[0] == '2':
-                    f = open(self.corpus_fname)
-                else:
-                    f = open(self.corpus_fname, encoding= "utf-8")
-
-                # skip headers
-                for _ in range(self.skip_header):
-                    next(f)
-                
-                # check length
-                for doc_idx, doc in enumerate(f):
-                    if (num_doc > 0) and (doc_idx >= num_doc):
-                        return doc_idx, num_sent_
-                    sents = doc.split('  ')
-                    sents = [sent for sent in sents if sent.strip()]
-                    num_sent_ += len(sents)
-                    if (num_sent > 0) and (num_sent_ > num_sent):
-                        return doc_idx+1, min(num_sent, num_sent_)
-
-            finally:
-                f.close()
-            return doc_idx+1, num_sent_
-
+            if sys.version.split('.')[0] == '2':
+                f = open(self.corpus_fname)
+            else:
+                f = open(self.corpus_fname, encoding= "utf-8")
         except Exception as e:
             print(e)
-            return -1, -1
-    
+            return 0, 0
+
+        try:
+            # skip headers
+            for _ in range(self.skip_header):
+                next(f)
+        except Exception as e:
+            print(e)
+            return 0, 0
+
+        # check length
+        for doc_idx, doc in enumerate(f):
+            if (num_doc > 0) and (doc_idx >= num_doc):
+                return doc_idx, num_sent_
+            sents = doc.split('  ')
+            sents = [sent for sent in sents if sent.strip()]
+            num_sent_ += len(sents)
+            if (num_sent > 0) and (num_sent_ > num_sent):
+                return doc_idx+1, min(num_sent, num_sent_)
+
+        return doc_idx+1, num_sent_
+
     def __iter__(self):
         try:
             try:
@@ -161,9 +162,12 @@ class DoublespaceLineCorpus:
             print(e)
 
     def __len__(self):
-        if self.num_doc == 0:
-            self.num_doc, self.num_sent = self._check_length(-1, -1)
-        return self.num_sent if self.iter_sent else self.num_doc
+        try:
+            if self.num_doc == 0:
+                self.num_doc, self.num_sent = self._check_length(-1, -1)
+            return self.num_sent if self.iter_sent else self.num_doc
+        except:
+            return -1
 
 class EojeolCounter:
     def __init__(self, sents=None, min_count=1, max_length=15,
