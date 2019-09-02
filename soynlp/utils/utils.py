@@ -123,43 +123,42 @@ class DoublespaceLineCorpus:
 
     def __iter__(self):
         try:
-            try:
-                if sys.version.split('.')[0] == '2':
-                    f = open(self.corpus_fname)
-                else:
-                    f = open(self.corpus_fname, encoding='utf-8')
-                
-                # skip headers
-                for _ in range(self.skip_header):
-                    next(f)
-                    
-                # iteration
-                num_sent, stop = 0, False
-                for doc_idx, doc in enumerate(f):
-                    if stop:
-                        break
-
-                    # yield doc
-                    if not self.iter_sent:
-                        yield doc.strip()
-                        if (self.num_doc > 0) and ((doc_idx + 1) >= self.num_doc):
-                            stop = True
-                        continue
-
-                    # yield sents
-                    for sent in doc.split('  '):
-                        if (self.num_sent > 0) and (num_sent >= self.num_sent):
-                            stop = True
-                            break
-                        sent = sent.strip()
-                        if sent:
-                            yield sent
-                            num_sent += 1
-            finally:
-                f.close()
-
+            if sys.version.split('.')[0] == '2':
+                f = open(self.corpus_fname)
+            else:
+                f = open(self.corpus_fname, encoding='utf-8')
         except Exception as e:
             print(e)
+
+        try:
+            # skip headers
+            for _ in range(self.skip_header):
+                next(f)
+        except Exception as e:
+            print(e)
+
+        # iteration
+        num_sent, stop = 0, False
+        for doc_idx, doc in enumerate(f):
+            if stop:
+                break
+
+            # yield doc
+            if not self.iter_sent:
+                yield doc.strip()
+                if (self.num_doc > 0) and ((doc_idx + 1) >= self.num_doc):
+                    stop = True
+                continue
+
+            # yield sents
+            for sent in doc.split('  '):
+                if (self.num_sent > 0) and (num_sent >= self.num_sent):
+                    stop = True
+                    break
+                sent = sent.strip()
+                if sent:
+                    yield sent
+                    num_sent += 1
 
     def __len__(self):
         try:
