@@ -1,6 +1,7 @@
 # -*- encoding:utf8 -*-
 
 from collections import namedtuple
+from soynlp.utils import check_corpus
 NewsNounScore = namedtuple('NewsNounScore', 'score frequency feature_proportion eojeol_proportion n_positive_feature unique_positive_feature_proportion')
 import sys
 
@@ -77,6 +78,8 @@ class NewsNounExtractor:
             noun_candidates, min_feature_proportion)
 
     def train(self, sents):
+        check_corpus(sents)
+
         if self.verbose:
             print('scan vocabulary ... ')
 

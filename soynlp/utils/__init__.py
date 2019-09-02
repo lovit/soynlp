@@ -3,6 +3,7 @@ from .utils import get_process_memory
 from .utils import sort_by_alphabet
 from .utils import check_dirs
 from .utils import most_similar
+from .utils import check_corpus
 from .utils import DoublespaceLineCorpus
 from .utils import EojeolCounter
 from .utils import LRGraph

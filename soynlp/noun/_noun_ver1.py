@@ -5,6 +5,7 @@ import math
 import sys
 from soynlp.normalizer import normalize_sent_for_lrgraph
 from soynlp.word import WordExtractor
+from soynlp.utils import check_corpus
 from soynlp.utils import LRGraph
 
 NounScore_v1 = namedtuple('NounScore_v1', 'frequency score known_r_ratio')
@@ -67,6 +68,7 @@ class LRNounExtractor:
         return self.extract(min_noun_score, min_noun_frequency, noun_candidates)
 
     def train(self, sents, min_noun_frequency=5):
+        check_corpus(sents)
         wordset_l, wordset_r = self._scan_vocabulary(sents, min_noun_frequency)
         lrgraph = self._build_lrgraph(sents, wordset_l, wordset_r)
         self.lrgraph = LRGraph(lrgraph)

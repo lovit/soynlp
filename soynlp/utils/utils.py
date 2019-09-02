@@ -78,6 +78,25 @@ def most_similar(query, vector, item_to_idx, idx_to_item, topk=10):
     similars = [(idx_to_item[idx], 1 - dist[idx]) for idx in sim_idxs if idx != q]
     return similars
 
+def check_corpus(corpus):
+    """
+    Argument
+    --------
+    corpus : iterable or DoublespaceLineCorpus
+
+    Returns
+    -------
+    flag : Boolean
+        It returns True when __len__ is implemented and the length is larger than 0
+    """
+    if not hasattr(corpus, '__iter__'):
+        raise ValueError('Input corpus must have __iter__ such as list or soynlp.utils.DoublespaceLineCorpus')
+    if not hasattr(corpus, '__len__'):
+        raise ValueError('Input corpus must have __len__ such as list or soynlp.utils.DoublespaceLineCorpus')
+    if len(corpus) <= 0:
+        raise ValueError('Input corpus must be longer than 0')
+    return True
+
 class DoublespaceLineCorpus:    
     def __init__(self, corpus_fname, num_doc = -1, num_sent = -1, iter_sent = False, skip_header = 0):
         self.corpus_fname = corpus_fname
@@ -200,6 +219,8 @@ class EojeolCounter:
         self._count_sum = sum(self._counter.values())
 
     def _counting_from_sents(self, sents):
+        check_corpus(sents)
+
         _counter = {}
         for i_sent, sent in enumerate(sents):
             sent = self.preprocess(sent)

@@ -7,6 +7,7 @@ import numpy as np
 import pickle
 import sys
 from soynlp.utils import get_process_memory
+from soynlp.utils import check_corpus
 
 Scores = namedtuple('Scores', 'cohesion_forward cohesion_backward left_branching_entropy right_branching_entropy left_accessor_variety right_accessor_variety leftside_frequency rightside_frequency')
 
@@ -53,6 +54,8 @@ class WordExtractor:
             self.train(sents)
         
     def train(self, sents, num_for_pruning = 0, cumulate=True):
+        check_corpus(sents)
+
         def prune_extreme_case():
             self.L = defaultdict(lambda: 0, {w:f for w,f in self.L.items() if f >= self.min_frequency})
             self.R = defaultdict(lambda: 0, {w:f for w,f in self.R.items() if f >= self.min_frequency})

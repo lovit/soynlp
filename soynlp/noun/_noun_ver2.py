@@ -3,6 +3,7 @@ from collections import namedtuple
 import os
 
 from soynlp.normalizer import normalize_sent_for_lrgraph
+from soynlp.utils import check_corpus
 from soynlp.utils import check_dirs
 from soynlp.utils import EojeolCounter
 from soynlp.utils import LRGraph
@@ -160,6 +161,8 @@ class LRNounExtractor_v2:
             preprocess = lambda x:x
         else:
             preprocess = normalize_sent_for_lrgraph
+
+        check_corpus(sentences)
 
         eojeol_counter = EojeolCounter(
             sentences,
