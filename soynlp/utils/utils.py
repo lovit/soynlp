@@ -99,6 +99,8 @@ def check_corpus(corpus):
 
 class DoublespaceLineCorpus:    
     def __init__(self, corpus_fname, num_doc = -1, num_sent = -1, iter_sent = False, skip_header = 0):
+        if not os.path.exists(corpus_fname):
+            raise ValueError("File {} does not exist".format(corpus_fname))
         self.corpus_fname = corpus_fname
         self.num_doc = 0
         self.num_sent = 0
