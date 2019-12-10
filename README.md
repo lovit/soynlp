@@ -336,7 +336,7 @@ print(tagger.tag(sent))
 
 더 자세한 사용법은 [사용법 튜토리얼][tagger_usage] 에 기술되어 있으며, [개발과정 노트][tagger_lecture]는 여기에 기술되어 있습니다. 
 
-## Vetorizer
+## Vectorizer
 
 토크나이저를 학습하거나, 혹은 학습된 토크나이저를 이용하여 문서를 sparse matrix 로 만듭니다. minimum / maximum of term frequency / document frequency 를 조절할 수 있습니다. Verbose mode 에서는 현재의 벡터라이징 상황을 print 합니다. 
 
