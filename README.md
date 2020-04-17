@@ -253,9 +253,9 @@ nouns = noun_extractor.train_extract(corpus) # list of str like
 noun_scores = {noun:score.score for noun, score in nouns.items()}
 combined_scores = {noun:score + cohesion_score.get(noun, 0)
     for noun, score in noun_scores.items()}
-combined_scores = combined_scores.update(
+combined_scores.update(
     {subword:cohesion for subword, cohesion in cohesion_score.items()
-    if not (subword in combine_scores)}
+    if not (subword in combined_scores)}
 )
 
 tokenizer = LTokenizer(scores=combined_scores)
