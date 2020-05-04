@@ -2,6 +2,7 @@ import os
 from collections import Counter
 from scipy.sparse import csr_matrix
 
+
 class BaseVectorizer:
 
     def __init__(self, tokenizer=lambda x:x.split(), min_tf=0,
@@ -91,6 +92,7 @@ class BaseVectorizer:
         self.to_file(docs, file_path, encoding)
 
     def to_file(self, docs, file_path, encoding='utf-8'):
+        file_path = os.path.abspath(file_path)
         # check n_elements
         n_elements = 0
         for i, doc in enumerate(docs):
