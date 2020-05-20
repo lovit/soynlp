@@ -14,3 +14,10 @@
 | utils | | | |
 | vectorizer | | | |
 | word | | | |
+
+| tasks | note |
+| --- | --- |
+| set tutorial data | |
+| update tutorial data | |
+| upload evaluation script | |
+
