@@ -1,7 +1,7 @@
 | package | refactoring / import | test code | note |
 | --- | --- | --- | --- |
 | hangle | | | |
-| keyword | | | |
+| keyword | | | - kr-wordrank 이식<br> - proportion keyword 이식 |
 | lemmatizer | | | |
 | ner | | | |
 | normalizer | | | |
