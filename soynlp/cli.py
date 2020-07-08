@@ -7,7 +7,7 @@ def extract_noun(args):
 
 def main():
     parser = argparse.ArgumentParser(description="soynlp Command Line Interface")
-    parser.add_argument('--silent', dest='sileint', action='store_true', help="Off verbose mode")
+    parser.add_argument('--silent', dest='silent', action='store_true', help="Off verbose mode")
     subparsers = parser.add_subparsers()
 
     # noun
