@@ -26,3 +26,18 @@ def _load_predictor_lists(pos_fname, neg_fname):
     pos = {r: coef for r, coef in pos.items() if r in common}
     neg = {r: coef for r, coef in neg.items() if r in common}
     return pos, neg, common
+
+
+def _input_to_lrgraph(input):
+    if (isinstance(input, soynlp.utils.DoublespaceLineCorpus)
+        or (isinstance(input, list) and isinstance(input[0], str)):
+        # corpus to LRGraph
+    elif isinstance(input, soynlp.utils.EojeolCounter):
+        # EojeolCounter to LRGraph
+    elif isinstance(input, soynlp.utils.LRGraph):
+        return input
+    elif isinstance(input, str) and os.path.exists(input):
+        input = soynlp.utils.DoublespaceLineCorpus(input, iter_sent=True)
+        # corpus to LRGraph
+    else:
+        raise ValueError(f'Check input. the type of input is {type(input)}')
