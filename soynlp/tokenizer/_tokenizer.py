@@ -16,7 +16,7 @@ class RegexTokenizer:
             ('korean', re.compile(u'[가-힣]+', re.UNICODE)),
             ('jaum', re.compile(u'[ㄱ-ㅎ]+', re.UNICODE)),
             ('moum', re.compile(u'[ㅏ-ㅣ]+', re.UNICODE)),
-            ('english & latin', re.compile(u"[a-zA-ZÀ-ÿ]+[[`']?s]*|[a-zA-ZÀ-ÿ]+", re.UNICODE))
+            ('english & latin', re.compile(u"[a-zA-ZÀ-ÿ]+[[`']{1,1}s]*|[a-zA-ZÀ-ÿ]+", re.UNICODE))
         ]
         
         self.doublewhite_pattern = re.compile('\s+')
