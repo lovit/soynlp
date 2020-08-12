@@ -8,7 +8,7 @@ import re
 from soynlp.hangle import compose, decompose
 
 doublespace_pattern = re.compile('\s+')
-repeatchars_pattern = re.compile('(\w)\\1{3,}')
+repeatchars_pattern = re.compile('(\w)\\1{2,}')
 number_pattern = re.compile('[0-9]')
 punctuation_pattern = re.compile('[,\.\?\!]')
 symbol_pattern = re.compile('[()\[\]\{\}`]')
