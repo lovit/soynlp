@@ -453,11 +453,11 @@ class LRNounExtractor_v2:
                 for r, count in self.lrgraph.get_r(word, -1):
                     # remove all eojeols that including word at left-side.
                     # we have to assume that pos, neg features are incomplete
-                    self.lrgraph.remove_eojeol(word+r, count)
+                    self.lrgraph.discount_eojeol(word+r, count)
                     # if (r == '' or
                     #    (r in self._pos_features) or
                     #    (r in self._common_features)):
-                    #    self.lrgraph.remove_eojeol(word+r, count)
+                    #    self.lrgraph.discount_eojeol(word+r, count)
 
         if self.verbose:
             print('\r[Noun Extractor] batch prediction was completed for {} words'.format(

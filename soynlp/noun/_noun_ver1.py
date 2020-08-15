@@ -275,7 +275,7 @@ class LRNounExtractor:
             r_count = self.lrgraph.get_r(word, -1)
             noun_frequencies[word] = sum(c for w, c in r_count)
             for r, count in r_count:
-                self.lrgraph.remove_eojeol(word+r, count)
+                self.lrgraph.discount_eojeol(word+r, count)
         self.lrgraph.reset_lrgraph()
 
         nouns_ = {}

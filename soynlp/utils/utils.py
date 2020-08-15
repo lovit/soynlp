@@ -1,14 +1,15 @@
-# -*- encoding:utf8 -*-
-
+import copy
 import os
 import psutil
 import sys
 from collections import defaultdict
 from sklearn.metrics import pairwise_distances
+from tqdm import tqdm
 
 
 installpath = os.path.sep.join(
     os.path.dirname(os.path.realpath(__file__)).split(os.path.sep)[:-1])
+
 
 def get_available_memory():
     """It returns remained memory as percentage"""
@@ -16,17 +17,20 @@ def get_available_memory():
     mem = psutil.virtual_memory()
     return 100 * mem.available / (mem.total)
 
+
 def get_process_memory():
     """It returns the memory usage of current process"""
     
     process = psutil.Process(os.getpid())
     return process.memory_info().rss / (1024 ** 3)
 
+
 def check_dirs(filepath):
     dirname = os.path.dirname(filepath)
     if dirname and dirname == '.' and not os.path.exists(dirname):
         os.makedirs(dirname)
         print('created {}'.format(dirname))
+
 
 def sort_by_alphabet(filepath):
     if sys.version.split('.')[0] == '2':
@@ -45,6 +49,7 @@ def sort_by_alphabet(filepath):
         with open(filepath, 'w', encoding= "utf-8") as f:
             for doc in sorted(docs):
                 f.write('{}\n'.format(doc))
+
 
 def most_similar(query, vector, item_to_idx, idx_to_item, topk=10):
     """
@@ -315,32 +320,46 @@ class EojeolCounter:
                 self._counter[word] = int(count)
         self._count_sum = sum(self._counter.values())
 
+
 class LRGraph:
+    """L-R graph
 
-    def __init__(self, lrgraph=None, sents=None, l_max_length=10, r_max_length=9):
+    Args:
+        dict_l_to_r (dict or None, optional) : predefined, one-way L -> R graph
+        sents (list of str, optional) : sentences
+        l_max_length (int, optional) : maximum length of L parts
+        r_max_length (int, optional) : maximum length of R parts
+        verbose (Boolean, optional) : if True, it shows progress
 
-        assert l_max_length > 1 and type(l_max_length) == int
-        assert r_max_length > 0 and type(r_max_length) == int
-
+    Examples::
+        # TBD
+    """
+    def __init__(self, dict_l_to_r=None, sents=None, l_max_length=10, r_max_length=9, verbose=False):
+        assert type(l_max_length) == int and l_max_length > 1
+        assert type(r_max_length) == int and r_max_length > 0
         self.l_max_length = l_max_length
         self.r_max_length = r_max_length
+        self.verbose = verbose
 
-        if sents:
-            if lrgraph:
-                raise ValueError(
-                    'Inserted lrgraph will be ignored. Insert only one (lrgraph, sents)')
-            lrgraph = self._construct_graph(sents)
-        if lrgraph:
-            self._lr, self._rl = self._check_lrgraph(lrgraph)
+        if (dict_l_to_r is not None) and (sents is not None):
+            raise ValueError('LRGraph is already defined')
+        if (dict_l_to_r is None) and (sents is not None):
+            dict_l_to_r = self._construct_dict_graph(sents)
+        if dict_l_to_r is not None:
+            self._lr, self._rl = self._to_bidirectional_graph(dict_l_to_r)
         else:
             self._lr, self._rl = {}, {}
 
-        self._lr_origin = {l:{r:c for r,c in rdict.items()}
-                           for l,rdict in self._lr.items()}
+        self._lr_origin = {l: {r: c for r, c in rdict.items()}
+                           for l, rdict in self._lr.items()}
 
-    def _construct_graph(self, sents):
+    def _construct_dict_graph(self, sents):
+        if not self.verbose:
+            sent_iterator = sents
+        else:
+            sent_iterator = tqdm(sents, desc='[LRGraph] construct dict graph ... ', total=len(sents))
         lrgraph = defaultdict(lambda: defaultdict(int))
-        for sent in sents:
+        for sent in sent_iterator:
             for word in sent.split():
                 word = word.strip()
                 for e in range(1, min(len(word), self.l_max_length) + 1):
@@ -348,51 +367,97 @@ class LRGraph:
                     if len(r) > self.r_max_length:
                         continue
                     lrgraph[l][r] += e
-        lrgraph = {l:dict(rdict) for l,rdict in lrgraph.items()}
+        lrgraph = {l: dict(rdict) for l, rdict in lrgraph.items()}
         return lrgraph
 
-    def _check_lrgraph(self, lrgraph):
-        if type(lrgraph) is not dict:
-            try:
-                lrgraph = dict(lrgraph)
-            except:
-                raise ValueError('lrgraph type should be dict of dict, not {}'.format(
-                    type(lrgraph)))
-        nested_dict_type = type(list(lrgraph.values())[0])
-        if nested_dict_type == defaultdict:
-            lrgraph = {l:dict(rdict) for l,rdict in lrgraph.items()}
-        elif not (nested_dict_type == dict):
-            raise ValueError('nested value type should be dict, not {}'.format(
-                nested_dict_type))
+    def _to_bidirectional_graph(self, lrgraph):
         rlgraph = defaultdict(lambda: defaultdict(int))
         for l, rdict in lrgraph.items():
             for r, c in rdict.items():
                 if not r:
                     continue
                 rlgraph[r][l] += c
-        rlgraph = {r:dict(ldict) for r, ldict in rlgraph.items()}
+        rlgraph = {r: dict(ldict) for r, ldict in rlgraph.items()}
+        lrgraph = {l: dict(rdict) for l, rdict in lrgraph.items()}
         return lrgraph, rlgraph
 
     def reset_lrgraph(self):
-        if not self._lr_origin:
-            return None
+        """Reset LRgraph with LRGraph._lr_origin"""
 
-        self._lr, self._rl = self._check_lrgraph(
-            {l:{r:c for r,c in rdict.items()}
+        if not hasattr(self, '_lr_origin') or (self._lr_origin is None):
+            raise ValueError('This LRGraph instance can not be reset because it has no `_lr_origin`')
+        self._lr, self._rl = self._to_bidirectional_graph(
+            {l: {r: c for r,c in rdict.items()}
              for l, rdict in self._lr_origin.items()}
         )
 
     def add_lr_pair(self, l, r, count=1):
-        self._lr[l][r] += count
+        """Add (L, R) pair with count
+        if the len(l) <= `l_max_length` and len(r) <= `r_max_length`
+
+        Args:
+            l (str) : L part substring
+            r (str) : R part substring
+            count (int) : (l, r) pair count
+
+        Examples::
+            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=3)
+            >>> lrgraph.add_lr_pair('abc', 'de')
+            >>> print(lrgraph._lr)  # {'abc': {'de': 1}}
+            >>> lrgraph.add_lr_pair('abcd', 'de')
+            >>> print(lrgraph._lr)  # {'abc': {'de': 1}}
+        """
+        if (len(l) > self.l_max_length) or (len(r) > self.r_max_length):
+            return
+        rdict = self._lr.get(l, {})
+        rdict[r] = rdict.get(r, 0) + count
+        self._lr[l] = rdict
         if r:
-            self._rl[r][l] += count
+            ldict = self._rl.get(r, {})
+            ldict[l] = ldict.get(l, 0) + count
+            self._rl[r] = ldict
 
     def add_eojeol(self, eojeol, count=1):
+        """Add all possible (L, R) pair from eojeol and count
+
+        Args:
+            eojeol (str) : eojeol string
+            count (int, optional, defaults to 1) : eojeol count
+
+        Examples::
+            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=3)
+            >>> lrgraph.add_eojeol('abcde')
+            >>> print(lrgraph._lr)  # {'ab': {'cde': 1}, 'abc': {'de': 1}}
+            >>> lrgraph.add_eojeol('abcd', count=3)
+            >>> print(lrgraph._lr)  # {'ab': {'cde': 4}, 'abc': {'de': 4}}
+
+            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph.add_eojeol('abcde')
+            >>> print(lrgraph._lr)  # {'a': {'bcde': 1}, 'ab': {'cde': 1}, 'abc': {'de': 1}}
+            >>> lrgraph.add_eojeol('abcde', count=3)
+            >>> print(lrgraph._lr)  # {'a': {'bcde': 4}, 'ab': {'cde': 4}, 'abc': {'de': 4}}
+        """
         for i in range(1, len(eojeol) + 1):
             l, r = eojeol[:i], eojeol[i:]
             self.add_lr_pair(l, r, count)
 
-    def remove_lr_pair(self, l, r, count=1):
+    def discount_lr_pair(self, l, r, count=1):
+        """Discount (L, R) pair count
+
+        Args:
+            l (str) : L part substring
+            r (str) : R part substring
+            count (int) : (l, r) pair count
+
+        Examples::
+            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph.add_eojeol('abcde', count=4)
+            >>> print(lrgraph._lr)  # {'a': {'bcde': 4}, 'ab': {'cde': 4}, 'abc': {'de': 4}}
+            >>> print(lrgraph._rl)  # {'bcde': {'a': 4}, 'cde': {'ab': 4}, 'de': {'abc': 4}}
+            >>> lrgraph.discount_lr_pair('ab', 'cde', 3)
+            >>> print(lrgraph._lr)  # {'a': {'bcde': 4}, 'ab': {'cde': 1}, 'abc': {'de': 4}}
+            >>> print(lrgraph._rl)  # {'bcde': {'a': 4}, 'cde': {'ab': 1}, 'de': {'abc': 4}} 
+        """
         if l in self._lr:
             rdict = self._lr[l]
             if r in rdict:
@@ -410,40 +475,100 @@ class LRGraph:
                     if len(ldict) <= 0:
                         self._rl.pop(r)
 
-    def remove_eojeol(self, eojeol, count=1):
+    def discount_eojeol(self, eojeol, count=1):
+        """Discount (L, R) pair count
+
+        Args:
+            l (str) : L part substring
+            r (str) : R part substring
+            count (int) : (l, r) pair count
+
+        Examples::
+            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph.add_eojeol('abcde', count=4)
+            >>> print(lrgraph._lr)  # {'a': {'bcde': 4}, 'ab': {'cde': 4}, 'abc': {'de': 4}}
+            >>> print(lrgraph._rl)  # {'bcde': {'a': 4}, 'cde': {'ab': 4}, 'de': {'abc': 4}}
+            >>> lrgraph.discount_lr_pair('ab', 'cde', 3)
+            >>> print(lrgraph._lr)  # {'a': {'bcde': 4}, 'ab': {'cde': 1}, 'abc': {'de': 4}}
+            >>> print(lrgraph._rl)  # {'bcde': {'a': 4}, 'cde': {'ab': 1}, 'de': {'abc': 4}}
+        """
         for i in range(1, len(eojeol) + 1):
             l, r = eojeol[:i], eojeol[i:]
-            self.remove_lr_pair(l, r, count)
+            self.discount_lr_pair(l, r, count)
 
     def get_r(self, l, topk=10):
+        """Get R parts conrresponding given `l`
+
+        Args:
+            l (str) : L part substring
+            topk (int) : the number of most frequent R parts
+
+        Returns:
+            rlist (list of tuple (str, int)) : [(R, count), ... ]
+
+        Examples::
+            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph.add_eojeol('이것은', 1)
+            >>> lrgraph.add_eojeol('이것도', 2)
+            >>> lrgraph.add_eojeol('이것이', 3)
+            >>> lrgraph.add_eojeol('이것을', 4)
+            >>> lrgraph.get_r('이것', topk=3) == [('을', 4), ('이', 3), ('도', 2)]
+            >>> lrgraph.get_r('이것', topk=2) == [('을', 4), ('이', 3)]
+            >>> lrgraph.get_r('이것', topk=-1) == [('을', 4), ('이', 3), ('도', 2), ('은', 1)]
+        """
         rlist = sorted(self._lr.get(l, {}).items(), key=lambda x:-x[1])
         if topk > 0:
             rlist = rlist[:topk]
         return rlist
 
     def get_l(self, r, topk=10):
+        """Get L parts conrresponding given `r`
+
+        Args:
+            r (str) : R part substring
+            topk (int) : the number of most frequent R parts
+
+        Returns:
+            llist (list of tuple (str, int)) : [(l, count), ... ]
+
+        Examples::
+            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph.add_eojeol('너의', 1)
+            >>> lrgraph.add_eojeol('나의', 2)
+            >>> lrgraph.add_eojeol('모두의', 3)
+            >>> lrgraph.add_eojeol('시작의', 4)
+            >>> assert lrgraph.get_l('의', topk=3) == [('시작', 4), ('모두', 3), ('나', 2)]
+            >>> assert lrgraph.get_l('의', topk=2) == [('시작', 4), ('모두', 3)]
+            >>> assert lrgraph.get_l('의', topk=-1) == [('시작', 4), ('모두', 3), ('나', 2), ('너', 1)]
+        """ 
         llist = sorted(self._rl.get(r, {}).items(), key=lambda x:-x[1])
         if topk > 0:
             llist = llist[:topk]
         return llist
 
     def freeze(self):
-        """Remove self._lr_origin. Be careful.
-        When you excute freeze, you cannot reset_lrgraph anynore."""
-        self._lr_origin = None
-
-    def copy_compatified_lrgraph_origin(self):
-        """It returns original LRGraph which has no self._lr_origin"""
-        lr_graph = LRGraph(
-            l_max_length = self.l_max_length,
-            r_max_length = self.r_max_length)
-        lr_graph._lr, lr_graph._rl = self._check_lrgraph(
-            {l:{r:c for r,c in rdict.items()}
-             for l, rdict in self._lr_origin.items()}
-        )
-        return lr_graph
+        """Freeze current L-R graph."""
+        self._lr_origin = copy.deepcopy(self._lr)
 
     def to_EojeolCounter(self, reset_lrgraph=False):
+        """Transform LRGraph to soynlp.utils.EojeolCounter
+
+        Args:
+            reset_lrgraph (Boolean, optional) :
+                If True, EojeolCounter is defined from `self._lr_origin` else `self._lr`
+
+        Returns:
+            eojeol_counter (~soynlp.utils.EojeolCounter)
+
+        Examples::
+            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph.add_eojeol('너의', 1)
+            >>> lrgraph.add_eojeol('나의', 2)
+            >>> lrgraph.add_eojeol('모두의', 3)
+            >>> lrgraph.add_eojeol('시작의', 4)
+            >>> print(sorted(lrgraph.to_EojeolCounter().items(), key=lambda x:x[1]))
+            $ [('너의', 1), ('나의', 2), ('모두의', 3), ('시작의', 4)]
+        """
         lr = self._lr_origin if reset_lrgraph else self._lr
         counter = {}
         for l, rdict in lr.items():
@@ -455,34 +580,64 @@ class LRGraph:
         return eojeol_counter
 
     def save(self, path):
-        dirname = os.path.dirname(path)
+        """Save LRGraph as text file
+        The format of line in the text ls (l, r, count) separated by white-space
+
+            이 것은 1
+            이것 은 1
+            이것은  1
+
+        Args:
+            path (str) : file path
+
+        Examples::
+            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph.add_eojeol('너의', 1)
+            >>> lrgraph.add_eojeol('나의', 2)
+            >>> lrgraph.save('./path/to/lrgraph.txt')
+        """
+        dirname = os.path.dirname(os.path.abspath(path))
         if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)
         with open(path, 'w', encoding='utf-8') as f:
-            for l, rdict in sorted(self._lr_origin.items()):
+            for l, rdict in sorted(self._lr.items()):
                 for r, c in sorted(rdict.items()):
                     f.write('{} {} {}\n'.format(l, r, c))
 
     def load(self, path):
+        """Load LRGraph from text file
+        The format of line in the text ls (l, r, count) separated by white-space
+
+            이 것은 1
+            이것 은 1
+            이것은  1
+
+        Args:
+            path (str) : file path
+
+        Examples::
+            >>> lrgraph = LRGraph()
+            >>> lrgraph.load('./path/to/lrgraph.txt')
+        """
         self._lr_origin = {}
         with open(path, encoding='utf-8') as f:
             l = ''
             rdict = {}
-            for line in f:
-                sep = line.split()
-                if not (sep[0] == l):
+            for ln, line in enumerate(f):
+                cols = line.split()
+                if not (cols[0] == l):
                     if rdict:
                         self._lr_origin[l] = rdict
                         rdict = {}
-                l = sep[0]
-                if len(sep) == 2:
-                    rdict[''] = int(sep[-1])
-                elif len(sep) == 3:
-                    rdict[sep[1]] = int(sep[-1])
+                l = cols[0]
+                if len(cols) == 2:
+                    rdict[''] = int(cols[-1])
+                elif len(cols) == 3:
+                    rdict[cols[1]] = int(cols[-1])
                 else:
-                    raise ValueError('Wrong lr-graph format: {}'.format(line))
+                    raise ValueError(f'[LRGraph] Failed to parsing line (LN: {ln+1}) {line} in {path}')
             if rdict:
                 self._lr_origin[l] = rdict
-        self._lr, self._rl = self._check_lrgraph(
-            {l:{r:c for r,c in rdict.items()}
-             for l,rdict in self._lr_origin.items()})
+        self._lr, self._rl = self._to_bidirectional_graph(
+            {l: {r: c for r, c in rdict.items()}
+             for l, rdict in self._lr_origin.items()})
