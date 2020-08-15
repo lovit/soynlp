@@ -3,28 +3,25 @@ from sklearn.utils.extmath import randomized_svd
 
 
 def svd(X, n_components, n_iter=5, random_state=None):
-    """
-    :param X: scipy.sparse.csr_matrix
-        Input matrix
-    :param n_components: int
-        Size of embedding dimension
-    :param n_iter: int
-        Maximum number of iteration. Default is 5
-    :param random_state: random state
-        Default is None
+    """Train Singular Vector Decomposition with given matrix `X`
 
-    Returns
-    ----------
-    U : numpy.ndarray
-        Representation matrix of rows. shape = (n_rows, n_components)
-    Sigma : numpy.ndarray
-        Eigenvalue of dimension. shape = (n_components, n_components)
-        Diagonal value are in decreasing order
-    VT : numpy.ndarray
-        Representation matrix of columns. shape = (n_components, n_cols)
+    Args:
+        X (scipy.sparse.csr_matrix) : Input matrix
+        n_components (int) : Size of embedding dimension
+        n_iter (int) : Maximum number of iteration. Default is 5
+        random_state (random state) : Default is None
 
-    Usage
-    -----
+    Returns:
+        U (numpy.ndarray) : Representation matrix of rows.
+            shape = (n_rows, n_components)
+        Sigma (numpy.ndarray) : Eigenvalue of dimension.
+            shape = (n_components, n_components)
+            Diagonal value are in decreasing order
+        VT (numpy.ndarray) : Representation matrix of columns.
+            shape = (n_components, n_cols)
+
+    Examples::
+        >>> type(X)  # scipy.sparse.csr_matrix
         >>> U, Sigma, VT = svd(X, n_components=100)
     """
 
