@@ -25,7 +25,7 @@ def get_process_memory():
 
 def check_dirs(filepath):
     dirname = os.path.dirname(os.path.abspath(filepath))
-    if dirname and dirname == '.' and not os.path.exists(dirname):
+    if not os.path.exists(dirname):
         os.makedirs(dirname)
         print(f'created {dirname}')
 
@@ -259,12 +259,12 @@ class EojeolCounter:
         """Return {key: value} items"""
         return self._counter.items()
 
-    def to_lrgraph(self, l_max_length=10, r_max_length=9, ignore_one_syllable=False):
+    def to_lrgraph(self, max_l_length=10, max_r_length=9, ignore_one_syllable=False):
         """Transform EojeolCounter to LRGraph
 
         Args:
-            l_max_length (int) : maximum length of L parts
-            r_max_length (int) : maximum length of R parts
+            max_l_length (int) : maximum length of L parts
+            max_r_length (int) : maximum length of R parts
             ignore_one_syllable (Boolean) : If True, it ignores one syllable eojeol.
 
         Returns:
@@ -276,20 +276,20 @@ class EojeolCounter:
             >>> lrgraph = eojeol_counter.to_lrgraph()
             >>> lrgraph.get_r('이것')  # [('은', 1)]
         """
-        return self._to_lrgraph(self._counter, l_max_length, r_max_length)
+        return self._to_lrgraph(self._counter, max_l_length, max_r_length)
 
-    def _to_lrgraph(self, counter, l_max_length=10, r_max_length=9, ignore_one_syllable=False):
+    def _to_lrgraph(self, counter, max_l_length=10, max_r_length=9, ignore_one_syllable=False):
         l2r = defaultdict(lambda: defaultdict(int))
         for eojeol, count in counter.items():
             if ignore_one_syllable and len(eojeol) == 1:
                 continue
-            for e in range(1, min(l_max_length, len(eojeol)) + 1):
+            for e in range(1, min(max_l_length, len(eojeol)) + 1):
                 l, r = eojeol[:e], eojeol[e:]
-                if len(r) > r_max_length:
+                if len(r) > max_r_length:
                     continue
                 l2r[l][r] += count
         l2r = {l: dict(rdict) for l, rdict in l2r.items()}
-        lrgraph = LRGraph(dict_l_to_r=l2r, l_max_length=l_max_length, r_max_length=r_max_length)
+        lrgraph = LRGraph(dict_l_to_r=l2r, max_l_length=max_l_length, max_r_length=max_r_length)
         return lrgraph
 
     def save(self, path):
@@ -343,8 +343,8 @@ class LRGraph:
     Args:
         dict_l_to_r (dict or None, optional) : predefined, one-way L -> R graph
         sents (list of str, optional) : sentences
-        l_max_length (int, optional) : maximum length of L parts
-        r_max_length (int, optional) : maximum length of R parts
+        max_l_length (int, optional) : maximum length of L parts
+        max_r_length (int, optional) : maximum length of R parts
         verbose (Boolean, optional) : if True, it shows progress
 
     Examples::
@@ -362,11 +362,11 @@ class LRGraph:
         >>> lrgraph.discount_eojeol('이것은', count=1)
         >>> print(lrgraph._lr)  # # { ...,  '이것': {'도': 2, '은': 3}, ...}
     """
-    def __init__(self, dict_l_to_r=None, sents=None, l_max_length=10, r_max_length=9, verbose=False):
-        assert type(l_max_length) == int and l_max_length > 1
-        assert type(r_max_length) == int and r_max_length > 0
-        self.l_max_length = l_max_length
-        self.r_max_length = r_max_length
+    def __init__(self, dict_l_to_r=None, sents=None, max_l_length=10, max_r_length=9, verbose=False):
+        assert type(max_l_length) == int and max_l_length > 1
+        assert type(max_r_length) == int and max_r_length > 0
+        self.max_l_length = max_l_length
+        self.max_r_length = max_r_length
         self.verbose = verbose
 
         if (dict_l_to_r is not None) and (sents is not None):
@@ -390,9 +390,9 @@ class LRGraph:
         for sent in sent_iterator:
             for word in sent.split():
                 word = word.strip()
-                for e in range(1, min(len(word), self.l_max_length) + 1):
+                for e in range(1, min(len(word), self.max_l_length) + 1):
                     l, r = word[:e], word[e:]
-                    if len(r) > self.r_max_length:
+                    if len(r) > self.max_r_length:
                         continue
                     lrgraph[l][r] += e
         lrgraph = {l: dict(rdict) for l, rdict in lrgraph.items()}
@@ -421,7 +421,7 @@ class LRGraph:
 
     def add_lr_pair(self, l, r, count=1):
         """Add (L, R) pair with count
-        if the len(l) <= `l_max_length` and len(r) <= `r_max_length`
+        if the len(l) <= `max_l_length` and len(r) <= `max_r_length`
 
         Args:
             l (str) : L part substring
@@ -429,13 +429,13 @@ class LRGraph:
             count (int) : (l, r) pair count
 
         Examples::
-            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=3)
+            >>> lrgraph = LRGraph(max_l_length=3, max_r_length=3)
             >>> lrgraph.add_lr_pair('abc', 'de')
             >>> print(lrgraph._lr)  # {'abc': {'de': 1}}
             >>> lrgraph.add_lr_pair('abcd', 'de')
             >>> print(lrgraph._lr)  # {'abc': {'de': 1}}
         """
-        if (len(l) > self.l_max_length) or (len(r) > self.r_max_length):
+        if (len(l) > self.max_l_length) or (len(r) > self.max_r_length):
             return
         rdict = self._lr.get(l, {})
         rdict[r] = rdict.get(r, 0) + count
@@ -453,13 +453,13 @@ class LRGraph:
             count (int, optional, defaults to 1) : eojeol count
 
         Examples::
-            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=3)
+            >>> lrgraph = LRGraph(max_l_length=3, max_r_length=3)
             >>> lrgraph.add_eojeol('abcde')
             >>> print(lrgraph._lr)  # {'ab': {'cde': 1}, 'abc': {'de': 1}}
             >>> lrgraph.add_eojeol('abcd', count=3)
             >>> print(lrgraph._lr)  # {'ab': {'cde': 4}, 'abc': {'de': 4}}
 
-            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph = LRGraph(max_l_length=3, max_r_length=4)
             >>> lrgraph.add_eojeol('abcde')
             >>> print(lrgraph._lr)  # {'a': {'bcde': 1}, 'ab': {'cde': 1}, 'abc': {'de': 1}}
             >>> lrgraph.add_eojeol('abcde', count=3)
@@ -478,7 +478,7 @@ class LRGraph:
             count (int) : (l, r) pair count
 
         Examples::
-            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph = LRGraph(max_l_length=3, max_r_length=4)
             >>> lrgraph.add_eojeol('abcde', count=4)
             >>> print(lrgraph._lr)  # {'a': {'bcde': 4}, 'ab': {'cde': 4}, 'abc': {'de': 4}}
             >>> print(lrgraph._rl)  # {'bcde': {'a': 4}, 'cde': {'ab': 4}, 'de': {'abc': 4}}
@@ -512,7 +512,7 @@ class LRGraph:
             count (int) : (l, r) pair count
 
         Examples::
-            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph = LRGraph(max_l_length=3, max_r_length=4)
             >>> lrgraph.add_eojeol('abcde', count=4)
             >>> print(lrgraph._lr)  # {'a': {'bcde': 4}, 'ab': {'cde': 4}, 'abc': {'de': 4}}
             >>> print(lrgraph._rl)  # {'bcde': {'a': 4}, 'cde': {'ab': 4}, 'de': {'abc': 4}}
@@ -535,7 +535,7 @@ class LRGraph:
             rlist (list of tuple (str, int)) : [(R, count), ... ]
 
         Examples::
-            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph = LRGraph(max_l_length=3, max_r_length=4)
             >>> lrgraph.add_eojeol('이것은', 1)
             >>> lrgraph.add_eojeol('이것도', 2)
             >>> lrgraph.add_eojeol('이것이', 3)
@@ -560,7 +560,7 @@ class LRGraph:
             llist (list of tuple (str, int)) : [(l, count), ... ]
 
         Examples::
-            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph = LRGraph(max_l_length=3, max_r_length=4)
             >>> lrgraph.add_eojeol('너의', 1)
             >>> lrgraph.add_eojeol('나의', 2)
             >>> lrgraph.add_eojeol('모두의', 3)
@@ -589,7 +589,7 @@ class LRGraph:
             eojeol_counter (~soynlp.utils.EojeolCounter)
 
         Examples::
-            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph = LRGraph(max_l_length=3, max_r_length=4)
             >>> lrgraph.add_eojeol('너의', 1)
             >>> lrgraph.add_eojeol('나의', 2)
             >>> lrgraph.add_eojeol('모두의', 3)
@@ -619,7 +619,7 @@ class LRGraph:
             path (str) : file path
 
         Examples::
-            >>> lrgraph = LRGraph(l_max_length=3, r_max_length=4)
+            >>> lrgraph = LRGraph(max_l_length=3, max_r_length=4)
             >>> lrgraph.add_eojeol('너의', 1)
             >>> lrgraph.add_eojeol('나의', 2)
             >>> lrgraph.save('./path/to/lrgraph.txt')
