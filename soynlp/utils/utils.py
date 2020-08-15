@@ -50,34 +50,28 @@ def sort_by_alphabet(filepath):
 
 
 def most_similar(query, vector, item_to_idx, idx_to_item, topk=10):
-    """
-    :param query: str
-        String type query word
-    :param vector: numpy.ndarray or scipy.sparse.matrix
-        Vector representation of row
-    :param item_to_idx: dict
-        Mapper from str type item to int type index
-    :param idx_to_item: list
-        Mapper from int type index to str type item
-    :param topk: int
-        Maximum number of similar items.
-        If set top as negative value, it returns similarity with all words
+    """Find most closest rows
+    Args
+        query (str) : String type query word
+        vector (numpy.ndarray or scipy.sparse.matrix) : Vector representation of row
+        item_to_idx (dict) : Mapper from str type item to int type index
+        idx_to_item (list) : Mapper from int type index to str type item
+        topk (int) : Maximum number of similar items.
+            If set top as negative value, it returns similarity with all words
 
-    Returns
-    ----------
-    similars : list of tuple
-        List contains tuples (item, cosine similarity)
-        Its length is topk
+    Returns:
+        similars (list of tuple) :
+            List contains tuples (item, cosine similarity)
+            Its length is topk
     """
-
     q = item_to_idx.get(query, -1)
     if q == -1:
         return []
-    qvec = vector[q].reshape(1,-1)
+    qvec = vector[q].reshape(1, -1)
     dist = pairwise_distances(qvec, vector, metric='cosine')[0]
     sim_idxs = dist.argsort()
     if topk > 0:
-        sim_idxs = sim_idxs[:topk+1]
+        sim_idxs = sim_idxs[:topk + 1]
     similars = [(idx_to_item[idx], 1 - dist[idx]) for idx in sim_idxs if idx != q]
     return similars
 
