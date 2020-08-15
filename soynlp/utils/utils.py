@@ -30,25 +30,6 @@ def check_dirs(filepath):
         print(f'created {dirname}')
 
 
-def sort_by_alphabet(filepath):
-    if sys.version.split('.')[0] == '2':
-        with open(filepath) as f:
-            docs = [doc.strip() for doc in f]
-            docs = [doc for doc in docs if doc]
-    else:
-        with open(filepath, encoding= "utf-8") as f:
-            docs = [doc.strip() for doc in f]
-            docs = [doc for doc in docs if doc]
-    if sys.version.split('.')[0] == '2':
-        with open(filepath, 'w') as f:
-            for doc in sorted(docs):
-                f.write('{}\n'.format(doc))
-    else:
-        with open(filepath, 'w', encoding= "utf-8") as f:
-            for doc in sorted(docs):
-                f.write('{}\n'.format(doc))
-
-
 def most_similar(query, vector, item_to_idx, idx_to_item, topk=10):
     """Find most closest rows
     Args
