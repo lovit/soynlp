@@ -1,6 +1,7 @@
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import randomized_svd
 
+
 def svd(X, n_components, n_iter=5, random_state=None):
     """
     :param X: scipy.sparse.csr_matrix
@@ -27,7 +28,7 @@ def svd(X, n_components, n_iter=5, random_state=None):
         >>> U, Sigma, VT = svd(X, n_components=100)
     """
 
-    if (random_state == None) or isinstance(random_state, int):
+    if (random_state is None) or isinstance(random_state, int):
         random_state = check_random_state(random_state)
 
     n_features = X.shape[1]
@@ -38,7 +39,7 @@ def svd(X, n_components, n_iter=5, random_state=None):
 
     U, Sigma, VT = randomized_svd(
         X, n_components,
-        n_iter = n_iter,
-        random_state = random_state)
+        n_iter=n_iter,
+        random_state=random_state)
 
     return U, Sigma, VT
