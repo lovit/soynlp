@@ -629,6 +629,6 @@ class LRNounExtractor_v2:
         if self.verbose:
             print('\r[Noun Extractor] flushing was done. mem={} Gb{}'.format(
                 '%.3f' % get_process_memory(), ' '*20), flush=True)
-            coverage = '%.2f' % (100 * self._num_of_covered_eojeols
-                / self._num_of_eojeols)
-            print('[Noun Extractor] {} % eojeols are covered'.format(coverage), flush=True)
+            # coverage = '%.2f' % (100 * self._num_of_covered_eojeols
+            #     / self._num_of_eojeols)
+            # print('[Noun Extractor] {} % eojeols are covered'.format(coverage), flush=True)

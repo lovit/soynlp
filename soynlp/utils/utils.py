@@ -85,14 +85,12 @@ def most_similar(query, vector, item_to_idx, idx_to_item, topk=10):
 
 def check_corpus(corpus):
     """
-    Argument
-    --------
-    corpus : iterable or DoublespaceLineCorpus
+    Args:
+        corpus (list of str like)
 
-    Returns
-    -------
-    flag : Boolean
-        It returns True when __len__ is implemented and the length is larger than 0
+    Returns:
+        flag (Boolean)
+            It returns True when __len__ is implemented and the length is larger than 0
     """
     if not hasattr(corpus, '__iter__'):
         raise ValueError('Input corpus must have __iter__ such as list or soynlp.utils.DoublespaceLineCorpus')
@@ -101,6 +99,7 @@ def check_corpus(corpus):
     if len(corpus) <= 0:
         raise ValueError('Input corpus must be longer than 0')
     return True
+
 
 class DoublespaceLineCorpus:    
     def __init__(self, corpus_fname, num_doc = -1, num_sent = -1, iter_sent = False, skip_header = 0):
@@ -194,18 +193,37 @@ class DoublespaceLineCorpus:
         except:
             return -1
 
-class EojeolCounter:
-    def __init__(self, sents=None, min_count=1, max_length=15,
-        filtering_checkpoint=0, verbose=False, preprocess=None):
 
+class EojeolCounter:
+    """
+    Args:
+        sents (list of str like) : sentence list
+        min_count (int) : minimum frequency of eojeol
+        max_length (int) : maximum length of eojeol
+        filtering_checkpoints (int) : it drops eojeols which appear less than `min_count` for every `filtering_checkpoints`
+        verbose (Boolean) : if True, it shows progress
+        preprocessing (callable) : sentence preprocessing function
+            Defaults to lambda x: x
+
+    Examples::
+        >>> sents = ['이것은 어절 입니다', '이것은 예문 입니다', '이것도 예문 이고요']
+        >>> eojeol_counter = EojeolCounter(sents=sents)
+        >>> print(eojeol_counter.items())
+        $ dict_items([('이것은', 2), ('어절', 1), ('입니다', 2), ('예문', 2), ('이것도', 1), ('이고요', 1)])
+
+        >>> lrgraph = eojeol_counter.to_lrgraph()
+        >>> lrgraph.get_r('이것')  # [('은', 2), ('도', 1)]
+    """
+    def __init__(self, sents=None, min_count=1, max_length=15, filtering_checkpoint=0, verbose=False, preprocess=None):
         self.min_count = min_count
         self.max_length = max_length
         self.filtering_checkpoint = filtering_checkpoint
         self.verbose = verbose
-        self._coverage = 0.0
 
         if preprocess is None:
-            preprocess = lambda x:x
+            def base_preprocessing(x):
+                return x
+            preprocess = base_preprocessing
         self.preprocess = preprocess
 
         if sents is not None:
@@ -213,8 +231,9 @@ class EojeolCounter:
         else:
             self._counter = {}
 
-        self._count_sum = 0
-        self._set_count_sum()
+    @property
+    def count_sum(self):
+        return sum(self._counter.values())
 
     def __getitem__(self, eojeol):
         return self._counter.get(eojeol, 0)
@@ -222,74 +241,74 @@ class EojeolCounter:
     def __len__(self):
         return len(self._counter)
 
-    def _set_count_sum(self):
-        self._count_sum = sum(self._counter.values())
-
     def _counting_from_sents(self, sents):
         check_corpus(sents)
-
-        _counter = {}
-        for i_sent, sent in enumerate(sents):
+        if self.verbose:
+            sent_iterator = tqdm(sents, desc='[EojeolCounter] counting ... ', total=len(sents))
+        else:
+            sent_iterator = sents
+        counter = {}
+        for i_sent, sent in enumerate(sent_iterator):
             sent = self.preprocess(sent)
-            # filtering during eojeol counting
-            if (self.min_count > 1 and
-                self.filtering_checkpoint > 0 and
-                i_sent > 0 and
-                i_sent % self.filtering_checkpoint == 0):
-                _counter = {k:v for k,v in _counter.items()
-                            if v >= self.min_count}
-            # add eojeol count
+            if (self.filtering_checkpoint > 0) and ((i_sent + 1) % self.filtering_checkpoint == 0):
+                counter = {eojeol: count for eojeol, count in counter.items() if count >= self.min_count}
             for eojeol in sent.split():
                 if (not eojeol) or (len(eojeol) > self.max_length):
                     continue
-                _counter[eojeol] = _counter.get(eojeol, 0) + 1
-            # print status
-            if self.verbose and i_sent % 100000 == 99999:
-                print('\r[EojeolCounter] n eojeol = {} from {} sents. mem={} Gb{}'.format(
-                    len(_counter), i_sent + 1, '%.3f'%get_process_memory(), ' '*20), flush=True, end='')
-        # final filtering
-        _counter = {k:v for k,v in _counter.items() if v >= self.min_count}
-        if self.verbose:
-            print('\r[EojeolCounter] n eojeol = {} from {} sents. mem={} Gb{}'.format(
-                len(_counter), i_sent + 1, '%.3f' % get_process_memory(), ' '*20), flush=True)
-        return _counter
+                counter[eojeol] = counter.get(eojeol, 0) + 1
+        counter = {eojeol: count for eojeol, count in counter.items() if count >= self.min_count}
+        return counter
 
-    @property
-    def coverage(self):
-        return self._coverage
+    def remove_eojeols(self, eojeols):
+        """Remove eojeols
 
-    @coverage.setter
-    def coverage(self, value):
-        if not (0 <= value <= 1):
-            raise ValueError('coverage should be in [0, 1]')
-        self._coverage = value
+        Args:
+            eojeols (set of str)
 
-    @property
-    def num_of_unique_uncovered_eojeols(self):
-        return len(self._counter)
-
-    @property
-    def num_of_uncovered_eojeols(self):
-        return sum(self._counter.values())
-
-    def get_uncovered_eojeols(self, min_count=0):
-        return {k: v for k, v in self._counter.items() if v >= min_count}
-
-    def remove_covered_eojeols(self, eojeols):
+        Returns:
+            EojeolCounter (self)
+        """
+        if isinstance(eojeols, str):
+            eojeols = {eojeols}
         self._counter = {k: v for k, v in self._counter.items() if not (k in eojeols)}
-        self.coverage = 1 - self.num_of_uncovered_eojeols / self._count_sum
+        return self
 
     def get_eojeol_count(self, eojeol):
+        """Return eojeol count
+
+        Args:
+            eojeol (str) : eojeol string
+
+        Returns:
+            count (int) : if no exist, it returns 0
+        """
         return self._counter.get(eojeol, 0)
 
     def items(self):
+        """Return {key: value} items"""
         return self._counter.items()
 
     def to_lrgraph(self, l_max_length=10, r_max_length=9, ignore_one_syllable=False):
+        """Transform EojeolCounter to LRGraph
+
+        Args:
+            l_max_length (int) : maximum length of L parts
+            r_max_length (int) : maximum length of R parts
+            ignore_one_syllable (Boolean) : If True, it ignores one syllable eojeol.
+
+        Returns:
+            lrgraph (~soynlp.utils.LRGraph)
+
+        Examples::
+            >>> sents = ['이것은 어절 입니다']
+            >>> eojeol_counter = EojeolCounter(sents)
+            >>> lrgraph = eojeol_counter.to_lrgraph()
+            >>> lrgraph.get_r('이것')  # [('은', 1)]
+        """
         return self._to_lrgraph(self._counter, l_max_length, r_max_length)
 
     def _to_lrgraph(self, counter, l_max_length=10, r_max_length=9, ignore_one_syllable=False):
-        _lrgraph = defaultdict(lambda: defaultdict(int))
+        l2r = defaultdict(lambda: defaultdict(int))
         for eojeol, count in counter.items():
             if ignore_one_syllable and len(eojeol) == 1:
                 continue
@@ -297,13 +316,28 @@ class EojeolCounter:
                 l, r = eojeol[:e], eojeol[e:]
                 if len(r) > r_max_length:
                     continue
-                _lrgraph[l][r] += count
-        _lrgraph = {l: dict(rdict) for l, rdict in _lrgraph.items()}
-        lrgraph = LRGraph(lrgraph=_lrgraph, l_max_length=l_max_length, r_max_length=r_max_length)
+                l2r[l][r] += count
+        l2r = {l: dict(rdict) for l, rdict in l2r.items()}
+        lrgraph = LRGraph(dict_l_to_r=l2r, l_max_length=l_max_length, r_max_length=r_max_length)
         return lrgraph
 
     def save(self, path):
-        dirname = os.path.dirname(path)
+        """Save EojeolCounter from text file
+        The format of line in the text ls (eojeol, count) separated by white-space
+
+            이것은 1
+            어절 1
+            입니다 1
+
+        Args:
+            path (str) : file path
+
+        Examples::
+            >>> sents = ['이것은 어절 입니다']
+            >>> eojeol_counter = EojeolCounter(sents)
+            >>> eojeol_counter.save('./path/to/eojeol_counter.txt')
+        """
+        dirname = os.path.dirname(os.path.abspath(path))
         if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)
         with open(path, 'w', encoding='utf-8') as f:
@@ -311,6 +345,20 @@ class EojeolCounter:
                 f.write('{} {}\n'.format(eojeol, count))
 
     def load(self, path):
+        """Load EojeolCounter from text file
+        The format of line in the text ls (eojeol, count) separated by white-space
+
+            이것은 1
+            어절 1
+            입니다 1
+
+        Args:
+            path (str) : file path
+
+        Examples::
+            >>> eojeol_counter = EojeolCounter()
+            >>> eojeol_counter.load('./path/to/eojeol_counter.txt')
+        """
         self._coverage = 0.0
         self._counter = {}
         with open(path, encoding='utf-8') as f:
@@ -331,7 +379,19 @@ class LRGraph:
         verbose (Boolean, optional) : if True, it shows progress
 
     Examples::
-        # TBD
+        >>> sents = ['이것은 예문 입니다', '이것도 예문 입니다']
+        >>> lrgraph = LRGraph(sents=sents)
+        >>> lrgraph.get_r('이것')  # [('은, 1'), ('도', 1)]
+        >>> lrgraph.get_l('니다')  # [('입', 1)]
+
+        >>> lrgraph.add_lr_pair(l='이것', r='은', count=3)
+        >>> print(lrgraph._lr)  # { ...,  '이것': {'도': 2, '은': 5}, ...}
+
+        >>> lrgraph.discount_lr_pair('이것', '은', count=1)
+        >>> print(lrgraph._lr)  # { ...,  '이것': {'도': 2, '은': 4}, ...}
+
+        >>> lrgraph.discount_eojeol('이것은', count=1)
+        >>> print(lrgraph._lr)  # # { ...,  '이것': {'도': 2, '은': 3}, ...}
     """
     def __init__(self, dict_l_to_r=None, sents=None, l_max_length=10, r_max_length=9, verbose=False):
         assert type(l_max_length) == int and l_max_length > 1
