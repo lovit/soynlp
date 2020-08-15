@@ -249,7 +249,7 @@ class EojeolCounter:
         _counter = {k:v for k,v in _counter.items() if v >= self.min_count}
         if self.verbose:
             print('\r[EojeolCounter] n eojeol = {} from {} sents. mem={} Gb{}'.format(
-                len(_counter), i_sent + 1, '%.3f'%get_process_memory(), ' '*20), flush=True)
+                len(_counter), i_sent + 1, '%.3f' % get_process_memory(), ' '*20), flush=True)
         return _counter
 
     @property
@@ -271,10 +271,10 @@ class EojeolCounter:
         return sum(self._counter.values())
 
     def get_uncovered_eojeols(self, min_count=0):
-        return {k:v for k,v in self._counter.items() if v >= min_count}
+        return {k: v for k, v in self._counter.items() if v >= min_count}
 
     def remove_covered_eojeols(self, eojeols):
-        self._counter = {k:v for k,v in self._counter.items() if not (k in eojeols)}
+        self._counter = {k: v for k, v in self._counter.items() if not (k in eojeols)}
         self.coverage = 1 - self.num_of_uncovered_eojeols / self._count_sum
 
     def get_eojeol_count(self, eojeol):
@@ -296,9 +296,8 @@ class EojeolCounter:
                 if len(r) > r_max_length:
                     continue
                 _lrgraph[l][r] += count
-        _lrgraph = {l:dict(rdict) for l, rdict in _lrgraph.items()}
-        lrgraph = LRGraph(lrgraph=_lrgraph,
-            l_max_length=l_max_length, r_max_length=r_max_length)
+        _lrgraph = {l: dict(rdict) for l, rdict in _lrgraph.items()}
+        lrgraph = LRGraph(lrgraph=_lrgraph, l_max_length=l_max_length, r_max_length=r_max_length)
         return lrgraph
 
     def save(self, path):
@@ -306,7 +305,7 @@ class EojeolCounter:
         if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)
         with open(path, 'w', encoding='utf-8') as f:
-            for eojeol, count in sorted(self._counter.items(), key=lambda x:(-x[1], x[0])):
+            for eojeol, count in sorted(self._counter.items(), key=lambda x: (-x[1], x[0])):
                 f.write('{} {}\n'.format(eojeol, count))
 
     def load(self, path):
@@ -385,7 +384,7 @@ class LRGraph:
         if not hasattr(self, '_lr_origin') or (self._lr_origin is None):
             raise ValueError('This LRGraph instance can not be reset because it has no `_lr_origin`')
         self._lr, self._rl = self._to_bidirectional_graph(
-            {l: {r: c for r,c in rdict.items()}
+            {l: {r: c for r, c in rdict.items()}
              for l, rdict in self._lr_origin.items()}
         )
 
@@ -454,7 +453,7 @@ class LRGraph:
             >>> print(lrgraph._rl)  # {'bcde': {'a': 4}, 'cde': {'ab': 4}, 'de': {'abc': 4}}
             >>> lrgraph.discount_lr_pair('ab', 'cde', 3)
             >>> print(lrgraph._lr)  # {'a': {'bcde': 4}, 'ab': {'cde': 1}, 'abc': {'de': 4}}
-            >>> print(lrgraph._rl)  # {'bcde': {'a': 4}, 'cde': {'ab': 1}, 'de': {'abc': 4}} 
+            >>> print(lrgraph._rl)  # {'bcde': {'a': 4}, 'cde': {'ab': 1}, 'de': {'abc': 4}}
         """
         if l in self._lr:
             rdict = self._lr[l]
@@ -514,9 +513,9 @@ class LRGraph:
             >>> lrgraph.get_r('이것', topk=2) == [('을', 4), ('이', 3)]
             >>> lrgraph.get_r('이것', topk=-1) == [('을', 4), ('이', 3), ('도', 2), ('은', 1)]
         """
-        rlist = sorted(self._lr.get(l, {}).items(), key=lambda x:-x[1])
+        rlist = sorted(self._lr.get(l, {}).items(), key=lambda x: -x[1])
         if topk > 0:
-            rlist = rlist[:topk]
+            rlist = rlist[: topk]
         return rlist
 
     def get_l(self, r, topk=10):
@@ -538,8 +537,8 @@ class LRGraph:
             >>> assert lrgraph.get_l('의', topk=3) == [('시작', 4), ('모두', 3), ('나', 2)]
             >>> assert lrgraph.get_l('의', topk=2) == [('시작', 4), ('모두', 3)]
             >>> assert lrgraph.get_l('의', topk=-1) == [('시작', 4), ('모두', 3), ('나', 2), ('너', 1)]
-        """ 
-        llist = sorted(self._rl.get(r, {}).items(), key=lambda x:-x[1])
+        """
+        llist = sorted(self._rl.get(r, {}).items(), key=lambda x: -x[1])
         if topk > 0:
             llist = llist[:topk]
         return llist
@@ -571,7 +570,7 @@ class LRGraph:
         counter = {}
         for l, rdict in lr.items():
             for r, count in rdict.items():
-                counter[l+r] = count
+                counter[l + r] = count
         eojeol_counter = EojeolCounter(None)
         eojeol_counter._counter = counter
         eojeol_counter._count_sum = sum(counter.values())
