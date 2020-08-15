@@ -13,23 +13,21 @@ installpath = os.path.sep.join(
 
 def get_available_memory():
     """It returns remained memory as percentage"""
-
     mem = psutil.virtual_memory()
     return 100 * mem.available / (mem.total)
 
 
 def get_process_memory():
     """It returns the memory usage of current process"""
-    
     process = psutil.Process(os.getpid())
     return process.memory_info().rss / (1024 ** 3)
 
 
 def check_dirs(filepath):
-    dirname = os.path.dirname(filepath)
+    dirname = os.path.dirname(os.path.abspath(filepath))
     if dirname and dirname == '.' and not os.path.exists(dirname):
         os.makedirs(dirname)
-        print('created {}'.format(dirname))
+        print(f'created {dirname}')
 
 
 def sort_by_alphabet(filepath):
@@ -83,6 +81,7 @@ def most_similar(query, vector, item_to_idx, idx_to_item, topk=10):
     similars = [(idx_to_item[idx], 1 - dist[idx]) for idx in sim_idxs if idx != q]
     return similars
 
+
 def check_corpus(corpus):
     """
     Args:
@@ -101,97 +100,94 @@ def check_corpus(corpus):
     return True
 
 
-class DoublespaceLineCorpus:    
-    def __init__(self, corpus_fname, num_doc = -1, num_sent = -1, iter_sent = False, skip_header = 0):
-        if not os.path.exists(corpus_fname):
-            raise ValueError("File {} does not exist".format(corpus_fname))
-        self.corpus_fname = corpus_fname
+class DoublespaceLineCorpus:
+    """Dataset class
+    It assumes that a line represents a document.
+    And each sentence in a document are separated with double-space.
+
+    Args:
+        corpus_path (str) : text file path
+        num_doc (int) : number of sample documents, defaults to -1 (all documents)
+        num_sent (int) : number of sample sentences, defaults to -1 (all sentences)
+        iter_sent (Boolean) : if True, it yields sentence else yields document
+        skip_header (int) : number of first lines to be skiped
+        verbose (Boolean) : if True, it shows progress
+    """
+    def __init__(self, corpus_path, num_doc=-1, num_sent=-1, iter_sent=False, skip_header=0, verbose=False):
+        self.corpus_path = corpus_path
         self.num_doc = 0
         self.num_sent = 0
         self.iter_sent = iter_sent
         self.skip_header = skip_header
         if (num_doc > 0) or (num_sent > 0):
-            self.num_doc, self.num_sent = self._check_length(num_doc, num_sent)
+            self.num_doc, self.num_sent = self._sample_first_lines(num_doc, num_sent)
+        self.verbose = verbose
 
-    def _check_length(self, num_doc, num_sent):
+    def _sample_first_lines(self, num_doc, num_sent):
         num_sent_ = 0
+        with open(self.corpus_path, encoding="utf-8") as f:
+            # skip head
+            try:
+                for _ in range(self.skip_header):
+                    next(f)
+            except StopIteration:
+                return 0, 0
 
-        # python version check
-        try:
-            if sys.version.split('.')[0] == '2':
-                f = open(self.corpus_fname)
-            else:
-                f = open(self.corpus_fname, encoding= "utf-8")
-        except Exception as e:
-            print(e)
-            return 0, 0
+            # check length
+            for doc_idx, doc in enumerate(f):
+                if (num_doc > 0) and (doc_idx >= num_doc):
+                    return doc_idx, num_sent_
+                sents = doc.split('  ')
+                sents = [sent for sent in sents if sent.strip()]
+                num_sent_ += len(sents)
+                if (num_sent > 0) and (num_sent_ > num_sent):
+                    return doc_idx + 1, min(num_sent, num_sent_)
 
-        try:
-            # skip headers
-            for _ in range(self.skip_header):
-                next(f)
-        except Exception as e:
-            print(e)
-            return 0, 0
-
-        # check length
-        for doc_idx, doc in enumerate(f):
-            if (num_doc > 0) and (doc_idx >= num_doc):
-                return doc_idx, num_sent_
-            sents = doc.split('  ')
-            sents = [sent for sent in sents if sent.strip()]
-            num_sent_ += len(sents)
-            if (num_sent > 0) and (num_sent_ > num_sent):
-                return doc_idx+1, min(num_sent, num_sent_)
-
-        return doc_idx+1, num_sent_
+        return doc_idx + 1, num_sent_
 
     def __iter__(self):
-        try:
-            if sys.version.split('.')[0] == '2':
-                f = open(self.corpus_fname)
+        with open(self.corpus_path, encoding="utf-8") as f:
+            # skip head
+            try:
+                for _ in range(self.skip_header):
+                    next(f)
+            except StopIteration:
+                return None
+
+            # set iterator
+            if self.verbose:
+                if self.iter_sent:
+                    line_iterator = tqdm(f, desc='[DoublespaceLineCorpus] iter sent ... ')
+                else:
+                    line_iterator = tqdm(f, desc='[DoublespaceLineCorpus] iter doc ... ')
             else:
-                f = open(self.corpus_fname, encoding='utf-8')
-        except Exception as e:
-            print(e)
+                line_iterator = f
 
-        try:
-            # skip headers
-            for _ in range(self.skip_header):
-                next(f)
-        except Exception as e:
-            print(e)
-
-        # iteration
-        num_sent, stop = 0, False
-        for doc_idx, doc in enumerate(f):
-            if stop:
-                break
-
-            # yield doc
-            if not self.iter_sent:
-                yield doc.strip()
-                if (self.num_doc > 0) and ((doc_idx + 1) >= self.num_doc):
-                    stop = True
-                continue
-
-            # yield sents
-            for sent in doc.split('  '):
-                if (self.num_sent > 0) and (num_sent >= self.num_sent):
-                    stop = True
+            # iteration
+            num_sent, stop_doc_iter = 0, False
+            for doc_idx, doc in enumerate(line_iterator):
+                if stop_doc_iter:
                     break
-                sent = sent.strip()
-                if sent:
-                    yield sent
-                    num_sent += 1
+                # yield doc
+                if not self.iter_sent:
+                    yield doc.strip()
+                    if (self.num_doc > 0) and ((doc_idx + 1) >= self.num_doc):
+                        stop_doc_iter = True
+                    continue
+                # yield sents
+                for sent in doc.split('  '):
+                    if (self.num_sent > 0) and (num_sent >= self.num_sent):
+                        stop_doc_iter = True
+                        break
+                    sent = sent.strip()
+                    if sent:
+                        yield sent
+                        num_sent += 1
 
     def __len__(self):
-        try:
-            if self.num_doc == 0:
-                self.num_doc, self.num_sent = self._check_length(-1, -1)
-            return self.num_sent if self.iter_sent else self.num_doc
-        except:
-            return -1
+        if self.num_doc == 0:
+            self.num_doc, self.num_sent = self._check_length(-1, -1)
+        return self.num_sent if self.iter_sent else self.num_doc
 
 
 class EojeolCounter:
@@ -337,9 +333,7 @@ class EojeolCounter:
             >>> eojeol_counter = EojeolCounter(sents)
             >>> eojeol_counter.save('./path/to/eojeol_counter.txt')
         """
-        dirname = os.path.dirname(os.path.abspath(path))
-        if dirname and not os.path.exists(dirname):
-            os.makedirs(dirname)
+        check_dirs(path)
         with open(path, 'w', encoding='utf-8') as f:
             for eojeol, count in sorted(self._counter.items(), key=lambda x: (-x[1], x[0])):
                 f.write('{} {}\n'.format(eojeol, count))
@@ -655,9 +649,7 @@ class LRGraph:
             >>> lrgraph.add_eojeol('나의', 2)
             >>> lrgraph.save('./path/to/lrgraph.txt')
         """
-        dirname = os.path.dirname(os.path.abspath(path))
-        if dirname and not os.path.exists(dirname):
-            os.makedirs(dirname)
+        check_dirs(path)
         with open(path, 'w', encoding='utf-8') as f:
             for l, rdict in sorted(self._lr.items()):
                 for r, c in sorted(rdict.items()):
