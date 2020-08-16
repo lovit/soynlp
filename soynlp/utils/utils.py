@@ -394,7 +394,7 @@ class LRGraph:
                     l, r = word[:e], word[e:]
                     if len(r) > self.max_r_length:
                         continue
-                    lrgraph[l][r] += e
+                    lrgraph[l][r] += 1
         lrgraph = {l: dict(rdict) for l, rdict in lrgraph.items()}
         return lrgraph
 
