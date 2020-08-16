@@ -173,7 +173,7 @@ class EojeolCounter:
         max_length (int) : maximum length of eojeol
         filtering_checkpoints (int) : it drops eojeols which appear less than `min_count` for every `filtering_checkpoints`
         verbose (Boolean) : if True, it shows progress
-        preprocessing (callable) : sentence preprocessing function
+        preprocess (callable) : sentence preprocessing function
             Defaults to lambda x: x
 
     Examples::
