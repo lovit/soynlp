@@ -171,7 +171,7 @@ class EojeolCounter:
         sents (list of str like) : sentence list
         min_count (int) : minimum frequency of eojeol
         max_length (int) : maximum length of eojeol
-        filtering_checkpoints (int) : it drops eojeols which appear less than `min_count` for every `filtering_checkpoints`
+        filtering_checkpoint (int) : it drops eojeols which appear less than `min_count` for every `filtering_checkpoint`
         verbose (Boolean) : if True, it shows progress
         preprocess (callable) : sentence preprocessing function
             Defaults to lambda x: x
