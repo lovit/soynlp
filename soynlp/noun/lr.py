@@ -62,9 +62,11 @@ class LRNonuExtractor():
             self.common, min_noun_score, min_num_of_features,
             min_eojeol_is_noun_frequency, self.verbose)
 
+        # TODO
         if extract_compounds:
             nouns = extract_compounds_func(candidates, nouns, self.verbose)
 
+        # TODO
 #         nouns = postprocessing(nouns, self)
         nouns = {noun: NounScore(frequency, score) for noun, (frequency, score) in nouns.items()}
         return nouns
