@@ -1,5 +1,8 @@
 import os
 from collections import namedtuple
+from datetime import datetime
+
+from soynlp.utils import DoublespaceLineCorpus, EojeolCounter, LRGraph, get_process_memory
 
 
 installpath = os.path.abspath(os.path.dirname(__file__))
@@ -9,8 +12,8 @@ NounScore = namedtuple('NounScore', 'frequency score')
 class LRNonuExtractor():
     def __init__(
         self,
-        max_left_length=10,
-        max_right_length=9,
+        max_l_length=10,
+        max_r_length=9,
         pos_features=None,
         neg_features=None,
         postprocessing=None,
@@ -18,8 +21,8 @@ class LRNonuExtractor():
         debug_dir=None,
     ):
 
-        self.max_left_length = max_left_length
-        self.max_right_length = max_right_length
+        self.max_l_length = max_l_length
+        self.max_r_length = max_r_length
         self.verbose = verbose
         self.debug_dir = debug_dir
         self.pos, self.neg, self.common = prepare_r_features(pos_features, neg_features)
@@ -33,18 +36,20 @@ class LRNonuExtractor():
 
     def extract(
         self,
-        inputs=None,
+        train_data=None,
         min_noun_score=0.3,
         min_noun_frequency=1,
         min_eojeol_frequency=1,
         min_eojeol_is_noun_frequency=30,
         extract_compounds=True
     ):
-        if (not self.is_trained()) and (inputs is None):
-            raise ValueError('`inputs` must not be `None` if noun extractor has no LRGraph')
+        if (not self.is_trained) and (train_data is None):
+            raise ValueError('`train_data` must not be `None` if noun extractor has no LRGraph')
 
         if self.lrgraph is None:
-            self.lrgraph = train_lrgraph(inputs, min_eojeol_frequency, self.verbose)
+            self.lrgraph = train_lrgraph(
+                train_data, min_eojeol_frequency,
+                self.max_l_length, self.max_r_length, self.verbose)
 
         candidates, nouns = extract_nouns(
             self.lrgraph, min_noun_score, min_noun_frequency,
@@ -101,13 +106,41 @@ def prepare_r_features(pos_features=None, neg_features=None):
     return pos_features, neg_features, common_features
 
 
+def print_message(message):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f'[LRNounExtractor] {now}, mem={get_process_memory():.4} GB : {message}')
+
+
 def prepare_postprocessing(postprocessing):
     # NotImplemented
     return postprocessing
 
 
-def train_lrgraph(inputs, min_eojeol_frequency, verbose):
-    raise NotImplementedError
+def train_lrgraph(train_data, min_eojeol_frequency, max_l_length, max_r_length, verbose):
+    if isinstance(train_data, LRGraph):
+        if verbose:
+            print_message('input is LRGraph')
+        return train_data
+
+    if isinstance(train_data, EojeolCounter):
+        lrgraph = train_data.to_lrgraph(max_l_length, max_r_length)
+        if verbose:
+            print_message('transformed EojeolCounter to LRGraph')
+        return lrgraph
+
+    if isinstance(train_data, str) and os.path.exists(train_data):
+        train_data = DoublespaceLineCorpus(train_data, iter_sent=True)
+
+    eojeol_counter = EojeolCounter(
+        sents=train_data,
+        min_count=min_eojeol_frequency,
+        max_length=(max_l_length + max_r_length),
+        verbose=verbose
+    )
+    lrgraph = eojeol_counter.to_lrgraph(max_l_length, max_r_length)
+    if verbose:
+        print_message(f'finished building LRGraph from {len(eojeol_counter)} eojeols')
+    return lrgraph
 
 
 def extract_nouns(lrgraph, min_noun_score, min_noun_frequency, min_eojeol_is_noun_frequency, verbose):
