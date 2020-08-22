@@ -41,9 +41,11 @@ class LRNonuExtractor():
         train_data=None,
         min_noun_score=0.3,
         min_noun_frequency=1,
+        min_num_of_features=1,
         min_eojeol_frequency=1,
         min_eojeol_is_noun_frequency=30,
-        extract_compounds=True
+        extract_compounds=True,
+        l_prefix=None
     ):
         if (not self.is_trained) and (train_data is None):
             raise ValueError('`train_data` must not be `None` if noun extractor has no LRGraph')
@@ -53,15 +55,17 @@ class LRNonuExtractor():
                 train_data, min_eojeol_frequency,
                 self.max_l_length, self.max_r_length, self.verbose)
 
-        candidates = prepare_noun_candidates(self.lrgraph, min_noun_frequency)
+        candidates = prepare_noun_candidates(
+            self.lrgraph, self.pos, min_noun_frequency, l_prefix)
         nouns = longer_first_prediction(
-            candidates, self.lrgraph, min_noun_score,
+            candidates, self.lrgraph, self.pos, self.neg,
+            self.common, min_noun_score, min_num_of_features,
             min_eojeol_is_noun_frequency, self.verbose)
 
         if extract_compounds:
-            nouns = extract_compounds(candidates, nouns, self.verbose)
+            nouns = extract_compounds_func(candidates, nouns, self.verbose)
 
-        nouns = postprocessing(nouns, self)
+#         nouns = postprocessing(nouns, self)
         nouns = {noun: NounScore(frequency, score) for noun, (frequency, score) in nouns.items()}
         return nouns
 
@@ -146,8 +150,22 @@ def train_lrgraph(train_data, min_eojeol_frequency, max_l_length, max_r_length, 
     return lrgraph
 
 
-def prepare_noun_candidates(lrgraph, min_noun_frequency):
-    raise NotImplementedError
+def prepare_noun_candidates(lrgraph, pos_features, min_noun_frequency, l_prefix=None):
+    def include(word, e):
+        return word[:e] == l_prefix
+
+    # noun candidates from positive featuers such as Josa
+    N_from_J = {}
+    for r in pos_features:
+        for l, c in lrgraph.get_l(r, -1):
+            if not l_prefix:
+                N_from_J[l] = N_from_J.get(l, 0) + c
+                continue
+            # for debugging
+            if include(l, len(l_prefix)):
+                N_from_J[l] = N_from_J.get(l, 0) + c
+    N_from_J = {candidate for candidate, count in N_from_J.items() if count >= min_noun_frequency}
+    return N_from_J
 
 
 def longer_first_prediction(candidates, lrgraph, pos_features, neg_features,
@@ -286,7 +304,7 @@ def _base_predict(word, word_features, pos_features, neg_features, common_featur
     return pos, common, neg, unk, end
 
 
-def extract_compounds(candidates, nouns, verbose):
+def extract_compounds_func(candidates, nouns, verbose):
     raise NotImplementedError
 
 
