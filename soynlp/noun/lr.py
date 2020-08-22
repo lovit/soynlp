@@ -5,13 +5,14 @@ from pprint import pprint
 from tqdm import tqdm
 
 from soynlp.utils import DoublespaceLineCorpus, EojeolCounter, LRGraph, get_process_memory
+from .postprocessing import detaching_features, ignore_features, check_N_is_NJ
 
 
 installpath = os.path.abspath(os.path.dirname(__file__))
 NounScore = namedtuple('NounScore', 'frequency score')
 
 
-class LRNonuExtractor():
+class LRNounExtractor():
     def __init__(
         self,
         max_l_length=10,
@@ -66,8 +67,10 @@ class LRNonuExtractor():
         if extract_compounds:
             nouns = extract_compounds_func(candidates, nouns, self.verbose)
 
-        # TODO
-#         nouns = postprocessing(nouns, self)
+        # TODO: check
+        features_to_be_detached = {r for r in self.pos}
+        features_to_be_detached.update(self.common)
+        nouns = postprocessing(nouns, self.lrgraph, features_to_be_detached, self.verbose)
         nouns = {noun: NounScore(frequency, score) for noun, (frequency, score) in nouns.items()}
         return nouns
 
@@ -310,5 +313,20 @@ def extract_compounds_func(candidates, nouns, verbose):
     raise NotImplementedError
 
 
-def postprocessing(nouns, lr_noun_extractor):
-    raise NotImplementedError
+def postprocessing(nouns, lrgraph, features_to_be_detached, verbose):
+    num_before = len(nouns)
+    nouns, removals = detaching_features(nouns, features_to_be_detached)
+    if verbose:
+        print_message(f'postprocessing: detaching_features: {num_before} -> {len(nouns)}')
+
+    num_before = len(nouns)
+    nouns, removals = ignore_features(nouns, features_to_be_detached)
+    if verbose:
+        print_message(f'postprocessing: ignore_features: {num_before} -> {len(nouns)}')
+
+    num_before = len(nouns)
+    nouns, removals = check_N_is_NJ(nouns, lrgraph)
+    if verbose:
+        print_message(f'postprocessing: check_N_is_NJ: {num_before} -> {len(nouns)}')
+
+    return nouns
