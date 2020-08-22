@@ -1,7 +1,9 @@
 import os
+from collections import namedtuple
 
 
 installpath = os.path.abspath(os.path.dirname(__file__))
+NounScore = namedtuple('NounScore', 'frequency score')
 
 
 class LRNonuExtractor():
@@ -13,16 +15,47 @@ class LRNonuExtractor():
         neg_features=None,
         postprocessing=None,
         verbose=True,
-        debug_dir=None
+        debug_dir=None,
     ):
 
         self.max_left_length = max_left_length
         self.max_right_length = max_right_length
         self.verbose = verbose
         self.debug_dir = debug_dir
-
         self.pos, self.neg, self.common = prepare_r_features(pos_features, neg_features)
         self.postprocessing = prepare_postprocessing(postprocessing)
+
+        self.lrgraph = None
+
+    @property
+    def is_trained(self):
+        return self.lrgraph is not None
+
+    def extract(
+        self,
+        inputs=None,
+        min_noun_score=0.3,
+        min_noun_frequency=1,
+        min_eojeol_frequency=1,
+        min_eojeol_is_noun_frequency=30,
+        extract_compounds=True
+    ):
+        if (not self.is_trained()) and (inputs is None):
+            raise ValueError('`inputs` must not be `None` if noun extractor has no LRGraph')
+
+        if self.lrgraph is None:
+            self.lrgraph = train_lrgraph(inputs, min_eojeol_frequency, self.verbose)
+
+        candidates, nouns = extract_nouns(
+            self.lrgraph, min_noun_score, min_noun_frequency,
+            min_eojeol_is_noun_frequency, self.verbose)
+
+        if extract_compounds:
+            nouns = extract_compounds(candidates, nouns, self.verbose)
+
+        nouns = postprocessing(nouns, self)
+        nouns = {noun: NounScore(frequency, score) for noun, (frequency, score) in nouns.items()}
+        return nouns
 
 
 def prepare_r_features(pos_features=None, neg_features=None):
@@ -71,3 +104,19 @@ def prepare_r_features(pos_features=None, neg_features=None):
 def prepare_postprocessing(postprocessing):
     # NotImplemented
     return postprocessing
+
+
+def train_lrgraph(inputs, min_eojeol_frequency, verbose):
+    raise NotImplementedError
+
+
+def extract_nouns(lrgraph, min_noun_score, min_noun_frequency, min_eojeol_is_noun_frequency, verbose):
+    raise NotImplementedError
+
+
+def extract_compounds(candidates, nouns, verbose):
+    raise NotImplementedError
+
+
+def postprocessing(nouns, lr_noun_extractor):
+    raise NotImplementedError
