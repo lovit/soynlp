@@ -23,6 +23,7 @@ setuptools.setup(
             'pos/dictionary/*/*.txt',
             'postagger/dictionary/default/*/*.txt',
             'noun/*.txt',
+            'noun/pretrained_models/*',
             'lemmatizer/dictionary/default/*/*.txt'
         ]
     },
