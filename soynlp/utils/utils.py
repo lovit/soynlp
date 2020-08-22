@@ -161,7 +161,7 @@ class DoublespaceLineCorpus:
 
     def __len__(self):
         if self.num_doc == 0:
-            self.num_doc, self.num_sent = self._check_length(-1, -1)
+            self.num_doc, self.num_sent = self._sample_first_lines(-1, -1)
         return self.num_sent if self.iter_sent else self.num_doc
 
 
