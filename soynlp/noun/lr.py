@@ -156,7 +156,7 @@ def longer_first_prediction(candidates, lrgraph, pos_features, neg_features,
 
     sorted_candidates = sorted(candidates, key=lambda x: -len(x))
     if verbose:
-        iterator = tqdm(sorted_candidates, desc='[LRNounExtractor]', total=len(candidates))
+        iterator = tqdm(sorted_candidates, desc='[LRNounExtractor] base prediction', total=len(candidates))
     else:
         iterator = sorted_candidates
 
