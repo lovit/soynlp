@@ -359,7 +359,7 @@ class LRGraph:
         >>> lrgraph.discount_lr_pair('이것', '은', count=1)
         >>> print(lrgraph._lr)  # { ...,  '이것': {'도': 2, '은': 4}, ...}
 
-        >>> lrgraph.discount_eojeol('이것은', count=1)
+        >>> lrgraph.remove_eojeol('이것은', count=1)
         >>> print(lrgraph._lr)  # # { ...,  '이것': {'도': 2, '은': 3}, ...}
     """
     def __init__(self, dict_l_to_r=None, sents=None, max_l_length=10, max_r_length=9, verbose=False):
@@ -503,7 +503,7 @@ class LRGraph:
                     if len(ldict) <= 0:
                         self._rl.pop(r)
 
-    def discount_eojeol(self, eojeol, count=1):
+    def remove_eojeol(self, eojeol, count=1):
         """Discount (L, R) pair count
 
         Args:
