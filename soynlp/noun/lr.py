@@ -1,6 +1,7 @@
 import os
 from collections import namedtuple
 from datetime import datetime
+from tqdm import tqdm
 
 from soynlp.utils import DoublespaceLineCorpus, EojeolCounter, LRGraph, get_process_memory
 
@@ -51,8 +52,9 @@ class LRNonuExtractor():
                 train_data, min_eojeol_frequency,
                 self.max_l_length, self.max_r_length, self.verbose)
 
-        candidates, nouns = extract_nouns(
-            self.lrgraph, min_noun_score, min_noun_frequency,
+        candidates = prepare_noun_candidates(self.lrgraph, min_noun_frequency)
+        nouns = longer_first_prediction(
+            candidates, self.lrgraph, min_noun_score,
             min_eojeol_is_noun_frequency, self.verbose)
 
         if extract_compounds:
@@ -143,8 +145,86 @@ def train_lrgraph(train_data, min_eojeol_frequency, max_l_length, max_r_length, 
     return lrgraph
 
 
-def extract_nouns(lrgraph, min_noun_score, min_noun_frequency, min_eojeol_is_noun_frequency, verbose):
+def prepare_noun_candidates(lrgraph, min_noun_frequency):
     raise NotImplementedError
+
+
+def longer_first_prediction(candidates, lrgraph, min_noun_score, min_eojeol_is_noun_frequency, verbose):
+
+    sorted_candidates = sorted(candidates, key=lambda x: -len(x))
+    if verbose:
+        iterator = tqdm(sorted_candidates, desc='[LRNounExtractor]', total=len(candidates))
+    else:
+        iterator = sorted_candidates
+
+    prediction_scores = {}
+    for word in iterator:
+        # base prediction
+        word_features = lrgraph.get_r(word, -1)
+        support, score = base_predict(word, word_features, min_noun_score)
+        prediction_scores[word] = (support, score)
+
+        # if their score is higher than min_noun_score,
+        # remove eojeol pattern from lrgraph
+        if score >= min_noun_score:
+            for r, count in word_features:
+                # remove all eojeols that including word at left-side.
+                # we have to assume that pos, neg features are incomplete
+                lrgraph.discount_eojeol(word + r, count)
+                # if (r == '' or
+                #    (r in self._pos_features) or
+                #    (r in self._common_features)):
+                #    self.lrgraph.discount_eojeol(word+r, count)
+
+    return prediction_scores
+
+
+def base_predict(word, word_features, min_noun_score):
+    """
+    Returns:
+        support (int) : word frequency
+        score (float) : noun score
+    """
+    raise NotImplementedError
+
+
+def remove_ambiguous_features(word, word_features, pos_features, neg_features):
+    def exist_longer_feature(word, r):
+        for e in range(len(word) - 1, -1, -1):
+            longer = word[e:] + r
+            if (longer in pos_features) or (longer in neg_features):
+                return True
+        return False
+
+    def satisfy(word, r):
+        if not r:
+            return True
+        if exist_longer_feature(word, r):
+            # negative -다고, -자는
+            # ('관계자' 의 경우 '관계 + 자는'으로 고려될 수 있음)
+            return False
+        return True
+
+    refined = [r_freq for r_freq in word_features if satisfy(word, r_freq[0])]
+    return refined
+
+
+def _base_predict(word, word_features, pos_features, neg_features, common_features):
+    pos, common, neg, unk, end = 0, 0, 0, 0, 0
+    for r, freq in word_features:
+        if not r:
+            end += freq
+            continue
+        if r in common_features:
+            common += freq
+        elif r in pos_features:
+            pos += freq
+        elif r in neg_features:
+            neg += freq
+        else:
+            unk += freq
+
+    return pos, common, neg, unk, end
 
 
 def extract_compounds(candidates, nouns, verbose):
