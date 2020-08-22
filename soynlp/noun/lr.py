@@ -188,7 +188,7 @@ def base_predict(word, word_features, pos_features, neg_features, common_feature
     min_noun_score=0.3, min_num_of_features=1, min_eojeol_is_noun_frequency=30, debug=False):  # noqa E125,E128
 
     refined_features, ambiguous_set = remove_ambiguous_features(
-        word, word_features, pos_features, neg_features)
+        word, word_features, pos_features, neg_features, common_features)
 
     pos, common, neg, unk, end = _base_predict(
         word, refined_features, pos_features, neg_features, common_features)
@@ -229,7 +229,6 @@ def base_predict(word, word_features, pos_features, neg_features, common_feature
         (end / sum_ >= 0.3) and      # noqa W504
         (common >= neg) and          # noqa W504
         (pos >= neg)):               # noqa W504
-
         support = pos + common + end
         return support, support / sum_
 
@@ -250,17 +249,15 @@ def base_predict(word, word_features, pos_features, neg_features, common_feature
     return support, 0
 
 
-def remove_ambiguous_features(word, word_features, pos_features, neg_features):
+def remove_ambiguous_features(word, word_features, pos_features, neg_features, common_features):
     def exist_longer_feature(word, r):
         for e in range(len(word) - 1, -1, -1):
             longer = word[e:] + r
-            if (longer in pos_features) or (longer in neg_features):
+            if (longer in pos_features) or (longer in neg_features) or (longer in common_features):
                 return True
         return False
 
     def satisfy(word, r):
-        if not r:
-            return True
         if exist_longer_feature(word, r):
             # negative -다고, -자는
             # ('관계자' 의 경우 '관계 + 자는'으로 고려될 수 있음)

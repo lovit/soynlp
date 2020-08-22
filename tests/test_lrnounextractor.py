@@ -28,14 +28,14 @@ def test_base_predict_helper():
          'end': 0},
         {'l': '너로',
          'features': [('는', 5), ('', 3)],
-         'refined_features': [('', 3)],
+         'refined_features': [],
          'pos': 0,
          'neg': 0,
          'common': 0,
-         'end': 3},
+         'end': 0},
         {'l': '너',
          'features': [('로는', 5), ('는', 3)],
-         'refined_features': [('로는', 5), ('는', 3)],
+         'refined_features': [('는', 3), ('로는', 5)],
          'pos': 5,
          'neg': 0,
          'common': 3,
@@ -86,7 +86,7 @@ def test_base_predict_helper():
     for test_case in test_cases:
         word = test_case['l']
         features = test_case['features']
-        refined, _ = remove_ambiguous_features(word, features, pos_features, neg_features)
+        refined, _ = remove_ambiguous_features(word, features, pos_features, neg_features, common_features)
         pos, common, neg, unk, end = _base_predict(word, refined, pos_features, neg_features, common_features)
         print(f'\nword: {word}\n - before: {features}\n - after:  {refined}')
         print(f' - pos={pos}, neg={neg}, common={common}, end={end}')
@@ -106,7 +106,7 @@ def test_base_predict():
     test_cases = [
         {'l': '대학생으', 'r': [('로', 10), ('로써', 5), ('로는', 3)], 'support': 0, 'score': 0},
         {'l': '대학생', 'r': [('으로', 10), ('으로써', 5), ('으로는', 3)], 'support': 18, 'score': 1.0},
-        {'l': '너로', 'r': [('는', 5), ('', 3)], 'support': 3, 'score': 0},
+        {'l': '너로', 'r': [('는', 5), ('', 3)], 'support': 0, 'score': 0},
         {'l': '너', 'r': [('로는', 5), ('는', 3)], 'support': 8, 'score': 1.0},
         {'l': '관계자', 'r': [('는', 10), ('로', 5), ('이지만', 5)], 'support': 10, 'score': 1.0},
         {'l': '관계', 'r': [('자는', 10), ('자로', 5), ('는', 20), ('의', 25), ('자이지만', 5)], 'support': 45, 'score': 0.42857142857142855},
@@ -115,7 +115,8 @@ def test_base_predict():
         {'l': '가고있다', 'r': [('고', 10), ('지만', 3)], 'support': 3, 'score': 0},
         {'l': '가고있', 'r': [('다고', 10), ('지만', 5), ('다지만', 3)], 'support': 15, 'score': -1.0},
         {'l': '경찰국', 'r': [('은', 1), ('에', 1), ('에서', 1)], 'support': 3, 'score': 1.0},
-        {'l': '아이웨딩', 'r': [('', 90), ('은', 3), ('측은', 1)], 'support': 93, 'score': 0.9893617021276596}
+        {'l': '아이웨딩', 'r': [('', 90), ('은', 3), ('측은', 1)], 'support': 93, 'score': 0.9893617021276596},
+        {'l': '아이엠텍', 'r': [('은', 2), ('', 2)], 'support': 4, 'score': 1.0}
     ]
     for test_case in test_cases:
         word = test_case['l']
