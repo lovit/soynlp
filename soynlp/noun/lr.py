@@ -1,6 +1,7 @@
 import os
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 from datetime import datetime
+from pprint import pprint
 from tqdm import tqdm
 
 from soynlp.utils import DoublespaceLineCorpus, EojeolCounter, LRGraph, get_process_memory
@@ -179,13 +180,66 @@ def longer_first_prediction(candidates, lrgraph, min_noun_score, min_eojeol_is_n
     return prediction_scores
 
 
-def base_predict(word, word_features, min_noun_score):
-    """
-    Returns:
-        support (int) : word frequency
-        score (float) : noun score
-    """
-    raise NotImplementedError
+def base_predict(word, word_features, pos_features, neg_features, common_features,
+    min_noun_score=0.3, min_num_of_features=1, min_eojeol_is_noun_frequency=30, debug=False):  # noqa E125,E128
+
+    refined_features, ambiguous_set = remove_ambiguous_features(
+        word, word_features, pos_features, neg_features)
+
+    pos, common, neg, unk, end = _base_predict(
+        word, refined_features, pos_features, neg_features, common_features)
+
+    denominator = pos + neg
+    score = 0 if denominator == 0 else (pos - neg) / denominator
+    support = (pos + end + common) if score >= min_noun_score else (neg + end + common)
+
+    active_features = [r for r, _ in refined_features if (r in pos_features) or (r in neg_features)]
+    num_features = len(active_features)
+
+    if debug:
+        pprint(OrderedDict(
+            {'word': word, 'pos': pos, 'common': common, 'neg': neg, 'unk': unk,
+             'end': end, 'num_features': num_features, 'score': score, 'support': support}
+        ))
+
+    if num_features > min_num_of_features:
+        return support, score
+
+    # when the number of features used in prediction is less than `min_num_of_features`
+    sum_ = pos + common + neg + unk + end
+    if sum_ == 0:
+        return 0, 0
+
+    if (end > min_eojeol_is_noun_frequency) and (pos >= neg):
+        support = pos + common + end
+        return support, support / sum_
+
+    # TODO: fix hard-coding `end / sum_ >= 0.3`
+    if ((end > min_eojeol_is_noun_frequency) and  # noqa W504
+        (common > 0 or pos > 0) and               # noqa W504
+        (end / sum_ >= 0.3) and                   # noqa W504
+        (common >= neg) and                       # noqa W504
+        (pos >= neg)):                            # noqa W504
+        # 아이웨딩 + [('', 90), ('은', 3), ('측은', 1)] # `은`: common, `측은`: unknown, 대부분 단일어절
+        # 아이엠텍 + [('은', 2), ('', 2)]
+        support = pos + common + end
+        return support, support / sum_
+
+    # 경찰국 + [(은, 1), (에, 1), (에서, 1)] -> {은, 에}
+    first_chars = {r[0] for r, _ in refined_features if (r and (r not in ambiguous_set))}
+    # TODO: fix hard-coding `len(first_chars) >= 2`
+    if len(first_chars) >= 2:
+        support = pos + common + end
+        return support, support / sum_
+
+    # TODO: Handling for post-processing in NounExtractor
+    # Case 1.
+    #   아이러브영주사과 -> 아이러브영주사 + [(과,1)] (minimum r feature 적용해야 하는 케이스) : 복합명사
+    #   아이러브영주사과 + [('', 1)] 이므로, 후처리 이후 '아이러브영주사' 후보에서 제외됨
+    # Case 2.
+    #   아이였으므로 -> 아이였으므 + [(로, 2)] (minimum r feature 적용)
+    #   "명사 + Unknown R" 로 후처리
+    return support, 0
 
 
 def remove_ambiguous_features(word, word_features, pos_features, neg_features):
@@ -206,7 +260,8 @@ def remove_ambiguous_features(word, word_features, pos_features, neg_features):
         return True
 
     refined = [r_freq for r_freq in word_features if satisfy(word, r_freq[0])]
-    return refined
+    ambiguous = {r_freq[0] for r_freq in word_features if not satisfy(word, r_freq[0])}
+    return refined, ambiguous
 
 
 def _base_predict(word, word_features, pos_features, neg_features, common_features):
@@ -223,7 +278,6 @@ def _base_predict(word, word_features, pos_features, neg_features, common_featur
             neg += freq
         else:
             unk += freq
-
     return pos, common, neg, unk, end
 
 
