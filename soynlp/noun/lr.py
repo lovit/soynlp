@@ -150,7 +150,9 @@ def prepare_noun_candidates(lrgraph, min_noun_frequency):
     raise NotImplementedError
 
 
-def longer_first_prediction(candidates, lrgraph, min_noun_score, min_eojeol_is_noun_frequency, verbose):
+def longer_first_prediction(candidates, lrgraph, pos_features, neg_features,
+    common_features, min_noun_score, min_num_of_features,
+    min_eojeol_is_noun_frequency, verbose):
 
     sorted_candidates = sorted(candidates, key=lambda x: -len(x))
     if verbose:
@@ -162,21 +164,23 @@ def longer_first_prediction(candidates, lrgraph, min_noun_score, min_eojeol_is_n
     for word in iterator:
         # base prediction
         word_features = lrgraph.get_r(word, -1)
-        support, score = base_predict(word, word_features, min_noun_score)
+        support, score = base_predict(
+            word,
+            word_features,
+            pos_features,
+            neg_features,
+            common_features,
+            min_noun_score,
+            min_num_of_features,
+            min_eojeol_is_noun_frequency
+        )
         prediction_scores[word] = (support, score)
 
-        # if their score is higher than min_noun_score,
-        # remove eojeol pattern from lrgraph
+        # if predicted score is higher than `min_noun_score`, remove `L + R` from lrgraph
         if score >= min_noun_score:
             for r, count in word_features:
                 # remove all eojeols that including word at left-side.
-                # we have to assume that pos, neg features are incomplete
-                lrgraph.discount_eojeol(word + r, count)
-                # if (r == '' or
-                #    (r in self._pos_features) or
-                #    (r in self._common_features)):
-                #    self.lrgraph.discount_eojeol(word+r, count)
-
+                lrgraph.remove_eojeol(word + r, count)
     return prediction_scores
 
 
@@ -214,14 +218,18 @@ def base_predict(word, word_features, pos_features, neg_features, common_feature
         support = pos + common + end
         return support, support / sum_
 
+    # 아이웨딩 + [('', 90), ('은', 3), ('측은', 1)] # `은`: common, `측은`: unknown, 대부분 단일어절
+    if ((end > min_eojeol_is_noun_frequency) and (pos > neg)):
+        support = pos + common + end
+        return support, score
+
     # TODO: fix hard-coding `end / sum_ >= 0.3`
-    if ((end > min_eojeol_is_noun_frequency) and  # noqa W504
-        (common > 0 or pos > 0) and               # noqa W504
-        (end / sum_ >= 0.3) and                   # noqa W504
-        (common >= neg) and                       # noqa W504
-        (pos >= neg)):                            # noqa W504
-        # 아이웨딩 + [('', 90), ('은', 3), ('측은', 1)] # `은`: common, `측은`: unknown, 대부분 단일어절
-        # 아이엠텍 + [('은', 2), ('', 2)]
+    # 아이엠텍 + [('은', 2), ('', 2)]
+    if ((common > 0 or pos > 0) and  # noqa W504
+        (end / sum_ >= 0.3) and      # noqa W504
+        (common >= neg) and          # noqa W504
+        (pos >= neg)):               # noqa W504
+
         support = pos + common + end
         return support, support / sum_
 
