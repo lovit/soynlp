@@ -15,6 +15,24 @@ class RegexTokenizer:
         pipielines (list of re.Pattern or None) :
             The regex patterns will be applied one by one to input string.
             If None, it uses default patterns (number -> Korean -> jaum -> moum -> Alphabet)
+
+    Examples::
+        >>> s = 'abc123가나다 alphabet!!3.14한글 hank`s report'
+        >>> regex_tokenizer = RegexTokenizer()
+        >>> regex_tokenizer.tokenize(s)
+        $ ['abc', '123', '가나다', 'alphabet', '!!', '3.14', '한글', 'hank`s', 'report']
+
+        >>> regex_tokenizer(s, flatten=False)
+        $ [[Token(word='abc', b=0, e=3, score=1, length=3),
+            Token(word='123', b=3, e=6, score=1, length=3),
+            Token(word='가나다', b=6, e=9, score=1, length=3)],
+           [Token(word='alphabet', b=10, e=18, score=1, length=8),
+            Token(word='!!', b=18, e=20, score=1, length=2),
+            Token(word='3.14', b=20, e=24, score=1, length=4),
+            Token(word='한글', b=24, e=26, score=1, length=2)],
+           [Token(word='hank`s', b=27, e=33, score=1, length=6)],
+           [Token(word='report', b=34, e=40, score=1, length=6)]]
+
     """
     def __init__(self, pipelines=None):
         if pipelines is None:
