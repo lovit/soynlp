@@ -274,9 +274,9 @@ class MaxScoreTokenizer:
         scored = self._initialize(s, length, offset)
         tokens = self._find(scored)
         adds = self._add_inter_tokens(s, tokens, offset)
-        if result[-1].e != offset + length:
+        if tokens[-1].e != offset + length:
             adds += self._add_last_token(s, tokens, offset)
-        if result[0].b != offset:
+        if tokens[0].b != offset:
             adds += self._add_first_token(s, tokens, offset)
         return sorted(tokens + adds, key=lambda x: x.b)
 
