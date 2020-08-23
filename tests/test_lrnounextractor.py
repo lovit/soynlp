@@ -1,9 +1,11 @@
 import os
 import sys
+import zipfile
 soynlp_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, soynlp_path)
 
 from soynlp.noun.lr import remove_ambiguous_features, _base_predict, base_predict
+from soynlp.noun import LRNounExtractor
 
 
 def test_base_predict_helper():
@@ -125,3 +127,30 @@ def test_base_predict():
         print(f'{word} : {features}\n  support={support}, score = {score}\n')
         assert support == test_case['support']
         assert score == test_case['score']
+
+
+def test_usage():
+    test_cases = {
+        '아이오아이': {'frequency': 127, 'score': 1.0},
+        '아이디': {'frequency': 59, 'score': 1.0},
+        '아이디어': {'frequency': 142, 'score': 1.0},
+    }
+    train_data = f'{soynlp_path}/data/2016-10-20.txt'
+    train_zip_data = f'{soynlp_path}/data/2016-10-20.zip'
+    if not os.path.exists(train_data):
+        assert os.path.exists(train_zip_data)
+        with zipfile.ZipFile(train_zip_data, 'r') as zip_ref:
+            zip_ref.extractall(f'{soynlp_path}/data/')
+    assert os.path.exists(train_data)
+
+    noun_extractor = LRNounExtractor()
+    nouns = noun_extractor.extract(
+        train_data,
+        exclude_numbers=True,
+        exclude_syllables=True,
+        extract_compounds=True
+    )
+    for noun in test_cases:
+        assert nouns[noun].frequency == test_cases[noun]['frequency']
+        assert nouns[noun].score == test_cases[noun]['score']
+        print(f'noun={noun}, scores={nouns[noun]}')
