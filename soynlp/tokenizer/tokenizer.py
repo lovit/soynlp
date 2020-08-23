@@ -1,6 +1,5 @@
 import re
 from collections import namedtuple
-from pprint import pprint
 
 
 Token = namedtuple('Token', 'word b e score length')
@@ -17,6 +16,8 @@ class RegexTokenizer:
             If None, it uses default patterns (number -> Korean -> jaum -> moum -> Alphabet)
 
     Examples::
+        >>> from soynlp.tokenizer import RegexTokenizer
+
         >>> s = 'abc123가나다 alphabet!!3.14한글 hank`s report'
         >>> regex_tokenizer = RegexTokenizer()
         >>> regex_tokenizer.tokenize(s)
@@ -65,6 +66,8 @@ class RegexTokenizer:
             tokens (list of str or nested list of Token)
 
         Examples::
+            >>> from soynlp.tokenizer import RegexTokenizer
+
             >>> s = 'abc123가나다 alphabet!!3.14한글 hank`s report'
             >>> regex_tokenizer = RegexTokenizer()
             >>> regex_tokenizer.tokenize(s)
@@ -137,6 +140,8 @@ class LTokenizer:
 
     Examples::
         Without tolerance
+
+            >>> from soynlp.tokenizer import LTokenizer
 
             >>> scores = {'파스': 0.65, '파스타': 0.7, '좋아': 0.3}
             >>> ltokenizer = LTokenizer(scores)
@@ -228,6 +233,43 @@ class LTokenizer:
 
 
 class MaxScoreTokenizer:
+    """
+    Args:
+        scores ({str: float}) : {word: word_score}
+        max_length (int) : maximum length of L part word
+        unknown_score (float) : score of unknown word
+
+    Examples::
+        Import class
+
+            >>> from soynlp.tokenizer import MaxScoreTokenizer
+            >>> from soynlp.utils import DoublespaceLineCorpus
+            >>> from soynlp.word import WordExtractor
+
+        With pretrained word scores
+
+            >>> scores = {'파스': 0.65, '파스타': 0.7, '좋아': 0.3}
+            >>> tokenizer = MaxScoreTokenizerTest(scores)
+            >>> tokenizer.tokenize('파스타가좋아요')
+            $ ['파스타', '가', '좋아', '요']
+
+            >>> tokenizer.tokenize('파스타가좋아요', flatten=False)
+            $ [[Token(word='파스타', b=0, e=3, score=0.7, length=3),
+                Token(word='가', b=3, e=4, score=0.0, length=1),
+                Token(word='좋아', b=4, e=6, score=0.3, length=2),
+                Token(word='요', b=6, e=7, score=0.0, length=1)]]
+
+        With training word extractor
+
+            >>> corpus = DoublespaceLineCorpus('path/to/corpus', iter_sent=True)
+            >>> word_extractor = WordExtractor()
+            >>> word_extractor.train(corpus)
+            >>> cohesion_scores = word_extractor.all_cohesion_scores()
+            >>> cohesion_scores = {l: l_score for l, (l_score, r_score) in cohesion_scores.items()}
+            >>> tokenizer = MaxScoreTokenizer(cohesion_scores)
+            >>> tokenizer.tokenize('예시문장입니다')
+            >>> tokenizer.tokenize('예시문장입니다', flatten=False)
+    """
     def __init__(self, scores, max_length=10, unknown_score=0.0):
         self.scores = scores
         self.max_len = max_length
@@ -295,7 +337,7 @@ class MaxScoreTokenizer:
                 scored.append(Token(subtoken, offset + b, offset + e, score, r))
         if not scored:
             return [Token(s, offset, offset + len(s), self.unknown_score, len(s))]
-        return sorted(scored, key=lambda x:(-x.score, -x.length, x.b))
+        return sorted(scored, key=lambda x: (-x.score, -x.length, x.b))
 
     def _find(self, scored):
         result = []
@@ -333,7 +375,7 @@ class MaxScoreTokenizer:
         sub = s[0: b - offset]
         score = self.scores.get(sub, self.unknown_score)
         return [Token(sub, offset, b, score, b - offset)]
-    
+
     def _add_last_token(self, s, tokens, offset=0):
         e = tokens[-1].e
         sub = s[e - offset:]
