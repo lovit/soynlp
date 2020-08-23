@@ -49,7 +49,7 @@ class LRNounExtractor():
         extract_compounds=True,
         exclude_syllables=False,
         exclude_numbers=True,
-        l_prefix=None
+        custom_exclude_function=None
     ):
         if (not self.is_trained) and (train_data is None):
             raise ValueError('`train_data` must not be `None` if noun extractor has no LRGraph')
@@ -63,7 +63,7 @@ class LRNounExtractor():
 
         candidates = prepare_noun_candidates(
             self.lrgraph, self.pos, min_noun_frequency,
-            exclude_syllables, exclude_numbers, l_prefix)
+            exclude_syllables, exclude_numbers, custom_exclude_function)
         nouns = longer_first_prediction(
             candidates, self.lrgraph, self.pos, self.neg,
             self.common, min_noun_score, min_num_of_features,
@@ -162,7 +162,7 @@ def train_lrgraph(train_data, min_eojeol_frequency, max_l_length, max_r_length, 
 number_pattern = re.compile('[0-9]+')
 
 def prepare_noun_candidates(lrgraph, pos_features, min_noun_frequency,
-    exclude_syllables=False, exclude_numbers=True, l_prefix=None):
+    exclude_syllables=False, exclude_numbers=True, custom_exclude_function=None):
 
     def include(word, e):
         return word[:e] == l_prefix
@@ -176,6 +176,11 @@ def prepare_noun_candidates(lrgraph, pos_features, min_noun_frequency,
         """
         return number_pattern.sub('', word) == ''
 
+    if custom_exclude_function is None:
+        def func(x):
+            return False
+        custom_exclude_function = func  # all pass
+
     # noun candidates from positive featuers such as Josa
     N_from_J = {}
     for r in pos_features:
@@ -184,12 +189,9 @@ def prepare_noun_candidates(lrgraph, pos_features, min_noun_frequency,
                 continue
             if exclude_numbers and is_number(l):
                 continue
-            if not l_prefix:
-                N_from_J[l] = N_from_J.get(l, 0) + c
+            if custom_exclude_function(l):
                 continue
-            # for debugging
-            if include(l, len(l_prefix)):
-                N_from_J[l] = N_from_J.get(l, 0) + c
+            N_from_J[l] = N_from_J.get(l, 0) + c
     N_from_J = {candidate for candidate, count in N_from_J.items() if count >= min_noun_frequency}
     return N_from_J
 
