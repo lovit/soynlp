@@ -5,6 +5,9 @@ soynlp_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, soynlp_path)
 
 from soynlp.tokenizer import MaxScoreTokenizer, LTokenizer, RegexTokenizer
+from soynlp.word import WordExtractor
+from soynlp.utils import DoublespaceLineCorpus
+from tqdm import tqdm
 
 
 def test_regex_tokenizer():
@@ -109,3 +112,30 @@ def test_maxscore_tokenizer():
         print(f'\ninput : {sentence}\nscores : {scores}')
         print(f'flatten words : {words}')
         pprint(flatten_tokens)
+
+
+def test_maxscore_tokenizer_usage():
+    train_data = f'{soynlp_path}/data/2016-10-20.txt'
+    train_zip_data = f'{soynlp_path}/data/2016-10-20.zip'
+    if not os.path.exists(train_data):
+        assert os.path.exists(train_zip_data)
+        with zipfile.ZipFile(train_zip_data, 'r') as zip_ref:
+            zip_ref.extractall(f'{soynlp_path}/data/')
+    assert os.path.exists(train_data)
+
+    with open(train_data, encoding='utf-8') as f:
+        sents = [sent.strip() for doc in f for sent in doc.split('  ')]
+    sents = [sent for sent in sents if sent][:10000]
+    word_extractor = WordExtractor()
+    word_extractor.train(sents)
+    cohesion_scores = word_extractor.all_cohesion_scores()
+    cohesion_scores = {l: cohesion for l, (cohesion, _) in cohesion_scores.items()}
+    tokenizer = MaxScoreTokenizer(cohesion_scores)
+
+    for i, sentence in enumerate(tqdm(sents, desc='MaxScoreTokenizer usage test', total=len(sents))):
+        try:
+            words = tokenizer.tokenize(sentence)
+            assert ''.join(words) == sentence.replace(' ', '')
+        except:
+            raise RuntimeError(f'{i}: {sentence}')
+            break
