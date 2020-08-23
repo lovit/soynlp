@@ -317,25 +317,25 @@ class MaxScoreTokenizer:
                 break
         return sorted(result, key=lambda x: x.b)
 
-    def _add_inter_tokens(self, s, result, offset=0):
+    def _add_inter_tokens(self, s, tokens, offset=0):
         adds = []
-        for i, base in enumerate(result[: -1]):
-            if base[2] == result[i + 1][1]:
+        for i, token in enumerate(tokens[: -1]):
+            if token.e == tokens[i + 1].b:
                 continue
-            b = base[2] - offset
-            e = result[i + 1][1] - offset
+            b = token.e - offset
+            e = tokens[i + 1].b - offset
             sub = s[b: e]
             adds.append(Token(sub, offset + b, offset + e, self.unknown_score, e - b))
         return adds
 
-    def _add_first_token(self, s, result, offset=0):
-        b = result[0].b
+    def _add_first_token(self, s, tokens, offset=0):
+        b = tokens[0].b
         sub = s[0: b - offset]
         score = self.scores.get(sub, self.unknown_score)
         return [Token(sub, offset, b, score, b - offset)]
     
-    def _add_last_token(self, s, result, offset=0):
-        e = result[-1].e
+    def _add_last_token(self, s, tokens, offset=0):
+        e = tokens[-1].e
         sub = s[e - offset:]
         if not sub:
             return []
