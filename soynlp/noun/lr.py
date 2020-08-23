@@ -242,7 +242,7 @@ class LRNounExtractor():
         if word_features is None:
             word_features = self.lrgraph.get_r(word, -1)
 
-        support, score = base_predict(
+        support, score = predict_single_noun(
             word, word_features, self.pos, self.neg, self.common,
             min_noun_score, min_num_of_features, min_eojeol_is_noun_frequency, debug)
         return NounScore(support, score)
@@ -372,7 +372,7 @@ def longer_first_prediction(candidates, lrgraph, pos_features, neg_features,
     for word in iterator:
         # base prediction
         word_features = lrgraph.get_r(word, -1)
-        support, score = base_predict(
+        support, score = predict_single_noun(
             word,
             word_features,
             pos_features,
@@ -392,13 +392,13 @@ def longer_first_prediction(candidates, lrgraph, pos_features, neg_features,
     return prediction_scores
 
 
-def base_predict(word, word_features, pos_features, neg_features, common_features,
+def predict_single_noun(word, word_features, pos_features, neg_features, common_features,
     min_noun_score=0.3, min_num_of_features=1, min_eojeol_is_noun_frequency=30, debug=False):  # noqa E125,E128
 
     refined_features, ambiguous_set = remove_ambiguous_features(
         word, word_features, pos_features, neg_features, common_features)
 
-    pos, common, neg, unk, end = _base_predict(
+    pos, common, neg, unk, end = check_r_features(
         word, refined_features, pos_features, neg_features, common_features)
 
     denominator = pos + neg
@@ -477,7 +477,7 @@ def remove_ambiguous_features(word, word_features, pos_features, neg_features, c
     return refined, ambiguous
 
 
-def _base_predict(word, word_features, pos_features, neg_features, common_features):
+def check_r_features(word, word_features, pos_features, neg_features, common_features):
     pos, common, neg, unk, end = 0, 0, 0, 0, 0
     for r, freq in word_features:
         if not r:
