@@ -144,6 +144,7 @@ def test_usage():
             zip_ref.extractall(f'{soynlp_path}/data/')
     assert os.path.exists(train_data)
 
+    print()
     noun_extractor = LRNounExtractor()
     nouns = noun_extractor.extract(
         train_data,

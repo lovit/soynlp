@@ -42,6 +42,8 @@ class LRNounExtractor():
         self.max_r_length = max_r_length
         self.verbose = verbose
         self.pos, self.neg, self.common = prepare_r_features(pos_features, neg_features)
+        if verbose:
+            print_message(f'#pos={len(self.pos)}, #neg={len(self.neg)}, #common={len(self.common)}')
 
         self.lrgraph = None
         self.compounds_components = None
