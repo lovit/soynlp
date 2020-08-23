@@ -54,7 +54,7 @@ class LRNounExtractor():
         if (not self.is_trained) and (train_data is None):
             raise ValueError('`train_data` must not be `None` if noun extractor has no LRGraph')
 
-        if self.lrgraph is None:
+        if train_data is not None:
             self.lrgraph = train_lrgraph(
                 train_data, min_eojeol_frequency,
                 self.max_l_length, self.max_r_length, self.verbose)
