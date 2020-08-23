@@ -80,8 +80,32 @@ class LRNounExtractor():
         features_to_be_detached = {r for r in self.pos}
         features_to_be_detached.update(self.common)
         nouns = postprocessing(nouns, self.lrgraph, features_to_be_detached, min_noun_score, self.verbose)
-        nouns = {noun: NounScore(frequency, score) for noun, (frequency, score) in nouns.items()}
-        return nouns
+        self.nouns = {noun: NounScore(frequency, score) for noun, (frequency, score) in nouns.items()}
+        return self.nouns
+
+    def decompose_compound(self, compound):
+        """Decompose input `compound` into nouns if `compound` is true compound
+
+        Args:
+            compound (str) : input words
+
+        Returns:
+            tokens (list of str or None) : noun list if input is true compound
+
+        Examples::
+            >>> noun_extractor.decompose_compound('아이폰아이스크림아이비리그')
+            $ ['아이폰', '아이스크림', '아이비리그']
+
+            >>> noun_extractor.decompose_compound('아이폰아이스크림아이비리그봤다')
+            $ None
+        """
+        if self.compound_decomposer is None:
+            raise ValueError('[LRNounExtractor] retrain using `extract(extract_compounds=True)` first')
+        tokens = self.compound_decomposer.tokenize(compound)
+        for token in tokens:
+            if token not in self.nouns:
+                return None
+        return tokens
 
 
 def prepare_r_features(pos_features=None, neg_features=None):
