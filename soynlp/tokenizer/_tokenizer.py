@@ -316,9 +316,11 @@ class MaxScoreTokenizer:
     
     def _add_last_subtoken(self, token, result, offset=0):
         b = result[-1][2]
-        subtoken = token[b:]
+        subtoken = token[b - offset:]
+        if not subtoken:
+            return []
         score = self.scores.get(subtoken, self.unknown_score)
-        return [Token(subtoken, b, len(token), score, len(subtoken))]
+        return [Token(subtoken, b, b + offset, score, len(subtoken))]
 
 
 class MaxLRScoreTokenizer:
