@@ -80,6 +80,8 @@ class LRNounExtractor():
         features_to_be_detached = {r for r in self.pos}
         features_to_be_detached.update(self.common)
         nouns = postprocessing(nouns, self.lrgraph, features_to_be_detached, min_noun_score, self.verbose)
+
+        self.lrgraph.reset_lrgraph()
         self.nouns = {noun: NounScore(frequency, score) for noun, (frequency, score) in nouns.items()}
         return self.nouns
 
@@ -106,6 +108,73 @@ class LRNounExtractor():
             if token not in self.nouns:
                 return None
         return tokens
+
+    def predict(
+        self,
+        word,
+        word_features=None,
+        min_noun_score=0.3,
+        min_num_of_features=1,
+        min_eojeol_is_noun_frequency=30,
+        debug=False
+    ):
+        """Predict noun scores
+
+        Args:
+            word (str) : input word; L-part
+            word_features (list of str or None) : R parts
+                When the value is `None`, it uses trained L-R graph.
+            min_noun_score (float) :
+                If the predicted score is less than `min_noun_score`,
+                LRNounExtractor consider `word` is not Noun.
+            min_num_of_features (int) :
+                The number of active features used in prediction.
+                When the number of features is too small, LRNounExtractor
+                consider `word` is not Noun.
+            min_eojeol_is_noun_frequency (int):
+                Sometimes, especially in news domain, proper nouns appear alone in eojeol.
+                ... 설명 더 적어야 함
+            debug (Boolean) : If True, it shows classification details
+
+        Returns:
+            nonu_score (collections.namedtuple) : NounScore(frequency, score)
+
+        Examples::
+            >>> noun_extractor.predict('아이오아이')
+            $ NounScore(frequency=127, score=1.0)
+
+            >>> noun_extractor.predict('아이오아이', debug=True)
+            $ OrderedDict([('word', '아이오아이'),
+               ('pos', 87),
+               ('common', 40),
+               ('neg', 0),
+               ('unk', 0),
+               ('end', 0),
+               ('num_features', 12),
+               ('score', 1.0),
+               ('support', 127)])
+              NounScore(frequency=127, score=1.0)
+
+            >>> word_features = [('의', 100), ('는', 50), ('니까', 15), ('가', 10), ('끼리', 5)]
+            >>> noun_extractor.predict('아이오아이', word_features, debug=True)
+            $ OrderedDict([('word', '아이오아이'),
+               ('pos', 100),
+               ('common', 50),
+               ('neg', 0),
+               ('unk', 5),
+               ('end', 0),
+               ('num_features', 1),
+               ('score', 1.0),
+               ('support', 150)])
+              NounScore(frequency=150, score=0.967741935483871)
+        """
+        if word_features is None:
+            word_features = self.lrgraph.get_r(word, -1)
+
+        support, score = base_predict(
+            word, word_features, self.pos, self.neg, self.common,
+            min_noun_score, min_num_of_features, min_eojeol_is_noun_frequency, debug)
+        return NounScore(support, score)
 
 
 def prepare_r_features(pos_features=None, neg_features=None):
