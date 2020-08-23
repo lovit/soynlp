@@ -64,12 +64,15 @@ class LRNounExtractor():
             candidates, self.lrgraph, self.pos, self.neg,
             self.common, min_noun_score, min_num_of_features,
             min_eojeol_is_noun_frequency, self.verbose)
+        nouns = {noun: score for noun, score in nouns.items() if score[1] >= min_noun_score}
 
         if extract_compounds:
-            compounds, self.compounds_components = extract_compounds_func(
-                self.lrgraph, nouns, min_noun_score, self.pos, self.verbose)
+            returns = extract_compounds_func(
+                self.lrgraph, nouns, min_noun_frequency,
+                min_noun_score, self.pos, self.verbose)
+            compounds, self.compounds_components, self.compound_decomposer = returns
+            nouns.update(compounds)
 
-        # TODO: check
         features_to_be_detached = {r for r in self.pos}
         features_to_be_detached.update(self.common)
         nouns = postprocessing(nouns, self.lrgraph, features_to_be_detached, min_noun_score, self.verbose)
@@ -306,13 +309,20 @@ def _base_predict(word, word_features, pos_features, neg_features, common_featur
     return pos, common, neg, unk, end
 
 
-def extract_compounds_func(lrgraph, noun_scores, min_noun_score, pos_features, verbose):
-    candidates = {l: sum(rdict.values()) for l, rdict in lrgraph._lr.items() if len(l) >= 4}
+def extract_compounds_func(lrgraph, noun_scores,
+    min_noun_frequency, min_noun_score, pos_features, verbose):
+
+    candidates = {
+        l: rdict.get('', 0) for l, rdict in lrgraph._lr_origin.items()
+        if (len(l) >= 4) and (l not in noun_scores)}
+    candidates = {l: count for l, count in candidates.items() if count >= min_noun_frequency}
+    n = len(candidates)
+
     word_scores = {
         noun: len(noun) for noun, score in noun_scores.items()
         if score[1] > min_noun_score and len(noun) > 1}
     compound_decomposer = MaxScoreTokenizer(scores=word_scores)
-    n = len(candidates)
+
     compounds_scores = {}
     compounds_counts = {}
     compounds_components = {}
@@ -351,8 +361,8 @@ def extract_compounds_func(lrgraph, noun_scores, min_noun_score, pos_features, v
         for noun, score in compounds_scores.items()}
 
     if verbose:
-        print_message(f'found {len(compounds)} compounds')
-    return compounds, compounds_components
+        print_message(f'found {len(compounds)} compounds (min frequency={min_noun_frequency})')
+    return compounds, compounds_components, compound_decomposer
 
 
 def parse_compound(tokens, pos_features):
