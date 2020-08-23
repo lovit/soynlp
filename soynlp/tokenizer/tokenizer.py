@@ -266,7 +266,7 @@ class MaxScoreTokenizer:
                 s,
                 offset,
                 offset + length,
-                self.scores.get(token, self.unknown_score),
+                self.scores.get(s, self.unknown_score),
                 length
             )
             return [token]
@@ -325,7 +325,7 @@ class MaxScoreTokenizer:
             b = base[2] - offset
             e = result[i + 1][1] - offset
             sub = s[b: e]
-            adds.append(Token(sub, b, e, self.unknown_score, e - b))
+            adds.append(Token(sub, offset + b, offset + e, self.unknown_score, e - b))
         return adds
 
     def _add_first_token(self, s, result, offset=0):
