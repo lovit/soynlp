@@ -4,11 +4,11 @@ import zipfile
 soynlp_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, soynlp_path)
 
-from soynlp.noun.lr import remove_ambiguous_features, _base_predict, base_predict
+from soynlp.noun.lr import remove_ambiguous_features, check_r_features, predict_single_noun
 from soynlp.noun import LRNounExtractor
 
 
-def test_base_predict_helper():
+def test_check_r_features():
     pos_features = {'로', '의', '로는', '으로', '으로는', '으로써', '이지만'}
     neg_features = {'다고', '고', '자는', '자고', '지만'}
     common_features = {'은', '는'}
@@ -89,7 +89,8 @@ def test_base_predict_helper():
         word = test_case['l']
         features = test_case['features']
         refined, _ = remove_ambiguous_features(word, features, pos_features, neg_features, common_features)
-        pos, common, neg, unk, end = _base_predict(word, refined, pos_features, neg_features, common_features)
+        pos, common, neg, unk, end = check_r_features(
+            word, refined, pos_features, neg_features, common_features)
         print(f'\nword: {word}\n - before: {features}\n - after:  {refined}')
         print(f' - pos={pos}, neg={neg}, common={common}, end={end}')
 
@@ -100,7 +101,7 @@ def test_base_predict_helper():
         assert test_case['end'] == end
 
 
-def test_base_predict():
+def test_predict_single_noun():
     pos_features = {'로', '에', '의', '로는', '에서', '으로', '으로는', '으로써', '이지만'}
     neg_features = {'다고', '고', '자는', '자고', '지만'}
     common_features = {'은', '는'}
@@ -123,7 +124,7 @@ def test_base_predict():
     for test_case in test_cases:
         word = test_case['l']
         features = test_case['r']
-        support, score = base_predict(word, features, pos_features, neg_features, common_features)
+        support, score = predict_single_noun(word, features, pos_features, neg_features, common_features)
         print(f'{word} : {features}\n  support={support}, score = {score}\n')
         assert support == test_case['support']
         assert score == test_case['score']
