@@ -1,4 +1,5 @@
 import os
+import re
 from collections import namedtuple, OrderedDict
 from datetime import datetime
 from pprint import pprint
@@ -46,6 +47,8 @@ class LRNounExtractor():
         min_eojeol_frequency=1,
         min_eojeol_is_noun_frequency=30,
         extract_compounds=True,
+        exclude_syllables=False,
+        exclude_numbers=True,
         l_prefix=None
     ):
         if (not self.is_trained) and (train_data is None):
@@ -59,7 +62,8 @@ class LRNounExtractor():
             self.lrgraph.reset_lrgraph()
 
         candidates = prepare_noun_candidates(
-            self.lrgraph, self.pos, min_noun_frequency, l_prefix)
+            self.lrgraph, self.pos, min_noun_frequency,
+            exclude_syllables, exclude_numbers, l_prefix)
         nouns = longer_first_prediction(
             candidates, self.lrgraph, self.pos, self.neg,
             self.common, min_noun_score, min_num_of_features,
@@ -155,14 +159,31 @@ def train_lrgraph(train_data, min_eojeol_frequency, max_l_length, max_r_length, 
     return lrgraph
 
 
-def prepare_noun_candidates(lrgraph, pos_features, min_noun_frequency, l_prefix=None):
+number_pattern = re.compile('[0-9]+')
+
+def prepare_noun_candidates(lrgraph, pos_features, min_noun_frequency,
+    exclude_syllables=False, exclude_numbers=True, l_prefix=None):
+
     def include(word, e):
         return word[:e] == l_prefix
+
+    def is_number(word):
+        """
+        Examples::
+            >>> print(is_number('1234'))  # True
+            >>> print(is_number('abc'))   # False
+            >>> print(is_number('1234a')) # False
+        """
+        return number_pattern.sub('', word) == ''
 
     # noun candidates from positive featuers such as Josa
     N_from_J = {}
     for r in pos_features:
         for l, c in lrgraph.get_l(r, -1):
+            if exclude_syllables and len(l) == 1:
+                continue
+            if exclude_numbers and is_number(l):
+                continue
             if not l_prefix:
                 N_from_J[l] = N_from_J.get(l, 0) + c
                 continue
