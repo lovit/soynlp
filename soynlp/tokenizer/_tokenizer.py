@@ -1,81 +1,114 @@
 import re
+from collections import namedtuple
 from pprint import pprint
 
 
+Token = namedtuple('Token', 'word b e score length')
+
+
 class RegexTokenizer:
-    
-    def __init__(self):
-        self._patterns = [
-            ('number', re.compile(u'[-+]?\d*[\.]?[\d]+|[-+]?\d+', re.UNICODE)),
-            ('korean', re.compile(u'[가-힣]+', re.UNICODE)),
-            ('jaum', re.compile(u'[ㄱ-ㅎ]+', re.UNICODE)),
-            ('moum', re.compile(u'[ㅏ-ㅣ]+', re.UNICODE)),
-            ('english & latin', re.compile(u"[a-zA-ZÀ-ÿ]+[[`']{1,1}s]*|[a-zA-ZÀ-ÿ]+", re.UNICODE))
-        ]
-        
+    """
+    Split sentence based on type of characters and regex pattern.
+    Or it is available to customize RegexTokenizer with my regex patterns.
+
+    Args:
+        pipielines (list of re.Pattern or None) :
+            The regex patterns will be applied one by one to input string.
+            If None, it uses default patterns (number -> Korean -> jaum -> moum -> Alphabet)
+    """
+    def __init__(self, pipelines=None):
+        if pipelines is None:
+            pipelines = self._default_pipelines()
+        self.pipelines = pipelines
         self.doublewhite_pattern = re.compile('\s+')
 
-    def __call__(self, s, debug=True, flatten=True):
-        return self.tokenize(s, debug, flatten)
+    def _default_pipelines(self):
+        return [
+            re.compile(u'[-+]?\d*[\.]?[\d]+|[-+]?\d+', re.UNICODE),  # number
+            re.compile(u'[가-힣]+', re.UNICODE),                      # Korean
+            re.compile(u'[ㄱ-ㅎ]+', re.UNICODE),                      # jaum
+            re.compile(u'[ㅏ-ㅣ]+', re.UNICODE),                      # moum
+            re.compile(u"[a-zA-ZÀ-ÿ]+[[`']{1,1}s]*|[a-zA-ZÀ-ÿ]+", re.UNICODE),  # Alphabet
+        ]
 
-    def tokenize(self, s, debug=False, flatten=True):
-        '''
-        Usage
-        
-        s = "이거에서+3.12같은34숫자나-1.2like float해해 같은aÀÿfafAis`s-1찾아서3.1.2.1해ㅋㅋㅜㅠ봐 Bob`s job.1"
-        tokenizer = RegularTokenizer()
-        tokenizer.tokenize(s)
+    def __call__(self, s, flatten=True):
+        return self.tokenize(s, flatten)
 
-        [['이거에서', '+3.12', '같은', '34', '숫자나', '-1.2', 'like'],
-         ['float', '해해'],
-         ['같은', 'aÀÿfafAis`s', '-1', '찾아서', '3.1', '.2', '.1', '해', 'ㅋㅋ', 'ㅜㅠ', '봐'],
-         ['Bob`s'],
-         ['job', '.1']]
-        '''
-        tokens = [self._tokenize(t, debug) for t in s.split()]
+    def tokenize(self, s, flatten=True):
+        """Split sentence based on type of characters and regex pattern.
+
+        Args:
+            s (str) : input string
+            flatten (Boolean) :
+                If True, it returns tokens as form of list of str
+                Otherwise, it returns nested list of `Token`
+
+        Returns:
+            tokens (list of str or nested list of Token)
+
+        Examples::
+            >>> s = 'abc123가나다 alphabet!!3.14한글 hank`s report'
+            >>> regex_tokenizer = RegexTokenizer()
+            >>> regex_tokenizer.tokenize(s)
+            >>> regex_tokenizer(s) # same with above line.
+            $ ['abc', '123', '가나다', 'alphabet', '!!', '3.14', '한글', 'hank`s', 'report']
+
+            >>> regex_tokenizer.tokenize(s, flatten=False)
+            >>> regex_tokenizer(s, flatten=False)  # same with above line.
+            $ [[Token(word='abc', b=0, e=3, score=1, length=3),
+                Token(word='123', b=3, e=6, score=1, length=3),
+                Token(word='가나다', b=6, e=9, score=1, length=3)],
+               [Token(word='alphabet', b=10, e=18, score=1, length=8),
+                Token(word='!!', b=18, e=20, score=1, length=2),
+                Token(word='3.14', b=20, e=24, score=1, length=4),
+                Token(word='한글', b=24, e=26, score=1, length=2)],
+               [Token(word='hank`s', b=27, e=33, score=1, length=6)],
+               [Token(word='report', b=34, e=40, score=1, length=6)]]
+        """
+        offset = 0
+        tokens = []
+        for token in s.split():
+            tokens.append(self._tokenize(token, offset))
+            offset += (len(token) + 1)
         if flatten:
-            tokens = [subtoken for token in tokens for subtoken in token if subtoken]
+            tokens = [token.word for tokens_in_eojeol in tokens for token in tokens_in_eojeol if token.word]
         return tokens
-    
-    def _tokenize(self, s, debug=False):
-        for name, pattern in self._patterns:
-            
-            founds = pattern.findall(s)
-            if not founds: 
-                continue
 
-            if debug:
-                print('\n%s' % name)
-                print(founds)
-            
+    def _tokenize(self, s, offset=0):
+        # TODO: handle 3.1.2.1
+        for pattern in self.pipelines:
+            founds = pattern.findall(s)
+            if not founds:
+                continue
             found = founds.pop(0)
             len_found = len(found)
-            
+
             s_ = ''
             b = 0
             for i, c in enumerate(s):
-                
-                if b > i: 
+                if b > i:
                     continue
-                    
-                if s[i:i+len_found] == found:
-                    s_ += ' %s ' % s[i:i+len_found]
+                if s[i: i + len_found] == found:
+                    s_ += ' %s ' % s[i: i + len_found]
                     b = i + len_found
-                    
                     if not founds:
                         s_ += s[b:]
                         break
                     else:
                         found = founds.pop(0)
                         len_found = len(found)
-                    
                     continue
                 s_ += c
             s = s_
-            
-        s = self.doublewhite_pattern.sub(' ', s).strip().split()
-        # TODO: handle 3.1.2.1
-        return s
+        words = self.doublewhite_pattern.sub(' ', s).strip().split()
+        r = len(words[0])
+        tokens = [Token(words[0], 0 + offset, r + offset, 1, r)]
+        b = tokens[0].e
+        for word in words[1:]:
+            r = len(word)
+            tokens.append(Token(word, b, b + r, 1, r))
+            b += r
+        return tokens
 
 
 class LTokenizer:
