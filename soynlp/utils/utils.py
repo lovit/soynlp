@@ -215,7 +215,7 @@ class EojeolCounter:
     def _counting_from_sents(self, sents):
         check_corpus(sents)
         if self.verbose:
-            sent_iterator = tqdm(sents, desc='[EojeolCounter] counting ... ', total=len(sents))
+            sent_iterator = tqdm(sents, desc='[EojeolCounter] counting eojeols ', total=len(sents))
         else:
             sent_iterator = sents
         counter = {}
