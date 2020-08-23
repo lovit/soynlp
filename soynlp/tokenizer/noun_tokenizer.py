@@ -1,4 +1,5 @@
-from ._tokenizer import MaxScoreTokenizer
+from .tokenizer import MaxScoreTokenizer
+
 
 class NounLMatchTokenizer:
 
