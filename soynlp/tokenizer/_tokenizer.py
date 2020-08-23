@@ -1,11 +1,5 @@
-# -*- encoding:utf8 -*-
-import sys
-if sys.version_info <= (2,7):
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
-from pprint import pprint
 import re
-import numpy as np
+from pprint import pprint
 
 
 class RegexTokenizer:
