@@ -112,39 +112,99 @@ class RegexTokenizer:
 
 
 class LTokenizer:
-    
-    def __init__(self, scores=None, default_score=0.0):
-        self._scores = scores if scores else {}
-        self._ds = default_score
+    """
+    Args:
+        scores ({str: float}) : {word: score}
+        unknown_score (float) : unknown word score
+
+    Examples::
+        Without tolerance
+
+            >>> scores = {'파스': 0.65, '파스타': 0.7, '좋아': 0.3}
+            >>> ltokenizer = LTokenizer(scores)
+            >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요')
+            >>> ltokenizer('파스타가 좋아요 파스타가좋아요')  # same with above line
+            $ ['파스타', '가', '좋아', '요', '파스타', '가좋아요']
+
+            >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', flatten=False)
+            $ [[Token(word='파스타', b=0, e=3, score=0.7, length=3),
+                Token(word='가', b=3, e=4, score=0, length=1)],
+               [Token(word='좋아', b=5, e=7, score=0.3, length=2),
+                Token(word='요', b=7, e=8, score=0, length=1)],
+               [Token(word='파스타', b=9, e=12, score=0.7, length=3),
+                Token(word='가좋아요', b=12, e=16, score=0, length=4)]]
+
+        With tolerance
+
+            >>> scores = {'파스': 0.75, '파스타': 0.7, '좋아': 0.3}
+            >>> ltokenizer = LTokenizer(scores)
+            >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', tolerance=0.06)
+            $ ['파스타', '가', '좋아', '요', '파스타', '가좋아요']
+
+            >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', tolerance=0.06, flatten=False)
+            $ [[Token(word='파스타', b=0, e=3, score=0.7, length=3),
+                Token(word='가', b=3, e=4, score=0, length=1)],
+               [Token(word='좋아', b=5, e=7, score=0.3, length=2),
+                Token(word='요', b=7, e=8, score=0, length=1)],
+               [Token(word='파스타', b=9, e=12, score=0.7, length=3),
+                Token(word='가좋아요', b=12, e=16, score=0, length=4)]]
+    """
+    def __init__(self, scores, unknown_score=0.0):
+        self.scores = scores
+        self.unknown_score = unknown_score
 
     def __call__(self, sentence, tolerance=0.0, flatten=True, remove_r=False):
         return self.tokenize(sentence, tolerance, flatten, remove_r)
 
     def tokenize(self, sentence, tolerance=0.0, flatten=True, remove_r=False):
-        
-        def token_to_lr(token, tolerance=0.0):
-            length = len(token)
-            if length <= 2: return (token, '')
-            candidates = [(token[:e], token[e:]) for e in range(2, length + 1)]
-            candidates = [(self._scores.get(t[0], self._ds), t[0], t[1]) for t in candidates]
+        """
+        Args:
+            sentence (str) : input string
+            tolerance (float) :
+                If the difference between the highest and the second highest score
+                is less than `tolerance`, this tokenizer choose longer one as word
+            flatten (Boolean) :
+                If True, it returns tokens as form of list of str
+                Otherwise, it returns nested list of `Token`
+            remove_r (Boolean) :
+                If True, it returns only L parts
+        """
+
+        def token_to_lr(token):
+            """Returns: (score of L, L, R)"""
+            n = len(token)
+            if n <= 2:
+                return (token, '', self.scores.get(l, self.unknown_score))
+
+            candidates = [(token[:e], token[e:]) for e in range(2, n + 1)]
+            candidates = [(self.scores.get(l, self.unknown_score), l, r) for l, r in candidates]
             if tolerance > 0:
                 max_score = max([c[0] for c in candidates])
                 candidates = [c for c in candidates if (max_score - c[0]) <= tolerance]
-                best = sorted(candidates, key=lambda x:len(x[1]), reverse=True)[0]
+                best = sorted(candidates, key=lambda x: len(x[1]), reverse=True)[0]
             else:
-                best = sorted(candidates, key=lambda x:(x[0], len(x[1])), reverse=True)[0]
-            return (best[1], best[2])
+                best = sorted(candidates, key=lambda x: (x[0], len(x[1])), reverse=True)[0]
+            return best
 
-        tokens = [token_to_lr(token, tolerance) for token in sentence.split()]
-        
+        offset = 0
+        tokens = []
+        for s in sentence.split():
+            score, l, r = token_to_lr(s)
+            len_l, len_r = len(l), len(r)
+            tokens.append([
+                Token(l, offset, offset + len_l, score, len_l),
+                Token(r, offset + len_l, offset + len_l + len_r, 0, len_r)
+            ])
+            offset += (len_l + len_r + 1)
+
         if remove_r:
-            tokens = [token[0] for token in tokens]
-        
-        if (flatten) and (remove_r == False):
-            tokens = [subtoken for token in tokens for subtoken in token if subtoken]
-        
+            tokens = [l.word for l, r in tokens]
+
+        if (flatten) and (not remove_r):
+            tokens = [subtoken.word for token in tokens for subtoken in token if subtoken.length > 0]
+
         return tokens
-    
+
 
 class MaxScoreTokenizer:
     
