@@ -15,20 +15,32 @@ NounScore = namedtuple('NounScore', 'frequency score')
 
 
 class LRNounExtractor():
+    """L-R graph based noun extractor
+
+    Args:
+        max_l_length (int) : maximum length of L in L-R graph
+        max_r_length (int) : maximum length of R in L-R graph
+        pos_features (set of str or None) :
+            If None, it uses default positive features such as Josa in Korean
+            Or it provides customizing features set
+        neg_features (set of str or None) :
+            If None, it uses default negative features such as Eomi in Korean(ending)
+            Or it provides customizing features set
+        verbose (Boolean) :
+            If True, it shows progress
+    """
     def __init__(
         self,
         max_l_length=10,
         max_r_length=9,
         pos_features=None,
         neg_features=None,
-        verbose=True,
-        debug_dir=None,
+        verbose=True
     ):
 
         self.max_l_length = max_l_length
         self.max_r_length = max_r_length
         self.verbose = verbose
-        self.debug_dir = debug_dir
         self.pos, self.neg, self.common = prepare_r_features(pos_features, neg_features)
 
         self.lrgraph = None
@@ -51,6 +63,64 @@ class LRNounExtractor():
         exclude_numbers=True,
         custom_exclude_function=None
     ):
+        """Extract nouns from `train_data` or trained L-R graph
+
+        Args:
+            train_data (str,
+                        list of str like,
+                        soynlp.utils.DoublespaceLineCorpus,
+                        soynlp.utils.EojeolCounter,
+                        soynlp.utils.LRGraph) :
+                Training input data.
+
+                    >>> nouns = LRNounExtractor().extract('path/to/corpus')
+                    >>> nouns = LRNounExtractor().extract(
+                    >>>    soynlp.utils.DoublespaceLineCorpus('path/to/corpus'))
+
+            min_noun_score (float) :
+                If the predicted score is less than `min_noun_score`,
+                LRNounExtractor consider `word` is not Noun.
+            min_noun_frequency (int) :
+                Required minimum frequency of noun candidates.
+                It is used in finding noun candidates
+            min_num_of_features (int) :
+                The number of active features used in prediction.
+                When the number of features is too small, LRNounExtractor
+                consider `word` is not Noun.
+            min_eojeol_frequency (int) :
+                Required minimum frequency of eojeol.
+                It is used in constructing L-R graph.
+            min_eojeol_is_noun_frequency (int):
+                Sometimes, especially in news domain, proper nouns appear alone in eojeol.
+                TODO ... 설명 더 적어야 함
+            extract_compounds (Boolean) :
+                If True, it extracts compound nouns and train `self.compound_decomposer`.
+            exclude_syllables (Boolean) :
+                If True, it excludes syllables from noun candidates.
+            exclude_numbers (Boolean) :
+                If True, it excludes numbers such as '2016', '10' from noun candidates.
+            custom_exclude_function (callable or None) :
+                Custom exclude function. If you want to extract nouns of which suffix is '아이' then
+
+                    >>> def custom_exclude_function(l):
+                    >>>     return l[:2] != '아이'
+                    >>>
+                    >>> noun_extractor.extract(custom_exclude_function=custom_exclude_function)
+                    $ {'아이폰7플러스': NounScore(frequency=8, score=1.0),
+                       '아이카이스트랩': NounScore(frequency=18, score=1.0),
+                       '아이콘트롤스': NounScore(frequency=8, score=1.0),
+                       '아이엠벤쳐스': NounScore(frequency=10, score=1.0),
+                       '아이피노믹스': NounScore(frequency=3, score=1.0),
+                       '아이돌그룹': NounScore(frequency=16, score=1.0),
+                       '아이덴티티': NounScore(frequency=25, score=1.0),
+                         ... }
+
+            debug (Boolean) :
+                If True, it shows classification details.
+
+        Returns:
+            nouns ({str: namedtuple}) : {word: NonuScore}
+        """
         if (not self.is_trained) and (train_data is None):
             raise ValueError('`train_data` must not be `None` if noun extractor has no LRGraph')
 
@@ -133,8 +203,9 @@ class LRNounExtractor():
                 consider `word` is not Noun.
             min_eojeol_is_noun_frequency (int):
                 Sometimes, especially in news domain, proper nouns appear alone in eojeol.
-                ... 설명 더 적어야 함
-            debug (Boolean) : If True, it shows classification details
+                TODO ... 설명 더 적어야 함
+            debug (Boolean) :
+                If True, it shows classification details
 
         Returns:
             nonu_score (collections.namedtuple) : NounScore(frequency, score)
@@ -254,11 +325,9 @@ def train_lrgraph(train_data, min_eojeol_frequency, max_l_length, max_r_length, 
 
 number_pattern = re.compile('[0-9]+')
 
+
 def prepare_noun_candidates(lrgraph, pos_features, min_noun_frequency,
     exclude_syllables=False, exclude_numbers=True, custom_exclude_function=None):
-
-    def include(word, e):
-        return word[:e] == l_prefix
 
     def is_number(word):
         """
