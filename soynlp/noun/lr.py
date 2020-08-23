@@ -4,6 +4,7 @@ from datetime import datetime
 from pprint import pprint
 from tqdm import tqdm
 
+from soynlp.tokenizer import MaxScoreTokenizer
 from soynlp.utils import DoublespaceLineCorpus, EojeolCounter, LRGraph, get_process_memory
 from .postprocessing import detaching_features, ignore_features, check_N_is_NJ
 
@@ -19,7 +20,6 @@ class LRNounExtractor():
         max_r_length=9,
         pos_features=None,
         neg_features=None,
-        postprocessing=None,
         verbose=True,
         debug_dir=None,
     ):
@@ -29,9 +29,9 @@ class LRNounExtractor():
         self.verbose = verbose
         self.debug_dir = debug_dir
         self.pos, self.neg, self.common = prepare_r_features(pos_features, neg_features)
-        self.postprocessing = prepare_postprocessing(postprocessing)
 
         self.lrgraph = None
+        self.compounds_components = None
 
     @property
     def is_trained(self):
@@ -55,6 +55,8 @@ class LRNounExtractor():
             self.lrgraph = train_lrgraph(
                 train_data, min_eojeol_frequency,
                 self.max_l_length, self.max_r_length, self.verbose)
+        else:
+            self.lrgraph.reset_lrgraph()
 
         candidates = prepare_noun_candidates(
             self.lrgraph, self.pos, min_noun_frequency, l_prefix)
@@ -63,14 +65,14 @@ class LRNounExtractor():
             self.common, min_noun_score, min_num_of_features,
             min_eojeol_is_noun_frequency, self.verbose)
 
-        # TODO
         if extract_compounds:
-            nouns = extract_compounds_func(candidates, nouns, self.verbose)
+            compounds, self.compounds_components = extract_compounds_func(
+                self.lrgraph, nouns, min_noun_score, self.pos, self.verbose)
 
         # TODO: check
         features_to_be_detached = {r for r in self.pos}
         features_to_be_detached.update(self.common)
-        nouns = postprocessing(nouns, self.lrgraph, features_to_be_detached, self.verbose)
+        nouns = postprocessing(nouns, self.lrgraph, features_to_be_detached, min_noun_score, self.verbose)
         nouns = {noun: NounScore(frequency, score) for noun, (frequency, score) in nouns.items()}
         return nouns
 
@@ -121,11 +123,6 @@ def prepare_r_features(pos_features=None, neg_features=None):
 def print_message(message):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f'[LRNounExtractor] {now}, mem={get_process_memory():.4} GB : {message}')
-
-
-def prepare_postprocessing(postprocessing):
-    # NotImplemented
-    return postprocessing
 
 
 def train_lrgraph(train_data, min_eojeol_frequency, max_l_length, max_r_length, verbose):
@@ -309,11 +306,80 @@ def _base_predict(word, word_features, pos_features, neg_features, common_featur
     return pos, common, neg, unk, end
 
 
-def extract_compounds_func(candidates, nouns, verbose):
-    raise NotImplementedError
+def extract_compounds_func(lrgraph, noun_scores, min_noun_score, pos_features, verbose):
+    candidates = {l: sum(rdict.values()) for l, rdict in lrgraph._lr.items() if len(l) >= 4}
+    word_scores = {
+        noun: len(noun) for noun, score in noun_scores.items()
+        if score[1] > min_noun_score and len(noun) > 1}
+    compound_decomposer = MaxScoreTokenizer(scores=word_scores)
+    n = len(candidates)
+    compounds_scores = {}
+    compounds_counts = {}
+    compounds_components = {}
+
+    iterator = sorted(candidates.items(), key=lambda x: -len(x[0]))
+    if verbose:
+        iterator = tqdm(iterator, desc='[LRNounExtractor] extract compounds', total=n)
+
+    for word, count in iterator:
+        tokens = compound_decomposer.tokenize(word, flatten=False)[0]
+        compound_parts = parse_compound(tokens, pos_features)
+        if not compound_parts:
+            continue
+
+        # store compound components
+        noun = ''.join(compound_parts)
+        compounds_components[noun] = compound_parts
+
+        # cumulate count and store compound score
+        compound_score = max((noun_scores.get(t, (0, 0))[1] for t in compound_parts))
+        compounds_scores[noun] = max(compounds_scores.get(noun, 0), compound_score)
+        compounds_counts[noun] = compounds_counts.get(noun, 0) + count
+
+        # discount frequency of substrings
+        for e in range(2, len(word)):
+            subword = word[:e]
+            if subword not in candidates:
+                continue
+            candidates[subword] = candidates.get(subword, 0) - count
+
+        # eojeol coverage
+        lrgraph.remove_eojeol(word)
+
+    compounds = {
+        noun: (score, compounds_counts.get(noun, 0))
+        for noun, score in compounds_scores.items()}
+
+    if verbose:
+        print_message(f'found {len(compounds)} compounds')
+    return compounds, compounds_components
 
 
-def postprocessing(nouns, lrgraph, features_to_be_detached, verbose):
+def parse_compound(tokens, pos_features):
+    """Check Noun* or Noun*Josa"""
+    # format: (word, begin, end, score, length)
+    # 점수는 단어의 길이이며, 0 점인 경우는 단어가 명사로 등록되지 않은 경우
+    # 마지막 단어가 명사가 아니면 None
+    for token in tokens[:-1]:
+        if token[3] <= 0:
+            return None
+
+    # Noun* + Josa
+    # 마지막 단어가 positive features 이고, 그 앞의 단어가 명사이면
+    if (len(tokens) >= 3) and (tokens[-1][0] in pos_features) and (tokens[-2][3] > 0):
+        return tuple(t[0] for t in tokens[:-1])
+
+    # all tokens are noun
+    # 앞의 단어는 미등록단어여도 마지막 단어가 명사이면 compounds
+    # TODO: fix conditioin: 모든 단어의 점수가 0 이상인지 확인?
+    if tokens[-1][3] > 0:
+        return tuple(t[0] for t in tokens)
+
+    # else, not compound
+    return None
+
+
+def postprocessing(nouns, lrgraph, features_to_be_detached, min_noun_score, verbose):
     num_before = len(nouns)
     nouns, removals = detaching_features(nouns, features_to_be_detached)
     if verbose:
