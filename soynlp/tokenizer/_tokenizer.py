@@ -31,14 +31,14 @@ class RegexTokenizer:
             re.compile(u"[a-zA-ZÀ-ÿ]+[[`']{1,1}s]*|[a-zA-ZÀ-ÿ]+", re.UNICODE),  # Alphabet
         ]
 
-    def __call__(self, s, flatten=True):
-        return self.tokenize(s, flatten)
+    def __call__(self, sentence, flatten=True):
+        return self.tokenize(sentence, flatten)
 
-    def tokenize(self, s, flatten=True):
+    def tokenize(self, sentence, flatten=True):
         """Split sentence based on type of characters and regex pattern.
 
         Args:
-            s (str) : input string
+            sentence (str) : input string
             flatten (Boolean) :
                 If True, it returns tokens as form of list of str
                 Otherwise, it returns nested list of `Token`
@@ -67,7 +67,7 @@ class RegexTokenizer:
         """
         offset = 0
         tokens = []
-        for token in s.split():
+        for token in sentence.split():
             tokens.append(self._tokenize(token, offset))
             offset += (len(token) + 1)
         if flatten:
