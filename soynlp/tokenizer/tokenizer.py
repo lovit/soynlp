@@ -254,18 +254,15 @@ class MaxScoreTokenizer:
             return [token]
 
         scored = self._initialize(s, length, offset)
-        result = self._find(scored)
-        # post processing
-        # TODO: offset 적용
-        adds = self._add_inter_subtokens(s, result, offset)
-        if result[-1][2] != length:
-            adds += self._add_last_subtoken(s, result)
-        if result[0][1] != 0:
-            adds += self._add_first_subtoken(s, result)
+        tokens = self._find(scored)
+        adds = self._add_inter_tokens(s, tokens, offset)
+        if result[-1].e != offset + length:
+            adds += self._add_last_token(s, tokens, offset)
+        if result[0].b != offset:
+            adds += self._add_first_token(s, tokens, offset)
+        return sorted(tokens + adds, key=lambda x: x.b)
 
-        return sorted(result + adds, key=lambda x: x[1])
-
-    def _initialize(self, token, length, offset=0):
+    def _initialize(self, s, length, offset=0):
         max_r = min(length, self.max_len)
         scored = []
         for b in range(0, length - 1):
@@ -273,22 +270,27 @@ class MaxScoreTokenizer:
                 e = b + r
                 if e > length:
                     continue
-                subtoken = token[b: e]
-                score = self.scores.get(subtoken, self.unknown_score)
+                subtoken = s[b: e]
+                if subtoken not in self.scores:
+                    continue
+                score = self.scores[subtoken]
                 scored.append(Token(subtoken, offset + b, offset + e, score, r))
+        if not scored:
+            return [Token(s, offset, offset + len(s), self.unknown_score, len(s))]
         return sorted(scored, key=lambda x:(-x.score, -x.length, x.b))
 
     def _find(self, scored):
         result = []
         num_iter = 0
         while scored:
-            word, b, e, score, r = scored.pop(0)
-            result.append(Token(word, b, e, score, r))
+            token = scored.pop(0)
+            result.append(token)
             if not scored:
                 break
             removals = []
-            for i, (_1, b_, e_, _2, _3) in enumerate(scored):
-                if (b_ < e and b < e_) or (b_ < e and e_ > b):
+            for i, token_i in enumerate(scored):
+                if ((token_i.b < token.e and token.b < token_i.e) or
+                    (token_i.b < token.e and token_i.e > token.b)):
                     removals.append(i)
             for i in reversed(removals):
                 del scored[i]
@@ -297,27 +299,27 @@ class MaxScoreTokenizer:
                 break
         return sorted(result, key=lambda x: x.b)
 
-    def _add_inter_subtokens(self, token, result, offset=0):
+    def _add_inter_tokens(self, s, result, offset=0):
         adds = []
         for i, base in enumerate(result[: -1]):
             if base[2] == result[i + 1][1]:
                 continue
             b = base[2] - offset
             e = result[i + 1][1] - offset
-            subtoken = token[b: e]
-            adds.append(Token(subtoken, b, e, self.unknown_score, e - b))
+            sub = s[b: e]
+            adds.append(Token(sub, b, e, self.unknown_score, e - b))
         return adds
 
-    def _add_first_subtoken(self, token, result, offset=0):
-        e = result[0][1]
-        subtoken = token[0: e - offset]
-        score = self.scores.get(subtoken, self.unknown_score)
-        return [Token(subtoken, offset, e, score, e - offset)]
+    def _add_first_token(self, s, result, offset=0):
+        b = result[0].b
+        sub = s[0: b - offset]
+        score = self.scores.get(sub, self.unknown_score)
+        return [Token(sub, offset, b, score, b - offset)]
     
-    def _add_last_subtoken(self, token, result, offset=0):
-        b = result[-1][2]
-        subtoken = token[b - offset:]
-        if not subtoken:
+    def _add_last_token(self, s, result, offset=0):
+        e = result[-1].e
+        sub = s[e - offset:]
+        if not sub:
             return []
-        score = self.scores.get(subtoken, self.unknown_score)
-        return [Token(subtoken, b, b + offset, score, len(subtoken))]
+        score = self.scores.get(sub, self.unknown_score)
+        return [Token(sub, e, e + len(sub), score, len(sub))]
