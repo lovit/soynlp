@@ -1,4 +1,4 @@
-from soynlp.noun import LRNounExtractor_v2
+from soynlp.noun import LRNounExtractor
 from soynlp.predicator import PredicatorExtractor
 from soynlp.utils import LRGraph
 
