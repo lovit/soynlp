@@ -40,6 +40,12 @@ class NounMatchTokenizer(MaxScoreTokenizer):
                 Token(word='오이', b=13, e=15, score=1.0, length=2)],
                [],
                [Token(word='아이', b=22, e=24, score=1.0, length=2)]]
+
+        Remain only L parts
+
+            >>> sentence = '아이오아이의아이들은 오이오이를 좋아하는 아이들이오'
+            >>> noun_tokenizer.tokenize(sentence, concat_compound=True, must_be_L=True)
+            $ ['오이오이', '아이']
     """
     def __init__(self, noun_scores):
         if (isinstance(noun_scores, list) or
@@ -60,6 +66,8 @@ class NounMatchTokenizer(MaxScoreTokenizer):
                 Otherwise, it returns nested list of `Token`
             concat_compound (Boolean) :
                 If True, it concatenates consecutive nouns into one compound noun.
+            must_be_L (Boolean) :
+                If True, it remains nouns which position left-side on eojeol.
 
         Returns:
             tokens (list of str or nested list of Token)
