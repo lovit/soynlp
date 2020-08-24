@@ -28,6 +28,40 @@ class LRNounExtractor():
             Or it provides customizing features set
         verbose (Boolean) :
             If True, it shows progress
+
+    Examples::
+        Train noun extractor model
+
+            >>> from soynlp.noun import LRNounExtractor
+
+            >>> # train_data = '../data/2016-10-20.txt'
+            >>> train_data = 'path/to/train_text'
+            >>> noun_extractor = LRNounExtractor()
+            >>> nouns = noun_extractor.extract(train_data)
+
+        Check extracted nouns
+
+            >>> for noun in ['아이디', '아이디어', '아이오아이', '트와이스', '연합뉴스', '비선실세']:
+            >>>    print(f'{noun} : {nouns.get(noun, None)}')
+            $ 아이디 : NounScore(frequency=59, score=1.0)
+              아이디어 : NounScore(frequency=142, score=1.0)
+              아이오아이 : NounScore(frequency=127, score=1.0)
+              트와이스 : NounScore(frequency=654, score=0.992831541218638)
+              연합뉴스 : NounScore(frequency=4628, score=1.0)
+              비선실세 : NounScore(frequency=66, score=1.0)
+
+            >>> print(nouns['아이오아이'].frequency)
+            $ 127
+
+        Get noun tokenizer and use it
+
+            >>> noun_tokenizer = noun_extractor.get_noun_tokenizer()
+            >>> sentence = '네이버의 뉴스기사를 이용하여 학습한 모델예시입니다'
+            >>> noun_tokenizer.tokenize(sentence)
+            $ ['네이버', '뉴스기사', '이용', '학습', '모델예시']
+
+            >>> noun_tokenizer.tokenize(sentence, concat_compound=False)
+            $ ['네이버', '뉴스', '기사', '이용', '학습', '모델', '예시']
     """
     def __init__(
         self,
