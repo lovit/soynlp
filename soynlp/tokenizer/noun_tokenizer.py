@@ -1,70 +1,6 @@
 from .tokenizer import MaxScoreTokenizer, Token
 
 
-class NounLMatchTokenizer:
-
-    def __init__(self, nouns):
-        self._nouns = nouns
-
-    def __call__(self, sentence, compose_compound=True):
-        return self.tokenize(sentence, compose_compound)
-
-    def tokenize(self, sentence, compose_compound=True):
-
-        tokens = [self._max_length_l_tokenize(token)
-            for token in sentence.split() if token]
-
-        # remove eojeols which noun does not exist
-        tokens = [token for token in tokens if token and token[0]]
-
-        # remove r parts
-        tokens = [token[0] for token in tokens]
-
-        if compose_compound:
-            tokens = [''.join(token) for token in tokens]
-        else:
-            tokens = [unit for token in tokens for unit in token]
-
-        tokens = [token for token in tokens if token]
-        return tokens
-
-    def _max_length_l_tokenize(self, token):
-
-        def nouns_to_larray_and_r(token, nouns_):
-            e = sum((len(noun) for noun in nouns_))
-            return nouns_, token[e:]
-
-        nouns = []
-        n = len(token)
-
-        # string match for generating candidats
-        for b in range(n):
-            for e in range(b, n+1):
-                subword = token[b:e]
-                if subword in self._nouns:
-                    # (word, begin, length)
-                    nouns.append((subword, b, e - b))
-
-        # sort. fisrt order: begin index, second order: length (desc)
-        nouns = sorted(nouns, key=lambda x: (x[1], -x[2]))
-
-        nouns_ = []
-        e = 0
-
-        while nouns:
-            # pop first element
-            noun, b, len_ = nouns.pop(0)
-            # only concatenate nouns
-            if not (b == e):
-                return nouns_to_larray_and_r(token, nouns_)
-            # append noun and update end index
-            nouns_.append(noun)
-            e = b + len_
-            nouns = [noun for noun in nouns if noun[1] >= e]
-
-        return nouns_to_larray_and_r(token, nouns_)
-
-
 class NounMatchTokenizer(MaxScoreTokenizer):
     """NounMatchTokenizer recognizes nouns from input sentence.
     NounMatchTokenizer works similar to soynlp.tokenizer.MaxScoreTokenizer.
@@ -115,7 +51,7 @@ class NounMatchTokenizer(MaxScoreTokenizer):
     def __call__(self, sentence, flatten=True, concat_compound=True):
         return self.tokenize(sentence, flatten, concat_compound)
 
-    def tokenize(self, sentence, flatten=True, concat_compound=True):
+    def tokenize(self, sentence, flatten=True, concat_compound=True, must_be_L=False):
         """
         Args:
             sentence (str) : input string
@@ -148,6 +84,11 @@ class NounMatchTokenizer(MaxScoreTokenizer):
             nouns = [noun for noun in nouns if noun.score > 0]
             if concat_compound:
                 nouns = concatenate(s, nouns, offset)
+            if must_be_L and nouns:
+                if nouns[0].b != offset:
+                    nouns = []
+                else:
+                    nouns = nouns[:1]
             tokens.append(nouns)
             offset += (len(s) + 1)
         if flatten:
