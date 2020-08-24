@@ -3,7 +3,7 @@ from collections import defaultdict
 from soynlp.hangle import decompose
 from soynlp.lemmatizer import lemma_candidate
 from soynlp.lemmatizer import conjugate
-from soynlp.noun import LRNounExtractor_v2
+from soynlp.noun import LRNounExtractor
 from soynlp.pos import load_default_adverbs
 from soynlp.pos import stem_to_adverb
 from soynlp.predicator import Predicator
