@@ -122,6 +122,37 @@ class LRNounExtractor():
 
         Returns:
             nouns ({str: namedtuple}) : {word: NonuScore}
+
+        Note:
+            LRNounExtractor 의 명사 추출 원리는 크게 두 가지 입니다.
+
+            첫째, 명사의 오른쪽에는 조사의 등장 비율이 높고, 어미의 등장 비율이 낮습니다.
+            `아이디어`는 명사이기 때문에 R parts 에 조사인 `-는`, `-의`. `-를` 와 함께 어절에 등장하여
+            `아이디어 + 는`, `아이디어 + 의`, `아이디어 + 를` 을 이룹니다.
+            `아이디어` 의 오른쪽에 명사의 오른쪽에 등장한 R parts 의 substring 의 비율이 높을수록 `아이디어`가
+            명사일 점수가 높아집니다. 이 원리로 주어진 L=`아이디어`가 명사인지 판단하는 함수가
+            `LRNounExtractor.predict()` 입니다. L 의 오른쪽에 등장하는 R 의 distribution 을 BOW 형태로
+            입력하면 이를 바탕으로 L 의 명사 점수를 계산합니다.
+
+                >>> noun_extractor = LRNounExtractor()
+                >>> l = '아이오아이'
+                >>> word_features = [('의', 100), ('는', 50), ('니까', 15), ('가', 10), ('끼리', 5)]
+                >>> noun_extractor.predict(l, word_features)
+
+            하지만 명사는 그 자체로 한 어절, `아이디어`를 이루기도 합니다. 그리고 `아이디` 역시 명사이기 때문에
+            `-는`, `-의`. `-를` 과 함께 어절 `아이디 + 는`, `아이디 + 의`, `아이디 + 를`을 이룹니다.
+
+            그러나 `-어` 는 `먹 + 어`, `넣 + 어`, `썰 + 어` 등에 등장하는 대표적인 어미입니다.
+            `아이디어` 가 명사 자체로 어절을 이루는 경우가 많을 때는 `아이디` 에 `-어`가 결합된 것처럼 보일 수 있습니다.
+            R parts 에서 조사들의 비율이 `-어` 보다 압도적으로 많다면 `아이디`도 명사로 추출될 수 있지만,
+            이를 보장할 수는 없습니다.
+
+            이러한 문제를 해결하기 위하여 `LRNounExtractor` 에서는 L-R graph 에서 길이가 긴 L 부터 명사유무를 판단한 다음,
+            L 이 명사이면 `L + ?` 형태인 모든 어절을 L-R graph 에서 제거합니다.
+            `아이디어` 가 명사로 판단되면 `아이디어`를 포함한 `아이디어 + ?`가 모두 지워지기 때문에 `아이디`의 R parts 에는
+            `-어`를 제외한  `-는`, `-의`. `-를` 만 남아있어 `아이디` 도 명사로 추출됩니다.
+
+            위의 과정은 `soynlp.noun.lr.longer_first_prediction()` 에 구현되어 있습니다.
         """
         if (not self.is_trained) and (train_data is None):
             raise ValueError('`train_data` must not be `None` if noun extractor has no LRGraph')
@@ -387,6 +418,7 @@ def longer_first_prediction(candidates, lrgraph, pos_features, neg_features,
         prediction_scores[word] = (support, score)
 
         # if predicted score is higher than `min_noun_score`, remove `L + R` from lrgraph
+        # `아이디어` 와 `아이디` 를 예시로 든 작동 원리를 LRNounExtractor.extract() 의 docstring 에 적어뒀습니다.
         if score >= min_noun_score:
             for r, count in word_features:
                 # remove all eojeols that including word at left-side.
