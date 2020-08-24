@@ -4,6 +4,7 @@ from pprint import pprint
 soynlp_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.insert(0, soynlp_path)
 
+from soynlp.noun import LRNounExtractor
 from soynlp.tokenizer import NounMatchTokenizer
 
 
@@ -69,3 +70,20 @@ def test_nounmatch_tokenizer():
         print(f'\ninput : {sentence}\nnoun_scores : {noun_scores}')
         print(f'expected  : {expected}')
         print(f'tokenized : {nouns}')
+
+
+def test_noun_tokenizer_usage():
+    train_data = f'{soynlp_path}/data/2016-10-20.txt'
+    train_zip_data = f'{soynlp_path}/data/2016-10-20.zip'
+    if not os.path.exists(train_data):
+        assert os.path.exists(train_zip_data)
+        with zipfile.ZipFile(train_zip_data, 'r') as zip_ref:
+            zip_ref.extractall(f'{soynlp_path}/data/')
+    assert os.path.exists(train_data)
+
+    noun_extractor = LRNounExtractor()
+    _ = noun_extractor.extract(train_data)
+    noun_tokenizer = noun_extractor.get_noun_tokenizer()
+    sentence = '네이버의 뉴스기사를 이용하여 학습한 모델예시입니다'
+    assert noun_tokenizer.tokenize(sentence) == ['네이버', '뉴스기사', '이용', '학습', '모델예시']
+    print(f'\ninput : {sentence}\nnouns : {noun_tokenizer.tokenize(sentence)}')
