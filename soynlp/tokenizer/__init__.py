@@ -1,4 +1,4 @@
 from .tokenizer import LTokenizer
 from .tokenizer import MaxScoreTokenizer
 from .tokenizer import RegexTokenizer
-from .noun_tokenizer import NounMatchTokenizer
+from .tokenizer import NounMatchTokenizer
