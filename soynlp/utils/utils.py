@@ -161,7 +161,7 @@ class DoublespaceLineCorpus:
 
     def __len__(self):
         if self.num_doc == 0:
-            self.num_doc, self.num_sent = self._check_length(-1, -1)
+            self.num_doc, self.num_sent = self._sample_first_lines(-1, -1)
         return self.num_sent if self.iter_sent else self.num_doc
 
 
@@ -215,7 +215,7 @@ class EojeolCounter:
     def _counting_from_sents(self, sents):
         check_corpus(sents)
         if self.verbose:
-            sent_iterator = tqdm(sents, desc='[EojeolCounter] counting ... ', total=len(sents))
+            sent_iterator = tqdm(sents, desc='[EojeolCounter] counting eojeols ', total=len(sents))
         else:
             sent_iterator = sents
         counter = {}
@@ -359,7 +359,7 @@ class LRGraph:
         >>> lrgraph.discount_lr_pair('이것', '은', count=1)
         >>> print(lrgraph._lr)  # { ...,  '이것': {'도': 2, '은': 4}, ...}
 
-        >>> lrgraph.discount_eojeol('이것은', count=1)
+        >>> lrgraph.remove_eojeol('이것은', count=1)
         >>> print(lrgraph._lr)  # # { ...,  '이것': {'도': 2, '은': 3}, ...}
     """
     def __init__(self, dict_l_to_r=None, sents=None, max_l_length=10, max_r_length=9, verbose=False):
@@ -503,7 +503,7 @@ class LRGraph:
                     if len(ldict) <= 0:
                         self._rl.pop(r)
 
-    def discount_eojeol(self, eojeol, count=1):
+    def remove_eojeol(self, eojeol, count=1):
         """Discount (L, R) pair count
 
         Args:

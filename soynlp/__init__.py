@@ -1,8 +1,8 @@
-__title__ = 'soynlp'
-__version__ = '0.0.493'
-__author__ = 'Lovit'
-__license__ = 'LGPL'
-__copyright__ = 'Copyright 2017 Lovit'
+from .about import __title__
+from .about import __version__
+from .about import __author__
+from .about import __license__
+from .about import __copyright__
 
 from . import hangle
 from . import normalizer
