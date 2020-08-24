@@ -5,7 +5,7 @@ from datetime import datetime
 from pprint import pprint
 from tqdm import tqdm
 
-from soynlp.tokenizer import MaxScoreTokenizer
+from soynlp.tokenizer import MaxScoreTokenizer, NounMatchTokenizer
 from soynlp.utils import DoublespaceLineCorpus, EojeolCounter, LRGraph, get_process_memory
 from .postprocessing import detaching_features, ignore_features, check_N_is_NJ
 
@@ -47,6 +47,7 @@ class LRNounExtractor():
 
         self.lrgraph = None
         self.compounds_components = None
+        self.nouns = None
 
     @property
     def is_trained(self):
@@ -279,6 +280,32 @@ class LRNounExtractor():
             word, word_features, self.pos, self.neg, self.common,
             min_noun_score, min_num_of_features, min_eojeol_is_noun_frequency, debug)
         return NounScore(support, score)
+
+    def get_noun_tokenizer(self):
+        """Get soynlp.tokenizer.NounMatchTokenizer using extracted nouns
+
+        Examples::
+            Train noun extractor model
+
+                >>> from soynlp.noun import LRNounExtractor
+                >>> train_data = '../data/2016-10-20.txt'
+                >>> noun_extractor = LRNounExtractor()
+                >>> _ = noun_extractor.extract(train_data)
+
+            Get noun tokenizer and use it
+
+                >>> noun_tokenizer = noun_extractor.get_noun_tokenizer()
+                >>> sentence = '네이버의 뉴스기사를 이용하여 학습한 모델예시입니다'
+                >>> noun_tokenizer.tokenize(sentence)
+                $ ['네이버', '뉴스기사', '이용', '학습', '모델예시']
+
+                >>> noun_tokenizer.tokenize(sentence, concat_compound=False)
+                $ ['네이버', '뉴스', '기사', '이용', '학습', '모델', '예시']
+        """
+        if not self.is_trained:
+            raise RuntimeError('Train LRNounExtractor firts. LRNonuExtractor().extract(train-data)')
+        noun_scores = {noun: score.score for noun, score in self.nouns.items()}
+        return NounMatchTokenizer(noun_scores)
 
 
 def prepare_r_features(pos_features=None, neg_features=None):
