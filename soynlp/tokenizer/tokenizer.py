@@ -2,7 +2,7 @@ import re
 from collections import namedtuple
 
 
-Token = namedtuple('Token', 'word b e score length')
+Token = namedtuple('Token', 'word begin end score length')
 
 
 class RegexTokenizer:
@@ -105,30 +105,30 @@ class RegexTokenizer:
             len_found = len(found)
 
             s_ = ''
-            b = 0
-            for i, c in enumerate(s):
-                if b > i:
+            begin = 0
+            for i, char in enumerate(s):
+                if begin > i:
                     continue
                 if s[i: i + len_found] == found:
                     s_ += ' %s ' % s[i: i + len_found]
-                    b = i + len_found
+                    begin = i + len_found
                     if not founds:
-                        s_ += s[b:]
+                        s_ += s[begin:]
                         break
                     else:
                         found = founds.pop(0)
                         len_found = len(found)
                     continue
-                s_ += c
+                s_ += char
             s = s_
         words = self.doublewhite_pattern.sub(' ', s).strip().split()
         r = len(words[0])
         tokens = [Token(words[0], 0 + offset, r + offset, 1, r)]
-        b = tokens[0].e
+        begin = tokens[0].end
         for word in words[1:]:
             r = len(word)
-            tokens.append(Token(word, b, b + r, 1, r))
-            b += r
+            tokens.append(Token(word, begin, begin + r, 1, r))
+            begin += r
         return tokens
 
 
@@ -202,7 +202,7 @@ class LTokenizer:
             if n <= 2:
                 return (token, '', self.scores.get(l, self.unknown_score))
 
-            candidates = [(token[:e], token[e:]) for e in range(2, n + 1)]
+            candidates = [(token[:end], token[end:]) for end in range(2, n + 1)]
             candidates = [(self.scores.get(l, self.unknown_score), l, r) for l, r in candidates]
             if tolerance > 0:
                 max_score = max([c[0] for c in candidates])
@@ -313,28 +313,28 @@ class MaxScoreTokenizer:
         scored = self._initialize(s, length, offset)
         tokens = self._find(scored)
         adds = self._add_inter_tokens(s, tokens, offset)
-        if tokens[-1].e != offset + length:
+        if tokens[-1].end != offset + length:
             adds += self._add_last_token(s, tokens, offset)
-        if tokens[0].b != offset:
+        if tokens[0].begin != offset:
             adds += self._add_first_token(s, tokens, offset)
-        return sorted(tokens + adds, key=lambda x: x.b)
+        return sorted(tokens + adds, key=lambda x: x.begin)
 
     def _initialize(self, s, length, offset=0):
         max_r = min(length, self.max_len)
         scored = []
-        for b in range(0, length - 1):
+        for begin in range(0, length - 1):
             for r in range(2, max_r + 1):
-                e = b + r
-                if e > length:
+                end = begin + r
+                if end > length:
                     continue
-                subtoken = s[b: e]
+                subtoken = s[begin: end]
                 if subtoken not in self.scores:
                     continue
                 score = self.scores[subtoken]
-                scored.append(Token(subtoken, offset + b, offset + e, score, r))
+                scored.append(Token(subtoken, offset + begin, offset + end, score, r))
         if not scored:
             return [Token(s, offset, offset + len(s), self.unknown_score, len(s))]
-        return sorted(scored, key=lambda x: (-x.score, -x.length, x.b))
+        return sorted(scored, key=lambda x: (-x.score, -x.length, x.begin))
 
     def _find(self, scored):
         result = []
@@ -346,40 +346,40 @@ class MaxScoreTokenizer:
                 break
             removals = []
             for i, token_i in enumerate(scored):
-                if ((token_i.b < token.e and token.b < token_i.e) or
-                    (token_i.b < token.e and token_i.e > token.b)):
+                if ((token_i.begin < token.end and token.begin < token_i.end) or
+                    (token_i.begin < token.end and token_i.end > token.begin)):
                     removals.append(i)
             for i in reversed(removals):
                 del scored[i]
             num_iter += 1
             if num_iter > 100:
                 break
-        return sorted(result, key=lambda x: x.b)
+        return sorted(result, key=lambda x: x.begin)
 
     def _add_inter_tokens(self, s, tokens, offset=0):
         adds = []
         for i, token in enumerate(tokens[: -1]):
-            if token.e == tokens[i + 1].b:
+            if token.end == tokens[i + 1].begin:
                 continue
-            b = token.e - offset
-            e = tokens[i + 1].b - offset
-            sub = s[b: e]
-            adds.append(Token(sub, offset + b, offset + e, self.unknown_score, e - b))
+            begin = token.end - offset
+            end = tokens[i + 1].begin - offset
+            sub = s[begin: end]
+            adds.append(Token(sub, offset + begin, offset + end, self.unknown_score, end - begin))
         return adds
 
     def _add_first_token(self, s, tokens, offset=0):
-        b = tokens[0].b
-        sub = s[0: b - offset]
+        begin = tokens[0].begin
+        sub = s[0: begin - offset]
         score = self.scores.get(sub, self.unknown_score)
-        return [Token(sub, offset, b, score, b - offset)]
+        return [Token(sub, offset, begin, score, begin - offset)]
 
     def _add_last_token(self, s, tokens, offset=0):
-        e = tokens[-1].e
-        sub = s[e - offset:]
+        end = tokens[-1].end
+        sub = s[end - offset:]
         if not sub:
             return []
         score = self.scores.get(sub, self.unknown_score)
-        return [Token(sub, e, e + len(sub), score, len(sub))]
+        return [Token(sub, end, end + len(sub), score, len(sub))]
 
 
 class NounMatchTokenizer(MaxScoreTokenizer):
@@ -455,15 +455,15 @@ class NounMatchTokenizer(MaxScoreTokenizer):
         """
 
         def concatenate(eojeol, tokens, offset):
-            concats, b, e, score = [], offset, offset, 0
+            concats, begin, end, score = [], offset, offset, 0
             for token in tokens:
-                if e == token.b:
-                    e, score = token.e, max(score, token.score)
+                if end == token.begin:
+                    end, score = token.end, max(score, token.score)
                 else:
-                    concats.append(Token(eojeol[b - offset: e - offset], b, e, score, e-b))
-                    b, e = token.b, token.e
-            if e > b:
-                concats.append(Token(eojeol[b - offset: e - offset], b, e, score, e - b))
+                    concats.append(Token(eojeol[begin - offset: end - offset], begin, end, score, end - begin))
+                    begin, end = token.begin, token.end
+            if end > begin:
+                concats.append(Token(eojeol[begin - offset: end - offset], begin, end, score, end - begin))
             return concats
 
         offset = 0
@@ -474,7 +474,7 @@ class NounMatchTokenizer(MaxScoreTokenizer):
             if concat_compound:
                 nouns = concatenate(s, nouns, offset)
             if must_be_L and nouns:
-                if nouns[0].b != offset:
+                if nouns[0].begin != offset:
                     nouns = []
                 else:
                     nouns = nouns[:1]
