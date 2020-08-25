@@ -335,6 +335,13 @@ class LRNounExtractor():
 
                 >>> noun_tokenizer.tokenize(sentence, concat_compound=False)
                 $ ['네이버', '뉴스', '기사', '이용', '학습', '모델', '예시']
+
+                >>> noun_tokenizer.tokenize(sentence, flatten=False)
+                $ [[Token(네이버, score=1.0, offset=(0, 3))],
+                   [Token(뉴스기사, score=0.972972972972973, offset=(5, 9))],
+                   [Token(이용, score=0.9323344610923151, offset=(11, 13))],
+                   [Token(학습, score=0.9253731343283582, offset=(16, 18))],
+                   [Token(모델예시, score=1.0, offset=(20, 24))]]
         """
         if not self.is_trained:
             raise RuntimeError('Train LRNounExtractor firts. LRNonuExtractor().extract(train-data)')
