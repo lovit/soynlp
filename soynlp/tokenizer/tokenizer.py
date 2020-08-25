@@ -3,6 +3,15 @@ from collections import namedtuple
 
 
 class Token(namedtuple('Token', 'word begin end score length')):
+    """collections.namedtuple class
+
+    Args:
+        word (str) : surfacial form of word
+        begin (int) : begin position of `word` in the input sentence
+        end (int) : end position of `word` in the input sentence
+        score (float) : word score
+        length (int) : word length. It must be equal with `end` - `begin`
+    """
     def __repr__(self):
         return f'Token({self.word}, score={self.score}, offset=({self.begin}, {self.end}))'
 
