@@ -2,7 +2,9 @@ import re
 from collections import namedtuple
 
 
-Token = namedtuple('Token', 'word begin end score length')
+class Token(namedtuple('Token', 'word begin end score length')):
+    def __repr__(self):
+        return f'Token({self.word}, score={self.score}, offset=({self.begin}, {self.end}))'
 
 
 class RegexTokenizer:
@@ -24,15 +26,15 @@ class RegexTokenizer:
         $ ['abc', '123', '가나다', 'alphabet', '!!', '3.14', '한글', 'hank`s', 'report']
 
         >>> regex_tokenizer(s, flatten=False)
-        $ [[Token(word='abc', b=0, e=3, score=1, length=3),
-            Token(word='123', b=3, e=6, score=1, length=3),
-            Token(word='가나다', b=6, e=9, score=1, length=3)],
-           [Token(word='alphabet', b=10, e=18, score=1, length=8),
-            Token(word='!!', b=18, e=20, score=1, length=2),
-            Token(word='3.14', b=20, e=24, score=1, length=4),
-            Token(word='한글', b=24, e=26, score=1, length=2)],
-           [Token(word='hank`s', b=27, e=33, score=1, length=6)],
-           [Token(word='report', b=34, e=40, score=1, length=6)]]
+        $ [[Token(abc, score=1, offset=(0, 3)),
+            Token(123, score=1, offset=(3, 6)),
+            Token(가나다, score=1, offset=(6, 9))],
+           [Token(alphabet, score=1, offset=(10, 18)),
+            Token(!!, score=1, offset=(18, 20)),
+            Token(3.14, score=1, offset=(20, 24)),
+            Token(한글, score=1, offset=(24, 26))],
+           [Token(hank`s, score=1, offset=(27, 33))],
+           [Token(report, score=1, offset=(34, 40))]]
 
     """
     def __init__(self, pipelines=None):
@@ -74,17 +76,16 @@ class RegexTokenizer:
             >>> regex_tokenizer(s) # same with above line.
             $ ['abc', '123', '가나다', 'alphabet', '!!', '3.14', '한글', 'hank`s', 'report']
 
-            >>> regex_tokenizer.tokenize(s, flatten=False)
-            >>> regex_tokenizer(s, flatten=False)  # same with above line.
-            $ [[Token(word='abc', b=0, e=3, score=1, length=3),
-                Token(word='123', b=3, e=6, score=1, length=3),
-                Token(word='가나다', b=6, e=9, score=1, length=3)],
-               [Token(word='alphabet', b=10, e=18, score=1, length=8),
-                Token(word='!!', b=18, e=20, score=1, length=2),
-                Token(word='3.14', b=20, e=24, score=1, length=4),
-                Token(word='한글', b=24, e=26, score=1, length=2)],
-               [Token(word='hank`s', b=27, e=33, score=1, length=6)],
-               [Token(word='report', b=34, e=40, score=1, length=6)]]
+            >>> regex_tokenizer(s, flatten=False)
+            $ [[Token(abc, score=1, offset=(0, 3)),
+                Token(123, score=1, offset=(3, 6)),
+                Token(가나다, score=1, offset=(6, 9))],
+               [Token(alphabet, score=1, offset=(10, 18)),
+                Token(!!, score=1, offset=(18, 20)),
+                Token(3.14, score=1, offset=(20, 24)),
+                Token(한글, score=1, offset=(24, 26))],
+               [Token(hank`s, score=1, offset=(27, 33))],
+               [Token(report, score=1, offset=(34, 40))]]
         """
         offset = 0
         tokens = []
@@ -150,12 +151,12 @@ class LTokenizer:
             $ ['파스타', '가', '좋아', '요', '파스타', '가좋아요']
 
             >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', flatten=False)
-            $ [[Token(word='파스타', b=0, e=3, score=0.7, length=3),
-                Token(word='가', b=3, e=4, score=0, length=1)],
-               [Token(word='좋아', b=5, e=7, score=0.3, length=2),
-                Token(word='요', b=7, e=8, score=0, length=1)],
-               [Token(word='파스타', b=9, e=12, score=0.7, length=3),
-                Token(word='가좋아요', b=12, e=16, score=0, length=4)]]
+            $ [[Token(파스타, score=0.7, offset=(0, 3)),
+                Token(가, score=0, offset=(3, 4))],
+               [Token(좋아, score=0.3, offset=(5, 7)),
+                Token(요, score=0, offset=(7, 8))],
+               [Token(파스타, score=0.7, offset=(9, 12)),
+                Token(가좋아요, score=0, offset=(12, 16))]]
 
         With tolerance
 
@@ -165,12 +166,12 @@ class LTokenizer:
             $ ['파스타', '가', '좋아', '요', '파스타', '가좋아요']
 
             >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', tolerance=0.06, flatten=False)
-            $ [[Token(word='파스타', b=0, e=3, score=0.7, length=3),
-                Token(word='가', b=3, e=4, score=0, length=1)],
-               [Token(word='좋아', b=5, e=7, score=0.3, length=2),
-                Token(word='요', b=7, e=8, score=0, length=1)],
-               [Token(word='파스타', b=9, e=12, score=0.7, length=3),
-                Token(word='가좋아요', b=12, e=16, score=0, length=4)]]
+            $ [[Token(파스타, score=0.7, offset=(0, 3)),
+                Token(가, score=0, offset=(3, 4))],
+               [Token(좋아, score=0.3, offset=(5, 7)),
+                Token(요, score=0, offset=(7, 8))],
+               [Token(파스타, score=0.7, offset=(9, 12)),
+                Token(가좋아요, score=0, offset=(12, 16))]]
     """
     def __init__(self, scores, unknown_score=0.0):
         self.scores = scores
@@ -249,15 +250,15 @@ class MaxScoreTokenizer:
         With pretrained word scores
 
             >>> scores = {'파스': 0.65, '파스타': 0.7, '좋아': 0.3}
-            >>> tokenizer = MaxScoreTokenizerTest(scores)
+            >>> tokenizer = MaxScoreTokenizer(scores)
             >>> tokenizer.tokenize('파스타가좋아요')
             $ ['파스타', '가', '좋아', '요']
 
             >>> tokenizer.tokenize('파스타가좋아요', flatten=False)
-            $ [[Token(word='파스타', b=0, e=3, score=0.7, length=3),
-                Token(word='가', b=3, e=4, score=0.0, length=1),
-                Token(word='좋아', b=4, e=6, score=0.3, length=2),
-                Token(word='요', b=6, e=7, score=0.0, length=1)]]
+            $ [[Token(파스타, score=0.7, offset=(0, 3)),
+                Token(가, score=0.0, offset=(3, 4)),
+                Token(좋아, score=0.3, offset=(4, 6)),
+                Token(요, score=0.0, offset=(6, 7))]]
 
         With training word extractor
 
@@ -415,12 +416,12 @@ class NounMatchTokenizer(MaxScoreTokenizer):
         Without flattening tokens
 
             >>> noun_tokenizer.tokenize(sentence, concat_compound=False, flatten=False)
-            $ [[Token(word='아이오아이', b=0, e=5, score=1.0, length=5),
-                Token(word='아이', b=6, e=8, score=1.0, length=2)],
-               [Token(word='오이', b=11, e=13, score=1.0, length=2),
-                Token(word='오이', b=13, e=15, score=1.0, length=2)],
+            $ [[Token(아이오아이, score=0.8, offset=(0, 5)),
+                Token(아이, score=0.5, offset=(6, 8))],
+               [Token(오이, score=0.7, offset=(11, 13)),
+                Token(오이, score=0.7, offset=(13, 15))],
                [],
-               [Token(word='아이', b=22, e=24, score=1.0, length=2)]]
+               [Token(아이, score=0.5, offset=(22, 24))]]
 
         Remain only L parts
 
