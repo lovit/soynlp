@@ -143,7 +143,10 @@ class RegexTokenizer:
 
 
 class LTokenizer:
-    """
+    """It finds the most word-like substring which positioned left-side in given Eojeol.
+    The `Eojeol` is space separated token in Korean.
+
+
     Args:
         scores ({str: float}) : {word: score}
         unknown_score (float) : unknown word score
@@ -243,7 +246,9 @@ class LTokenizer:
 
 
 class MaxScoreTokenizer:
-    """
+    """It finds the most word-like substring in given Eojeol regardless the position
+    of sustring in eojeol. The `Eojeol` is space separated token in Korean.
+
     Args:
         scores ({str: float}) : {word: word_score}
         max_length (int) : maximum length of L part word
