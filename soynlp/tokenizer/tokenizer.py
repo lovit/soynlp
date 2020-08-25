@@ -195,7 +195,7 @@ class LTokenizer:
             sentence (str) : input string
             tolerance (float) :
                 If the difference between the highest and the second highest score
-                is less than `tolerance`, this tokenizer choose longer one as word
+                is less than `tolerance`, this tokenizer chooses longer one as word
             flatten (Boolean) :
                 If True, it returns tokens as form of list of str
                 Otherwise, it returns nested list of `Token`
