@@ -22,7 +22,7 @@ class RegexTokenizer:
     Or it is available to customize RegexTokenizer with my regex patterns.
 
     Args:
-        pipielines (list of re.Pattern or None) :
+        pipelines (list of re.Pattern or None) :
             The regex patterns will be applied one by one to input string.
             If None, it uses default patterns (number -> Korean -> jaum -> moum -> Alphabet)
 
