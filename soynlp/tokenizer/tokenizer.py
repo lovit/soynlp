@@ -36,15 +36,15 @@ class RegexTokenizer:
         $ ['abc', '123', '가나다', 'alphabet', '!!', '3.14', '한글', 'hank`s', 'report']
 
         >>> regex_tokenizer(s, return_words=False)
-        $ [[Token(abc, score=1, offset=(0, 3)),
-            Token(123, score=1, offset=(3, 6)),
-            Token(가나다, score=1, offset=(6, 9))],
-           [Token(alphabet, score=1, offset=(10, 18)),
-            Token(!!, score=1, offset=(18, 20)),
-            Token(3.14, score=1, offset=(20, 24)),
-            Token(한글, score=1, offset=(24, 26))],
-           [Token(hank`s, score=1, offset=(27, 33))],
-           [Token(report, score=1, offset=(34, 40))]]
+        $ [Token(abc, score=1, position=(0, 3), eojeol_id=0),
+           Token(123, score=1, position=(3, 6), eojeol_id=0),
+           Token(가나다, score=1, position=(6, 9), eojeol_id=0),
+           Token(alphabet, score=1, position=(10, 18), eojeol_id=1),
+           Token(!!, score=1, position=(18, 20), eojeol_id=1),
+           Token(3.14, score=1, position=(20, 24), eojeol_id=1),
+           Token(한글, score=1, position=(24, 26), eojeol_id=1),
+           Token(hank`s, score=1, position=(27, 33), eojeol_id=2),
+           Token(report, score=1, position=(34, 40), eojeol_id=3)]
 
     """
     def __init__(self, pipelines=None):
@@ -87,15 +87,15 @@ class RegexTokenizer:
             $ ['abc', '123', '가나다', 'alphabet', '!!', '3.14', '한글', 'hank`s', 'report']
 
             >>> regex_tokenizer(s, return_words=False)
-            $ [[Token(abc, score=1, offset=(0, 3)),
-                Token(123, score=1, offset=(3, 6)),
-                Token(가나다, score=1, offset=(6, 9))],
-               [Token(alphabet, score=1, offset=(10, 18)),
-                Token(!!, score=1, offset=(18, 20)),
-                Token(3.14, score=1, offset=(20, 24)),
-                Token(한글, score=1, offset=(24, 26))],
-               [Token(hank`s, score=1, offset=(27, 33))],
-               [Token(report, score=1, offset=(34, 40))]]
+            $ [Token(abc, score=1, position=(0, 3), eojeol_id=0),
+               Token(123, score=1, position=(3, 6), eojeol_id=0),
+               Token(가나다, score=1, position=(6, 9), eojeol_id=0),
+               Token(alphabet, score=1, position=(10, 18), eojeol_id=1),
+               Token(!!, score=1, position=(18, 20), eojeol_id=1),
+               Token(3.14, score=1, position=(20, 24), eojeol_id=1),
+               Token(한글, score=1, position=(24, 26), eojeol_id=1),
+               Token(hank`s, score=1, position=(27, 33), eojeol_id=2),
+               Token(report, score=1, position=(34, 40), eojeol_id=3)]
         """
         offset = 0
         tokens = []
@@ -164,12 +164,12 @@ class LTokenizer:
             $ ['파스타', '가', '좋아', '요', '파스타', '가좋아요']
 
             >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', return_words=False)
-            $ [[Token(파스타, score=0.7, offset=(0, 3)),
-                Token(가, score=0, offset=(3, 4))],
-               [Token(좋아, score=0.3, offset=(5, 7)),
-                Token(요, score=0, offset=(7, 8))],
-               [Token(파스타, score=0.7, offset=(9, 12)),
-                Token(가좋아요, score=0, offset=(12, 16))]]
+            $ [Token(파스타, score=0.7, position=(0, 3), eojeol_id=0),
+               Token(가, score=0, position=(3, 4), eojeol_id=0),
+               Token(좋아, score=0.3, position=(5, 7), eojeol_id=1),
+               Token(요, score=0, position=(7, 8), eojeol_id=1),
+               Token(파스타, score=0.7, position=(9, 12), eojeol_id=2),
+               Token(가좋아요, score=0, position=(12, 16), eojeol_id=2)]
 
         With tolerance
 
@@ -179,12 +179,12 @@ class LTokenizer:
             $ ['파스타', '가', '좋아', '요', '파스타', '가좋아요']
 
             >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', tolerance=0.06, return_words=False)
-            $ [[Token(파스타, score=0.7, offset=(0, 3)),
-                Token(가, score=0, offset=(3, 4))],
-               [Token(좋아, score=0.3, offset=(5, 7)),
-                Token(요, score=0, offset=(7, 8))],
-               [Token(파스타, score=0.7, offset=(9, 12)),
-                Token(가좋아요, score=0, offset=(12, 16))]]
+            $ [Token(파스타, score=0.7, position=(0, 3), eojeol_id=0),
+               Token(가, score=0, position=(3, 4), eojeol_id=0),
+               Token(좋아, score=0.3, position=(5, 7), eojeol_id=1),
+               Token(요, score=0, position=(7, 8), eojeol_id=1),
+               Token(파스타, score=0.7, position=(9, 12), eojeol_id=2),
+               Token(가좋아요, score=0, position=(12, 16), eojeol_id=2)]
     """
     def __init__(self, scores, unknown_score=0.0):
         self.scores = scores
@@ -272,10 +272,10 @@ class MaxScoreTokenizer:
             $ ['파스타', '가', '좋아', '요']
 
             >>> tokenizer.tokenize('파스타가좋아요', return_words=False)
-            $ [[Token(파스타, score=0.7, offset=(0, 3)),
-                Token(가, score=0.0, offset=(3, 4)),
-                Token(좋아, score=0.3, offset=(4, 6)),
-                Token(요, score=0.0, offset=(6, 7))]]
+            $ [Token(파스타, score=0.7, position=(0, 3), eojeol_id=0),
+               Token(가, score=0.0, position=(3, 4), eojeol_id=0),
+               Token(좋아, score=0.3, position=(4, 6), eojeol_id=0),
+               Token(요, score=0.0, position=(6, 7), eojeol_id=0)]
 
         With training word extractor
 
@@ -406,6 +406,8 @@ class NounMatchTokenizer(MaxScoreTokenizer):
     Examples::
         With noun scores. Match first with higher scored noun.
 
+            >>> from soynlp.tokenizer import NounMatchTokenizer
+
             >>> noun_scores = {'아이': 0.5, '아이오': 0.7, '아이오아이': 0.8, '오이': 0.7}
             >>> noun_tokenizer = NounMatchTokenizer(noun_scores)
             >>> sentence = '아이오아이의아이들은 오이오이를 좋아하는 아이들이오'
@@ -427,18 +429,18 @@ class NounMatchTokenizer(MaxScoreTokenizer):
         To get token sequences
 
             >>> noun_tokenizer.tokenize(sentence, concat_compound=False, return_words=False)
-            $ [[Token(아이오아이, score=0.8, offset=(0, 5)),
-                Token(아이, score=0.5, offset=(6, 8))],
-               [Token(오이, score=0.7, offset=(11, 13)),
-                Token(오이, score=0.7, offset=(13, 15))],
-               [],
-               [Token(아이, score=0.5, offset=(22, 24))]]
+            $ [Token(아이오아이, score=1.0, position=(0, 5), eojeol_id=0),
+               Token(아이, score=1.0, position=(6, 8), eojeol_id=0),
+               Token(오이, score=1.0, position=(11, 13), eojeol_id=1),
+               Token(오이, score=1.0, position=(13, 15), eojeol_id=1),
+               Token(아이, score=1.0, position=(22, 24), eojeol_id=3)]
 
         Remain only L parts
 
             >>> sentence = '아이오아이의아이들은 오이오이를 좋아하는 아이들이오'
             >>> noun_tokenizer.tokenize(sentence, concat_compound=True, must_be_L=True)
-            $ ['오이오이', '아이']
+            $ ['아이오아이', '오이오이', '아이']
+
     """
     def __init__(self, noun_scores):
         if (isinstance(noun_scores, list) or
