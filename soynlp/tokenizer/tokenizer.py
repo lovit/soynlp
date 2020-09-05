@@ -322,7 +322,7 @@ class MaxScoreTokenizer:
             token = Token(s, offset, offset + length, self.scores.get(s, self.unknown_score), length, eojeol_id)
             return [token]
 
-        scored = self._initialize(s, length, offset, eojeol_id)
+        scored = self._prepare_word_candidates(s, length, offset, eojeol_id)
         tokens = self._find(scored)
         adds = self._add_inter_tokens(s, tokens, offset, eojeol_id)
         if tokens[-1].end != offset + length:
@@ -331,7 +331,7 @@ class MaxScoreTokenizer:
             adds += self._add_first_token(s, tokens, offset, eojeol_id)
         return sorted(tokens + adds, key=lambda x: x.begin)
 
-    def _initialize(self, s, length, offset=0, eojeol_id=0):
+    def _prepare_word_candidates(self, s, length, offset=0, eojeol_id=0):
         max_r = min(length, self.max_len)
         scored = []
         for begin in range(0, length - 1):
