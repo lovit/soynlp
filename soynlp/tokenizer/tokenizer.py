@@ -72,10 +72,10 @@ class RegexTokenizer:
             sentence (str) : input string
             return_words (Boolean) :
                 If True, it returns tokens as form of list of str
-                Otherwise, it returns nested list of `Token`
+                Otherwise, it returns list of `Token`
 
         Returns:
-            tokens (list of str or nested list of Token)
+            tokens (list of str or list of Token)
 
         Examples::
             >>> from soynlp.tokenizer import RegexTokenizer
@@ -202,12 +202,12 @@ class LTokenizer:
                 is less than `tolerance`, this tokenizer chooses longer one as word
             return_words (Boolean) :
                 If True, it returns tokens as form of list of str
-                Otherwise, it returns nested list of `Token`
+                Otherwise, it returns list of `Token`
             remove_r (Boolean) :
                 If True, it returns only L parts
 
         Returns:
-            tokens (list of str or nested list of Token)
+            tokens (list of str or list of Token)
         """
 
         def token_to_lr(token):
@@ -302,10 +302,10 @@ class MaxScoreTokenizer:
             sentence (str) : input string
             return_words (Boolean) :
                 If True, it returns tokens as form of list of str
-                Otherwise, it returns nested list of `Token`
+                Otherwise, it returns list of `Token`
 
         Returns:
-            tokens (list of str or nested list of Token)
+            tokens (list of str or list of Token)
         """
         offset = 0
         tokens = []
@@ -458,14 +458,14 @@ class NounMatchTokenizer(MaxScoreTokenizer):
             sentence (str) : input string
             return_words (Boolean) :
                 If True, it returns tokens as form of list of str
-                Otherwise, it returns nested list of `Token`
+                Otherwise, it returns list of `Token`
             concat_compound (Boolean) :
                 If True, it concatenates consecutive nouns into one compound noun.
             must_be_L (Boolean) :
                 If True, it remains nouns which position left-side on eojeol.
 
         Returns:
-            tokens (list of str or nested list of Token)
+            tokens (list of str or list of Token)
         """
 
         def concatenate(eojeol, tokens, offset, eojeol_id):
