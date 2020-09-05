@@ -13,7 +13,7 @@ def test_nounmatch_tokenizer():
         {
             'noun_scores': {'아이': 0.5, '아이오': 0.7, '아이오아이': 0.8, '오이': 0.7},
             'sentence': '아이오아이의아이들은 오이오이를 좋아하는 아이들이오',
-            'flatten': True,
+            'return_words': True,
             'concat': True,
             'must_be_L': False,
             'nouns': ['아이오아이', '아이', '오이오이', '아이']
@@ -21,7 +21,7 @@ def test_nounmatch_tokenizer():
         {
             'noun_scores': {'아이', '아이오', '아이오아이', '오이'},
             'sentence': '아이오아이의아이들은 오이오이를 좋아하는 아이들이오',
-            'flatten': True,
+            'return_words': True,
             'concat': True,
             'must_be_L': False,
             'nouns': ['아이오아이', '아이', '오이오이', '아이']
@@ -29,7 +29,7 @@ def test_nounmatch_tokenizer():
         {
             'noun_scores': {'아이': 1.0, '아이오': 1.0, '아이오아이': 1.0, '오이': 1.0},
             'sentence': '아이오아이의아이들은 오이오이를 좋아하는 아이들이오',
-            'flatten': True,
+            'return_words': True,
             'concat': False,
             'must_be_L': False,
             'nouns': ['아이오아이', '아이', '오이', '오이', '아이']
@@ -37,7 +37,7 @@ def test_nounmatch_tokenizer():
         {
             'noun_scores': {'아이': 1.0, '아이오': 1.0, '아이오아이': 1.0, '오이': 1.0},
             'sentence': '헐아이오아이의아이들은 오이오이를 좋아하는 아이들이오',
-            'flatten': True,
+            'return_words': True,
             'concat': False,
             'must_be_L': False,
             'nouns': ['아이오아이', '아이', '오이', '오이', '아이']
@@ -45,7 +45,7 @@ def test_nounmatch_tokenizer():
         {
             'noun_scores': {'아이': 1.0, '아이오': 1.0, '아이오아이': 1.0, '오이': 1.0},
             'sentence': '헐아이오아이의아이들은 오이오이를 좋아하는 아이들이오',
-            'flatten': True,
+            'return_words': True,
             'concat': False,
             'must_be_L': True,
             'nouns': ['오이', '아이']
@@ -60,7 +60,7 @@ def test_nounmatch_tokenizer():
         tokenizer = NounMatchTokenizer(noun_scores)
         nouns = tokenizer.tokenize(
             sentence,
-            flatten=test_case['flatten'],
+            return_words=test_case['return_words'],
             concat_compound=test_case['concat'],
             must_be_L=test_case['must_be_L']
         )
