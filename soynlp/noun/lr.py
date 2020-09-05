@@ -5,7 +5,7 @@ from datetime import datetime
 from pprint import pprint
 from tqdm import tqdm
 
-from soynlp.tokenizer import MaxScoreTokenizer
+from soynlp.tokenizer import MaxScoreTokenizer, NounMatchTokenizer
 from soynlp.utils import DoublespaceLineCorpus, EojeolCounter, LRGraph, get_process_memory
 from .postprocessing import detaching_features, ignore_features, check_N_is_NJ
 
@@ -28,6 +28,40 @@ class LRNounExtractor():
             Or it provides customizing features set
         verbose (Boolean) :
             If True, it shows progress
+
+    Examples::
+        Train noun extractor model
+
+            >>> from soynlp.noun import LRNounExtractor
+
+            >>> # train_data = '../data/2016-10-20.txt'
+            >>> train_data = 'path/to/train_text'
+            >>> noun_extractor = LRNounExtractor()
+            >>> nouns = noun_extractor.extract(train_data)
+
+        Check extracted nouns
+
+            >>> for noun in ['아이디', '아이디어', '아이오아이', '트와이스', '연합뉴스', '비선실세']:
+            >>>    print(f'{noun} : {nouns.get(noun, None)}')
+            $ 아이디 : NounScore(frequency=59, score=1.0)
+              아이디어 : NounScore(frequency=142, score=1.0)
+              아이오아이 : NounScore(frequency=127, score=1.0)
+              트와이스 : NounScore(frequency=654, score=0.992831541218638)
+              연합뉴스 : NounScore(frequency=4628, score=1.0)
+              비선실세 : NounScore(frequency=66, score=1.0)
+
+            >>> print(nouns['아이오아이'].frequency)
+            $ 127
+
+        Get noun tokenizer and use it
+
+            >>> noun_tokenizer = noun_extractor.get_noun_tokenizer()
+            >>> sentence = '네이버의 뉴스기사를 이용하여 학습한 모델예시입니다'
+            >>> noun_tokenizer.tokenize(sentence)
+            $ ['네이버', '뉴스기사', '이용', '학습', '모델예시']
+
+            >>> noun_tokenizer.tokenize(sentence, concat_compound=False)
+            $ ['네이버', '뉴스', '기사', '이용', '학습', '모델', '예시']
     """
     def __init__(
         self,
@@ -47,6 +81,7 @@ class LRNounExtractor():
 
         self.lrgraph = None
         self.compounds_components = None
+        self.nouns = None
 
     @property
     def is_trained(self):
@@ -279,6 +314,39 @@ class LRNounExtractor():
             word, word_features, self.pos, self.neg, self.common,
             min_noun_score, min_num_of_features, min_eojeol_is_noun_frequency, debug)
         return NounScore(support, score)
+
+    def get_noun_tokenizer(self):
+        """Get soynlp.tokenizer.NounMatchTokenizer using extracted nouns
+
+        Examples::
+            Train noun extractor model
+
+                >>> from soynlp.noun import LRNounExtractor
+                >>> train_data = '../data/2016-10-20.txt'
+                >>> noun_extractor = LRNounExtractor()
+                >>> _ = noun_extractor.extract(train_data)
+
+            Get noun tokenizer and use it
+
+                >>> noun_tokenizer = noun_extractor.get_noun_tokenizer()
+                >>> sentence = '네이버의 뉴스기사를 이용하여 학습한 모델예시입니다'
+                >>> noun_tokenizer.tokenize(sentence)
+                $ ['네이버', '뉴스기사', '이용', '학습', '모델예시']
+
+                >>> noun_tokenizer.tokenize(sentence, concat_compound=False)
+                $ ['네이버', '뉴스', '기사', '이용', '학습', '모델', '예시']
+
+                >>> noun_tokenizer.tokenize(sentence, return_words=False)
+                $ [Token(네이버, score=1.0, position=(0, 3), eojeol_id=0),
+                   Token(뉴스기사, score=0.972972972972973, position=(5, 9), eojeol_id=1),
+                   Token(이용, score=0.9323344610923151, position=(11, 13), eojeol_id=2),
+                   Token(학습, score=0.9253731343283582, position=(16, 18), eojeol_id=3),
+                   Token(모델예시, score=1.0, position=(20, 24), eojeol_id=4)]
+        """
+        if not self.is_trained:
+            raise RuntimeError('Train LRNounExtractor firts. LRNonuExtractor().extract(train-data)')
+        noun_scores = {noun: score.score for noun, score in self.nouns.items()}
+        return NounMatchTokenizer(noun_scores)
 
 
 def prepare_r_features(pos_features=None, neg_features=None):
@@ -551,7 +619,7 @@ def extract_compounds_func(lrgraph, noun_scores,
         iterator = tqdm(iterator, desc='[LRNounExtractor] extract compounds', total=n)
 
     for word, count in iterator:
-        tokens = compound_decomposer.tokenize(word, flatten=False)[0]
+        tokens = compound_decomposer.tokenize(word, return_words=False)
         compound_parts = parse_compound(tokens, pos_features)
         if not compound_parts:
             continue
