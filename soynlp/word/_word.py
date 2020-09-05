@@ -9,7 +9,43 @@ import sys
 from soynlp.utils import get_process_memory
 from soynlp.utils import check_corpus
 
-Scores = namedtuple('Scores', 'cohesion_forward cohesion_backward left_branching_entropy right_branching_entropy left_accessor_variety right_accessor_variety leftside_frequency rightside_frequency')
+
+class WordScore(namedtuple('WordScore', 'cohesion_l cohesion_r be_l be_r av_l av_r count_l count_r')):
+    """
+    Args:
+        cohesion_l (float) :
+            Forward-direction cohesion score
+                cohesion_l('abc') = (#(abc-) / #(a-))^(1/2)
+                #(a-) is frequency of subsrting `a` which positions on left of words in a corpus
+                #(abc-) is frequency of substring `abc` which positions on left of words in a corpus
+        cohesion_r (float) :
+            Backward-direction cohesion score
+                cohesion_r('cba') = (#(-cba) / #(-a))^(1/2)
+                #(-a) is frequency of subsrting `a` which positions on right of words in a corpus
+                #(-cba) is frequency of substring `cba` which positions on right of words in a corpus
+        be_l (float) :
+            Backward-direction, left-side Branching Entropy
+                be_l(abc) = entropy of (? + abc)
+        be_r (float) :
+            Forward-direction, right-side Branching Entropy
+                be_r(abc) = entropy of (abc + ?)
+        av_l (float) :
+            Backward-direction, left-side Accessor Variety
+                av_l(abc) = num of unique characters in (? + abc)
+        av_r (float) :
+            Forward-direction, right-side Accessor Variety
+                av_r(abc) = num of unique characters in (abc + ?)
+        count_l (int) :
+            Substring frequency which positions on left of words in a corpus
+        count_r (int) :
+            Substring frequency which positions on right of words in a corpus
+
+    References
+        - Feng, H., Chen, K., Deng, X., & Zheng, W. (2004). Accessor variety criteria for Chinese
+            word extraction. Computational Linguistics, 30(1), 75-93.
+        - Zhikov, V., Takamura, H., & Okumura, M. (2013). An efficient algorithm for unsupervised word
+            segmentation with branching entropy and MDL. Information and Media Technologies, 8(2), 514-527.
+    """
 
 def _entropy(dic):
     if not dic: 
