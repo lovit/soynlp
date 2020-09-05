@@ -47,13 +47,28 @@ class WordScore(namedtuple('WordScore', 'cohesion_l cohesion_r be_l be_r av_l av
             segmentation with branching entropy and MDL. Information and Media Technologies, 8(2), 514-527.
     """
 
-def _entropy(dic):
-    if not dic: 
+
+def get_entropy(collection_of_numbers):
+    """
+    Args:
+        collection_of_numbers (collection of number)
+
+    Returns:
+        entropy (float)
+
+    Examples::
+        >>> get_entropy([3, 4, 3])
+        $ 1.0888999753452238
+
+        >>> get_entropy([100, 1, 1])
+        $ 0.11010008192339721
+    """
+    if not collection_of_numbers:
         return 0.0
-    sum_ = sum(dic.values())
+    total = sum(collection_of_numbers)
     entropy = 0
-    for freq in dic.values():
-        prob = float(freq) / sum_
+    for number in collection_of_numbers:
+        prob = float(number) / total
         entropy += prob * math.log(prob)
     return -1 * entropy
 
