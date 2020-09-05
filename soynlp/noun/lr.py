@@ -336,12 +336,12 @@ class LRNounExtractor():
                 >>> noun_tokenizer.tokenize(sentence, concat_compound=False)
                 $ ['네이버', '뉴스', '기사', '이용', '학습', '모델', '예시']
 
-                >>> noun_tokenizer.tokenize(sentence, flatten=False)
-                $ [[Token(네이버, score=1.0, offset=(0, 3))],
-                   [Token(뉴스기사, score=0.972972972972973, offset=(5, 9))],
-                   [Token(이용, score=0.9323344610923151, offset=(11, 13))],
-                   [Token(학습, score=0.9253731343283582, offset=(16, 18))],
-                   [Token(모델예시, score=1.0, offset=(20, 24))]]
+                >>> noun_tokenizer.tokenize(sentence, return_words=False)
+                $ [Token(네이버, score=1.0, position=(0, 3), eojeol_id=0),
+                   Token(뉴스기사, score=0.972972972972973, position=(5, 9), eojeol_id=1),
+                   Token(이용, score=0.9323344610923151, position=(11, 13), eojeol_id=2),
+                   Token(학습, score=0.9253731343283582, position=(16, 18), eojeol_id=3),
+                   Token(모델예시, score=1.0, position=(20, 24), eojeol_id=4)]
         """
         if not self.is_trained:
             raise RuntimeError('Train LRNounExtractor firts. LRNonuExtractor().extract(train-data)')
@@ -619,7 +619,7 @@ def extract_compounds_func(lrgraph, noun_scores,
         iterator = tqdm(iterator, desc='[LRNounExtractor] extract compounds', total=n)
 
     for word, count in iterator:
-        tokens = compound_decomposer.tokenize(word, flatten=False)[0]
+        tokens = compound_decomposer.tokenize(word, return_words=False)
         compound_parts = parse_compound(tokens, pos_features)
         if not compound_parts:
             continue
