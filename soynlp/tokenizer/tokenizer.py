@@ -2,7 +2,7 @@ import re
 from collections import namedtuple
 
 
-class Token(namedtuple('Token', 'word begin end score length')):
+class Token(namedtuple('Token', 'word begin end score length eojeol_id')):
     """collections.namedtuple class
 
     Args:
@@ -11,9 +11,10 @@ class Token(namedtuple('Token', 'word begin end score length')):
         end (int) : end position of `word` in the input sentence
         score (float) : word score
         length (int) : word length. It must be equal with `end` - `begin`
+        eojeol_id (int) : index of eojeol in a sentence
     """
     def __repr__(self):
-        return f'Token({self.word}, score={self.score}, offset=({self.begin}, {self.end}))'
+        return f'Token({self.word}, score={self.score}, position=({self.begin}, {self.end}), eojeol_id={self.eojeol_id})'
 
 
 class RegexTokenizer:
@@ -98,14 +99,14 @@ class RegexTokenizer:
         """
         offset = 0
         tokens = []
-        for token in sentence.split():
-            tokens.append(self._tokenize(token, offset))
+        for eojeol_id, token in enumerate(sentence.split()):
+            tokens.append(self._tokenize(token, offset, eojeol_id))
             offset += (len(token) + 1)
         if return_words:
             tokens = [token.word for tokens_in_eojeol in tokens for token in tokens_in_eojeol if token.word]
         return tokens
 
-    def _tokenize(self, s, offset=0):
+    def _tokenize(self, s, offset=0, eojeol_id=0):
         # TODO: handle 3.1.2.1
         for pattern in self.pipelines:
             founds = pattern.findall(s)
@@ -133,11 +134,11 @@ class RegexTokenizer:
             s = s_
         words = self.doublewhite_pattern.sub(' ', s).strip().split()
         r = len(words[0])
-        tokens = [Token(words[0], 0 + offset, r + offset, 1, r)]
+        tokens = [Token(words[0], 0 + offset, r + offset, 1, r, eojeol_id)]
         begin = tokens[0].end
         for word in words[1:]:
             r = len(word)
-            tokens.append(Token(word, begin, begin + r, 1, r))
+            tokens.append(Token(word, begin, begin + r, 1, r, eojeol_id))
             begin += r
         return tokens
 
@@ -227,12 +228,12 @@ class LTokenizer:
 
         offset = 0
         tokens = []
-        for s in sentence.split():
+        for eojeol_id, s in enumerate(sentence.split()):
             score, l, r = token_to_lr(s)
             len_l, len_r = len(l), len(r)
             tokens.append([
-                Token(l, offset, offset + len_l, score, len_l),
-                Token(r, offset + len_l, offset + len_l + len_r, 0, len_r)
+                Token(l, offset, offset + len_l, score, len_l, eojeol_id),
+                Token(r, offset + len_l, offset + len_l + len_r, 0, len_r, eojeol_id)
             ])
             offset += (len_l + len_r + 1)
 
@@ -306,35 +307,29 @@ class MaxScoreTokenizer:
         """
         offset = 0
         tokens = []
-        for s in sentence.split():
-            tokens.append(self._recursive_tokenize(s, offset))
+        for eojeol_id, s in enumerate(sentence.split()):
+            tokens.append(self._recursive_tokenize(s, offset, eojeol_id))
             offset += (len(s) + 1)
         if return_words:
             tokens = [subtoken.word for token in tokens for subtoken in token]
         return tokens
 
-    def _recursive_tokenize(self, s, offset):
+    def _recursive_tokenize(self, s, offset, eojeol_id):
         length = len(s)
         if length <= 2:
-            token = Token(
-                s,
-                offset,
-                offset + length,
-                self.scores.get(s, self.unknown_score),
-                length
-            )
+            token = Token(s, offset, offset + length, self.scores.get(s, self.unknown_score), length, eojeol_id)
             return [token]
 
-        scored = self._initialize(s, length, offset)
+        scored = self._initialize(s, length, offset, eojeol_id)
         tokens = self._find(scored)
-        adds = self._add_inter_tokens(s, tokens, offset)
+        adds = self._add_inter_tokens(s, tokens, offset, eojeol_id)
         if tokens[-1].end != offset + length:
-            adds += self._add_last_token(s, tokens, offset)
+            adds += self._add_last_token(s, tokens, offset, eojeol_id)
         if tokens[0].begin != offset:
-            adds += self._add_first_token(s, tokens, offset)
+            adds += self._add_first_token(s, tokens, offset, eojeol_id)
         return sorted(tokens + adds, key=lambda x: x.begin)
 
-    def _initialize(self, s, length, offset=0):
+    def _initialize(self, s, length, offset=0, eojeol_id=0):
         max_r = min(length, self.max_len)
         scored = []
         for begin in range(0, length - 1):
@@ -346,9 +341,9 @@ class MaxScoreTokenizer:
                 if subtoken not in self.scores:
                     continue
                 score = self.scores[subtoken]
-                scored.append(Token(subtoken, offset + begin, offset + end, score, r))
+                scored.append(Token(subtoken, offset + begin, offset + end, score, r, eojeol_id))
         if not scored:
-            return [Token(s, offset, offset + len(s), self.unknown_score, len(s))]
+            return [Token(s, offset, offset + len(s), self.unknown_score, len(s), eojeol_id)]
         return sorted(scored, key=lambda x: (-x.score, -x.length, x.begin))
 
     def _find(self, scored):
@@ -371,7 +366,7 @@ class MaxScoreTokenizer:
                 break
         return sorted(result, key=lambda x: x.begin)
 
-    def _add_inter_tokens(self, s, tokens, offset=0):
+    def _add_inter_tokens(self, s, tokens, offset=0, eojeol_id=0):
         adds = []
         for i, token in enumerate(tokens[: -1]):
             if token.end == tokens[i + 1].begin:
@@ -379,22 +374,22 @@ class MaxScoreTokenizer:
             begin = token.end - offset
             end = tokens[i + 1].begin - offset
             sub = s[begin: end]
-            adds.append(Token(sub, offset + begin, offset + end, self.unknown_score, end - begin))
+            adds.append(Token(sub, offset + begin, offset + end, self.unknown_score, end - begin, eojeol_id))
         return adds
 
-    def _add_first_token(self, s, tokens, offset=0):
+    def _add_first_token(self, s, tokens, offset=0, eojeol_id=0):
         begin = tokens[0].begin
         sub = s[0: begin - offset]
         score = self.scores.get(sub, self.unknown_score)
-        return [Token(sub, offset, begin, score, begin - offset)]
+        return [Token(sub, offset, begin, score, begin - offset, eojeol_id)]
 
-    def _add_last_token(self, s, tokens, offset=0):
+    def _add_last_token(self, s, tokens, offset=0, eojeol_id=0):
         end = tokens[-1].end
         sub = s[end - offset:]
         if not sub:
             return []
         score = self.scores.get(sub, self.unknown_score)
-        return [Token(sub, end, end + len(sub), score, len(sub))]
+        return [Token(sub, end, end + len(sub), score, len(sub), eojeol_id)]
 
 
 class NounMatchTokenizer(MaxScoreTokenizer):
@@ -469,25 +464,26 @@ class NounMatchTokenizer(MaxScoreTokenizer):
             tokens (list of str or nested list of Token)
         """
 
-        def concatenate(eojeol, tokens, offset):
+        def concatenate(eojeol, tokens, offset, eojeol_id):
             concats, begin, end, score = [], offset, offset, 0
             for token in tokens:
                 if end == token.begin:
                     end, score = token.end, max(score, token.score)
                 else:
-                    concats.append(Token(eojeol[begin - offset: end - offset], begin, end, score, end - begin))
+                    concats.append(
+                        Token(eojeol[begin - offset: end - offset], begin, end, score, end - begin, eojeol_id))
                     begin, end = token.begin, token.end
             if end > begin:
-                concats.append(Token(eojeol[begin - offset: end - offset], begin, end, score, end - begin))
+                concats.append(Token(eojeol[begin - offset: end - offset], begin, end, score, end - begin, eojeol_id))
             return concats
 
         offset = 0
         tokens = []
-        for s in sentence.split():
+        for eojeol_id, s in enumerate(sentence.split()):
             nouns = self._recursive_tokenize(s, offset)
             nouns = [noun for noun in nouns if noun.score > 0]
             if concat_compound:
-                nouns = concatenate(s, nouns, offset)
+                nouns = concatenate(s, nouns, offset, eojeol_id)
             if must_be_L and nouns:
                 if nouns[0].begin != offset:
                     nouns = []
