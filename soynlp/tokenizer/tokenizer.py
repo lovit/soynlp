@@ -482,7 +482,7 @@ class NounMatchTokenizer(MaxScoreTokenizer):
         offset = 0
         tokens = []
         for eojeol_id, s in enumerate(sentence.split()):
-            nouns = self._recursive_tokenize(s, offset)
+            nouns = self._recursive_tokenize(s, offset, eojeol_id)
             nouns = [noun for noun in nouns if noun.score > 0]
             if concat_compound:
                 nouns = concatenate(s, nouns, offset, eojeol_id)
