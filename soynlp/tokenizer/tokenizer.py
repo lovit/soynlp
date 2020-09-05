@@ -100,10 +100,10 @@ class RegexTokenizer:
         offset = 0
         tokens = []
         for eojeol_id, token in enumerate(sentence.split()):
-            tokens.append(self._tokenize(token, offset, eojeol_id))
+            tokens += self._tokenize(token, offset, eojeol_id)
             offset += (len(token) + 1)
         if return_words:
-            tokens = [token.word for tokens_in_eojeol in tokens for token in tokens_in_eojeol if token.word]
+            tokens = [token.word for token in tokens]
         return tokens
 
     def _tokenize(self, s, offset=0, eojeol_id=0):
@@ -239,9 +239,11 @@ class LTokenizer:
 
         if remove_r:
             tokens = [l.word for l, r in tokens]
+        else:
+            tokens = [lrtoken for lr in tokens for lrtoken in lr]
 
         if (return_words) and (not remove_r):
-            tokens = [subtoken.word for token in tokens for subtoken in token if subtoken.length > 0]
+            tokens = [token.word for token in tokens if token.length > 0]
 
         return tokens
 
@@ -308,10 +310,10 @@ class MaxScoreTokenizer:
         offset = 0
         tokens = []
         for eojeol_id, s in enumerate(sentence.split()):
-            tokens.append(self._recursive_tokenize(s, offset, eojeol_id))
+            tokens += self._recursive_tokenize(s, offset, eojeol_id)
             offset += (len(s) + 1)
         if return_words:
-            tokens = [subtoken.word for token in tokens for subtoken in token]
+            tokens = [token.word for token in tokens]
         return tokens
 
     def _recursive_tokenize(self, s, offset, eojeol_id):
@@ -489,8 +491,8 @@ class NounMatchTokenizer(MaxScoreTokenizer):
                     nouns = []
                 else:
                     nouns = nouns[:1]
-            tokens.append(nouns)
+            tokens += nouns
             offset += (len(s) + 1)
         if return_words:
-            tokens = [noun.word for nouns in tokens for noun in nouns]
+            tokens = [token.word for token in tokens]
         return tokens

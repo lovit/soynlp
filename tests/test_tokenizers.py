@@ -28,7 +28,7 @@ def test_regex_tokenizer():
 
         words = regex_tokenizer.tokenize(sentence, return_words=True)
         result = regex_tokenizer.tokenize(sentence, return_words=False)
-        offsets = [token.begin for tokens in result for token in tokens]
+        offsets = [token.begin for token in result]
 
         assert true_words == words
         assert true_offsets == offsets
@@ -102,8 +102,7 @@ def test_maxscore_tokenizer():
         true_begin = test_case['begin']
 
         tokenizer = MaxScoreTokenizer(scores)
-        nested_tokens = tokenizer.tokenize(sentence, return_words=False)
-        tokens = [t for tokens in nested_tokens for t in tokens]
+        tokens = tokenizer.tokenize(sentence, return_words=False)
         words = [t.word for t in tokens]
         begin = [t.begin for t in tokens]
 
