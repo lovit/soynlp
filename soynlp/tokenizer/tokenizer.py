@@ -34,7 +34,7 @@ class RegexTokenizer:
         >>> regex_tokenizer.tokenize(s)
         $ ['abc', '123', '가나다', 'alphabet', '!!', '3.14', '한글', 'hank`s', 'report']
 
-        >>> regex_tokenizer(s, flatten=False)
+        >>> regex_tokenizer(s, return_words=False)
         $ [[Token(abc, score=1, offset=(0, 3)),
             Token(123, score=1, offset=(3, 6)),
             Token(가나다, score=1, offset=(6, 9))],
@@ -61,15 +61,15 @@ class RegexTokenizer:
             re.compile(u"[a-zA-ZÀ-ÿ]+[[`']{1,1}s]*|[a-zA-ZÀ-ÿ]+", re.UNICODE),  # Alphabet
         ]
 
-    def __call__(self, sentence, flatten=True):
-        return self.tokenize(sentence, flatten)
+    def __call__(self, sentence, return_words=True):
+        return self.tokenize(sentence, return_words)
 
-    def tokenize(self, sentence, flatten=True):
+    def tokenize(self, sentence, return_words=True):
         """Split sentence based on type of characters and regex pattern.
 
         Args:
             sentence (str) : input string
-            flatten (Boolean) :
+            return_words (Boolean) :
                 If True, it returns tokens as form of list of str
                 Otherwise, it returns nested list of `Token`
 
@@ -85,7 +85,7 @@ class RegexTokenizer:
             >>> regex_tokenizer(s) # same with above line.
             $ ['abc', '123', '가나다', 'alphabet', '!!', '3.14', '한글', 'hank`s', 'report']
 
-            >>> regex_tokenizer(s, flatten=False)
+            >>> regex_tokenizer(s, return_words=False)
             $ [[Token(abc, score=1, offset=(0, 3)),
                 Token(123, score=1, offset=(3, 6)),
                 Token(가나다, score=1, offset=(6, 9))],
@@ -101,7 +101,7 @@ class RegexTokenizer:
         for token in sentence.split():
             tokens.append(self._tokenize(token, offset))
             offset += (len(token) + 1)
-        if flatten:
+        if return_words:
             tokens = [token.word for tokens_in_eojeol in tokens for token in tokens_in_eojeol if token.word]
         return tokens
 
@@ -162,7 +162,7 @@ class LTokenizer:
             >>> ltokenizer('파스타가 좋아요 파스타가좋아요')  # same with above line
             $ ['파스타', '가', '좋아', '요', '파스타', '가좋아요']
 
-            >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', flatten=False)
+            >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', return_words=False)
             $ [[Token(파스타, score=0.7, offset=(0, 3)),
                 Token(가, score=0, offset=(3, 4))],
                [Token(좋아, score=0.3, offset=(5, 7)),
@@ -177,7 +177,7 @@ class LTokenizer:
             >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', tolerance=0.06)
             $ ['파스타', '가', '좋아', '요', '파스타', '가좋아요']
 
-            >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', tolerance=0.06, flatten=False)
+            >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', tolerance=0.06, return_words=False)
             $ [[Token(파스타, score=0.7, offset=(0, 3)),
                 Token(가, score=0, offset=(3, 4))],
                [Token(좋아, score=0.3, offset=(5, 7)),
@@ -189,17 +189,17 @@ class LTokenizer:
         self.scores = scores
         self.unknown_score = unknown_score
 
-    def __call__(self, sentence, tolerance=0.0, flatten=True, remove_r=False):
-        return self.tokenize(sentence, tolerance, flatten, remove_r)
+    def __call__(self, sentence, tolerance=0.0, return_words=True, remove_r=False):
+        return self.tokenize(sentence, tolerance, return_words, remove_r)
 
-    def tokenize(self, sentence, tolerance=0.0, flatten=True, remove_r=False):
+    def tokenize(self, sentence, tolerance=0.0, return_words=True, remove_r=False):
         """
         Args:
             sentence (str) : input string
             tolerance (float) :
                 If the difference between the highest and the second highest score
                 is less than `tolerance`, this tokenizer chooses longer one as word
-            flatten (Boolean) :
+            return_words (Boolean) :
                 If True, it returns tokens as form of list of str
                 Otherwise, it returns nested list of `Token`
             remove_r (Boolean) :
@@ -239,7 +239,7 @@ class LTokenizer:
         if remove_r:
             tokens = [l.word for l, r in tokens]
 
-        if (flatten) and (not remove_r):
+        if (return_words) and (not remove_r):
             tokens = [subtoken.word for token in tokens for subtoken in token if subtoken.length > 0]
 
         return tokens
@@ -268,7 +268,7 @@ class MaxScoreTokenizer:
             >>> tokenizer.tokenize('파스타가좋아요')
             $ ['파스타', '가', '좋아', '요']
 
-            >>> tokenizer.tokenize('파스타가좋아요', flatten=False)
+            >>> tokenizer.tokenize('파스타가좋아요', return_words=False)
             $ [[Token(파스타, score=0.7, offset=(0, 3)),
                 Token(가, score=0.0, offset=(3, 4)),
                 Token(좋아, score=0.3, offset=(4, 6)),
@@ -283,21 +283,21 @@ class MaxScoreTokenizer:
             >>> cohesion_scores = {l: l_score for l, (l_score, r_score) in cohesion_scores.items()}
             >>> tokenizer = MaxScoreTokenizer(cohesion_scores)
             >>> tokenizer.tokenize('예시문장입니다')
-            >>> tokenizer.tokenize('예시문장입니다', flatten=False)
+            >>> tokenizer.tokenize('예시문장입니다', return_words=False)
     """
     def __init__(self, scores, max_length=10, unknown_score=0.0):
         self.scores = scores
         self.max_len = max_length
         self.unknown_score = unknown_score
 
-    def __call__(self, sentence, flatten=True):
-        return self.tokenize(sentence, flatten)
+    def __call__(self, sentence, return_words=True):
+        return self.tokenize(sentence, return_words)
 
-    def tokenize(self, sentence, flatten=True):
+    def tokenize(self, sentence, return_words=True):
         """
         Args:
             sentence (str) : input string
-            flatten (Boolean) :
+            return_words (Boolean) :
                 If True, it returns tokens as form of list of str
                 Otherwise, it returns nested list of `Token`
 
@@ -309,7 +309,7 @@ class MaxScoreTokenizer:
         for s in sentence.split():
             tokens.append(self._recursive_tokenize(s, offset))
             offset += (len(s) + 1)
-        if flatten:
+        if return_words:
             tokens = [subtoken.word for token in tokens for subtoken in token]
         return tokens
 
@@ -427,9 +427,9 @@ class NounMatchTokenizer(MaxScoreTokenizer):
             >>> noun_tokenizer.tokenize(sentence, concat_compound=False)
             $ ['아이오아이', '아이', '오이', '오이', '아이']
 
-        Without flattening tokens
+        To get token sequences
 
-            >>> noun_tokenizer.tokenize(sentence, concat_compound=False, flatten=False)
+            >>> noun_tokenizer.tokenize(sentence, concat_compound=False, return_words=False)
             $ [[Token(아이오아이, score=0.8, offset=(0, 5)),
                 Token(아이, score=0.5, offset=(6, 8))],
                [Token(오이, score=0.7, offset=(11, 13)),
@@ -450,14 +450,14 @@ class NounMatchTokenizer(MaxScoreTokenizer):
             noun_scores = {noun: 1.0 for noun in noun_scores}
         super().__init__(noun_scores)
 
-    def __call__(self, sentence, flatten=True, concat_compound=True):
-        return self.tokenize(sentence, flatten, concat_compound)
+    def __call__(self, sentence, return_words=True, concat_compound=True):
+        return self.tokenize(sentence, return_words, concat_compound)
 
-    def tokenize(self, sentence, flatten=True, concat_compound=True, must_be_L=False):
+    def tokenize(self, sentence, return_words=True, concat_compound=True, must_be_L=False):
         """
         Args:
             sentence (str) : input string
-            flatten (Boolean) :
+            return_words (Boolean) :
                 If True, it returns tokens as form of list of str
                 Otherwise, it returns nested list of `Token`
             concat_compound (Boolean) :
@@ -495,6 +495,6 @@ class NounMatchTokenizer(MaxScoreTokenizer):
                     nouns = nouns[:1]
             tokens.append(nouns)
             offset += (len(s) + 1)
-        if flatten:
+        if return_words:
             tokens = [noun.word for nouns in tokens for noun in nouns]
         return tokens

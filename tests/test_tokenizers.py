@@ -26,11 +26,11 @@ def test_regex_tokenizer():
         true_words = test_case['words']
         true_offsets = test_case['offsets']
 
-        flatten_words = regex_tokenizer.tokenize(sentence, flatten=True)
-        result = regex_tokenizer.tokenize(sentence, flatten=False)
+        words = regex_tokenizer.tokenize(sentence, return_words=True)
+        result = regex_tokenizer.tokenize(sentence, return_words=False)
         offsets = [token.begin for tokens in result for token in tokens]
 
-        assert true_words == flatten_words
+        assert true_words == words
         assert true_offsets == offsets
         print(f'\ninput : {sentence}')
         pprint(result)
@@ -75,13 +75,13 @@ def test_l_tokenizer():
         sentence = test_case['input']
         remove_r = test_case['remove_r']
 
-        tokens = ltokenizer(sentence, flatten=False, tolerance=tolerance, remove_r=remove_r)
-        flatten_words = ltokenizer.tokenize(sentence, tolerance=tolerance, remove_r=remove_r)
+        tokens = ltokenizer(sentence, return_words=False, tolerance=tolerance, remove_r=remove_r)
+        words = ltokenizer.tokenize(sentence, tolerance=tolerance, remove_r=remove_r)
 
-        assert flatten_words == true_words
+        assert words == true_words
         print(f'\ninput : {sentence}\ntolerance : {tolerance}\nremove_r : {remove_r}')
         print(f'scores : {scores}')
-        print(f'flatten words : {flatten_words}')
+        print(f'words : {words}')
         pprint(tokens)
 
 
@@ -102,16 +102,16 @@ def test_maxscore_tokenizer():
         true_begin = test_case['begin']
 
         tokenizer = MaxScoreTokenizer(scores)
-        nested_tokens = tokenizer.tokenize(sentence, flatten=False)
-        flatten_tokens = [t for tokens in nested_tokens for t in tokens]
-        words = [t.word for t in flatten_tokens]
-        begin = [t.begin for t in flatten_tokens]
+        nested_tokens = tokenizer.tokenize(sentence, return_words=False)
+        tokens = [t for tokens in nested_tokens for t in tokens]
+        words = [t.word for t in tokens]
+        begin = [t.begin for t in tokens]
 
         assert words == true_words
         assert begin == true_begin
         print(f'\ninput : {sentence}\nscores : {scores}')
-        print(f'flatten words : {words}')
-        pprint(flatten_tokens)
+        print(f'words : {words}')
+        pprint(tokens)
 
 
 def test_maxscore_tokenizer_usage():
