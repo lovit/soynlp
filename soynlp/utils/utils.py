@@ -224,6 +224,7 @@ class EojeolCounter:
         check_corpus(sents)
 
         _counter = {}
+        i_sent = -1
         for i_sent, sent in enumerate(sents):
             sent = self.preprocess(sent)
             # filtering during eojeol counting
