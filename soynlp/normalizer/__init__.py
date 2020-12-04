@@ -7,6 +7,7 @@ from ._normalizer import only_text
 from ._normalizer import normalize
 from ._normalizer import remain_hangle_on_last
 from ._normalizer import normalize_sent_for_lrgraph
+from ._normalizer import text_with_hanja
 
 __all__ = [
     'normalize',
@@ -17,5 +18,6 @@ __all__ = [
     'only_hangle_number',
     'only_text',
     'remain_hangle_on_last',
-    'normalize_sent_for_lrgraph'
+    'normalize_sent_for_lrgraph',
+    'text_with_hanja'
 ]
