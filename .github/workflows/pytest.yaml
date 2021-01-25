@@ -35,5 +35,5 @@ jobs:
                   pip3 install pytest pytest-cov --no-cache --user
                   pip3 install -r requirements.txt --user
             - name: test with pytest
-              run: python3 -m pytest -s -v --cov-report=xml --cov=./ tests/*
+              run: python3 -m pytest -s -v --cov-report=xml --cov=./ tests/test*.py
 
