@@ -1,4 +1,7 @@
-from soynlp.normalizer.normalizer import PassCharacterNormalizer
+from soynlp.normalizer.normalizer import (
+    PassCharacterNormalizer,
+    RemoveLongspaceNormalizer,
+)
 
 
 def test_pass_character_normalizer():
@@ -33,3 +36,7 @@ def test_pass_character_normalizer():
         )(s)
         == "이것은 abc 123 ().,!?-/ 이 포함된 문장 @@"
     )
+
+
+def test_longspace_normalizer():
+    assert RemoveLongspaceNormalizer()("ab     cd    d  f ") == "ab  cd  d  f "

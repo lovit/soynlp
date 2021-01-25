@@ -62,3 +62,16 @@ class PassCharacterNormalizer(Normalizer):
 
     def normalize(self, s: str) -> str:
         return self.pattern.sub(" ", s).strip()
+
+
+class RemoveLongspaceNormalizer(Normalizer):
+    """
+    Example:
+        >>> RemoveLongspaceNormalizer()("ab     cd    d  f ")
+        $ 'ab  cd  d  f '
+    """
+    def __init__(self):
+        self.pattern = re.compile('[ ]{2,}')
+
+    def normalize(self, s: str) -> str:
+        return self.pattern.sub("  ", s)
