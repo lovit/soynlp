@@ -5,7 +5,7 @@ from soynlp.normalizer.normalizer import (
     RemoveLongspaceNormalizer,
     PaddingSpacetoWordsNormalizer,
     TextNormalizer,
-    text_normalizer
+    text_normalizer,
 )
 
 
