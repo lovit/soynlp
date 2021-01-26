@@ -134,3 +134,27 @@ class RemoveLongspaceNormalizer(Normalizer):
 
     def normalize(self, s: str) -> str:
         return self.pattern.sub("  ", s)
+
+
+class PaddingSpacetoWordsNormalizer(Normalizer):
+    """
+    Example:
+        >>> PaddingSpacetoWordsNormalizer()("(주)일이삼 [[공지]]제목 이것은예시다!!")
+        $ '( 주 ) 일이삼  [[ 공지 ]] 제목   이것은예시다 !!'
+    """
+    def __init__(self, custom_character: str = None):
+        pattern = "a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ0-9"
+        if isinstance(custom_character, str):
+            pattern += custom_character
+        self.pattern = re.compile(f"[{pattern}]+")
+
+    def normalize(self, s: str) -> str:
+        s_ = []
+        offset = 0
+        for m in self.pattern.finditer(s):
+            begin, end = m.span()
+            s_.append(s[offset:begin])
+            s_.append(f" {s[begin:end]} ")
+            offset = end
+        s_.append(s[offset:])
+        return ''.join(s_)

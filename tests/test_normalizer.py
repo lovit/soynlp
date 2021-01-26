@@ -3,6 +3,7 @@ from soynlp.normalizer.normalizer import (
     HangleEmojiNormalizer,
     RepeatCharacterNormalize,
     RemoveLongspaceNormalizer,
+    PaddingSpacetoWordsNormalizer,
 )
 
 
@@ -56,3 +57,10 @@ def test_repeat_character_normalizer():
 
 def test_longspace_normalizer():
     assert RemoveLongspaceNormalizer()("ab     cd    d  f ") == "ab  cd  d  f "
+
+
+def test_padding_space_to_words():
+    assert (
+        PaddingSpacetoWordsNormalizer()("(주)일이삼 [[공지]]제목 이것은예시다!!")
+        == "( 주 ) 일이삼  [[ 공지 ]] 제목   이것은예시다 !!"
+    )
