@@ -64,6 +64,25 @@ class PassCharacterNormalizer(Normalizer):
         return self.pattern.sub(" ", s).strip()
 
 
+class RepeatCharacterNormalize(Normalizer):
+    """
+    Args:
+        max_repeat (int)
+    Examples:
+        >>> RepeatCharacterNormalize()("ㅇㅇㅇㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ")
+        $ 'ㅇㅇㅋㅋ'
+        >>> RepeatCharacterNormalize(max_repeat=3)("ㅇㅇㅇㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ")
+        $ 'ㅇㅇㅇㅋㅋㅋ'
+    """
+    def __init__(self, max_repeat: int = 2):
+        pattern = "(\w)\\1{" + str(max_repeat) + ",}"
+        self.pattern = re.compile(pattern)
+        self.replace_str = "\\1" * max_repeat
+
+    def normalize(self, s: str) -> str:
+        return self.pattern.sub(self.replace_str, s)
+
+
 class RemoveLongspaceNormalizer(Normalizer):
     """
     Example:
