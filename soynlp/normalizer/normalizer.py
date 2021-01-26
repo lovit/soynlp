@@ -104,7 +104,7 @@ class HangleEmojiNormalizer(Normalizer):
         return ''.join(s_)
 
 
-class RepeatCharacterNormalize(Normalizer):
+class RepeatCharacterNormalizer(Normalizer):
     """
     Args:
         max_repeat (int)

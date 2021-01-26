@@ -1,7 +1,7 @@
 from soynlp.normalizer.normalizer import (
     PassCharacterNormalizer,
     HangleEmojiNormalizer,
-    RepeatCharacterNormalize,
+    RepeatCharacterNormalizer,
     RemoveLongspaceNormalizer,
     PaddingSpacetoWordsNormalizer,
 )
@@ -46,13 +46,13 @@ def test_hangle_emoji_normalizer():
     hangle_emoji = HangleEmojiNormalizer()
     assert hangle_emoji(s) == "어머나 ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅜㅜㅜㅜㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅋㅋㅋㅋㅜㅜㅜㅜㅜㅜ 하하"
 
-    repeat_character = RepeatCharacterNormalize()
+    repeat_character = RepeatCharacterNormalizer()
     assert repeat_character(hangle_emoji(s)) == "어머나 ㅋㅋㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅜㅜ 하하"
 
 
 def test_repeat_character_normalizer():
-    assert RepeatCharacterNormalize()("ㅇㅇㅇㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ") == "ㅇㅇㅋㅋ"
-    assert RepeatCharacterNormalize(max_repeat=3)("ㅇㅇㅇㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ") == "ㅇㅇㅇㅋㅋㅋ"
+    assert RepeatCharacterNormalizer()("ㅇㅇㅇㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ") == "ㅇㅇㅋㅋ"
+    assert RepeatCharacterNormalizer(max_repeat=3)("ㅇㅇㅇㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ") == "ㅇㅇㅇㅋㅋㅋ"
 
 
 def test_longspace_normalizer():
