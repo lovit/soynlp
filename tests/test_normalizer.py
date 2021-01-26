@@ -4,6 +4,7 @@ from soynlp.normalizer.normalizer import (
     RepeatCharacterNormalizer,
     RemoveLongspaceNormalizer,
     PaddingSpacetoWordsNormalizer,
+    TextNormalizer,
 )
 
 
@@ -63,4 +64,34 @@ def test_padding_space_to_words():
     assert (
         PaddingSpacetoWordsNormalizer()("(주)일이삼 [[공지]]제목 이것은예시다!!")
         == "( 주 ) 일이삼  [[ 공지 ]] 제목   이것은예시다 !!"
+    )
+
+
+def test_normalizer_builder():
+    normalizer = TextNormalizer.build_normalizer()
+    assert (
+        normalizer("어머나 ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ 하하")
+        == "어머나 ㅋㅋㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅜㅜ 하하"
+    )
+
+    normalizer = TextNormalizer.build_normalizer(remove_repeatchar=3)
+    assert (
+        normalizer("어머나 ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ 하하")
+        == "어머나 ㅋㅋㅋㅜㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅋㅜㅜㅜ 하하"
+    )
+
+    assert normalizer("(주)일이삼 [[공지]]제목 이것은예시다!!") == "(주)일이삼 [[공지]]제목 이것은예시다!!"
+
+    normalizer = TextNormalizer.build_normalizer(padding_space=True)
+    assert normalizer("(주)일이삼 [[공지]]제목 이것은예시다!!") == "( 주 ) 일이삼  [[ 공지 ]] 제목  이것은예시다 !!"
+
+    normalizer = TextNormalizer.build_normalizer(padding_space=True, symbol=False)
+    assert normalizer("(주)일이삼 [[공지]]제목 이것은예시다!!") == " 주  일이삼  공지  제목  이것은예시다 "
+
+    normalizer = TextNormalizer.build_normalizer(
+        padding_space=False, symbol=False, custom="/:@."
+    )
+    assert (
+        normalizer("soynlp의 주소는 https://github.com/lovit/soynlp/ 입니다.")
+        == "soynlp의 주소는 https://github.com/lovit/soynlp/ 입니다."
     )
