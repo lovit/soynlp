@@ -5,6 +5,7 @@ from soynlp.normalizer.normalizer import (
     RemoveLongspaceNormalizer,
     PaddingSpacetoWordsNormalizer,
     TextNormalizer,
+    text_normalizer
 )
 
 
@@ -94,4 +95,11 @@ def test_normalizer_builder():
     assert (
         normalizer("soynlp의 주소는 https://github.com/lovit/soynlp/ 입니다.")
         == "soynlp의 주소는 https://github.com/lovit/soynlp/ 입니다."
+    )
+
+
+def test_default_text_normalizer():
+    assert (
+        text_normalizer("어머나 ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ 하하")
+        == "어머나 ㅋㅋㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅜㅜ 하하"
     )

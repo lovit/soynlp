@@ -253,3 +253,6 @@ class TextNormalizer(Normalizer):
         if not modules:
             raise ValueError("Empty components. Check normalizer builder arguments")
         return TextNormalizer(modules)
+
+
+text_normalizer = TextNormalizer.build_normalizer()  # default normalizer
