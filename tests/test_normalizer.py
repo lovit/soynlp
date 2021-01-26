@@ -1,5 +1,6 @@
 from soynlp.normalizer.normalizer import (
     PassCharacterNormalizer,
+    HangleEmojiNormalizer,
     RepeatCharacterNormalize,
     RemoveLongspaceNormalizer,
 )
@@ -37,6 +38,15 @@ def test_pass_character_normalizer():
         )(s)
         == "이것은 abc 123 ().,!?-/ 이 포함된 문장 @@"
     )
+
+
+def test_hangle_emoji_normalizer():
+    s = "어머나 ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ 하하"
+    hangle_emoji = HangleEmojiNormalizer()
+    assert hangle_emoji(s) == "어머나 ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅜㅜㅜㅜㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅋㅋㅋㅋㅜㅜㅜㅜㅜㅜ 하하"
+
+    repeat_character = RepeatCharacterNormalize()
+    assert repeat_character(hangle_emoji(s)) == "어머나 ㅋㅋㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅜㅜ 하하"
 
 
 def test_repeat_character_normalizer():

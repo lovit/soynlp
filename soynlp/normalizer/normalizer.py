@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from typing import Union
 
 
@@ -62,6 +63,45 @@ class PassCharacterNormalizer(Normalizer):
 
     def normalize(self, s: str) -> str:
         return self.pattern.sub(" ", s).strip()
+
+
+class HangleEmojiNormalizer(Normalizer):
+    """
+    Example:
+        >>> s = "어머나 ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ 하하"
+        >>> hangle_emoji = HangleEmojiNormalizer()
+        >>> hangle_emoji(s)
+        $ '어머나 ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅜㅜㅜㅜㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅋㅋㅋㅋㅜㅜㅜㅜㅜㅜ 하하'
+
+        >>> repeat_character = RepeatCharacterNormalize()
+        >>> repeat_character(hangle_emoji(s))
+        $ '어머나 ㅋㅋㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅜㅜ 하하'
+    """
+    def __init__(self):
+        self.pattern = re.compile('[ㄱ-ㅎ]+[가-힣]{1}[ㅏ-ㅣ]+')
+        self._hangle = re.compile('[가-힣]')
+
+    def normalize(self, s: str) -> str:
+        def decompose(target):
+            i = list(self._hangle.finditer(target))[0].span()[0]
+            hangle = unicodedata.normalize("NFKD", target[i])
+            jaum, moum = target[i-1], target[i+1]
+            jaum_ = unicodedata.normalize("NFKD", jaum)
+            moum_ = unicodedata.normalize("NFKD", moum)
+            if (jaum_ == hangle[0]) and (hangle[-1] == moum_):
+                return target[:i] + jaum + moum + target[i+1:]
+            return target
+
+        s_ = []
+        offset = 0
+        for m in self.pattern.finditer(s):
+            begin, end = m.span()
+            s_.append(s[offset:begin])
+            target = s[begin:end]
+            s_.append(decompose(target))
+            offset = end
+        s_.append(s[offset:])
+        return ''.join(s_)
 
 
 class RepeatCharacterNormalize(Normalizer):
