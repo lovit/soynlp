@@ -1,8 +1,6 @@
 import os
 import sys
 from pprint import pprint
-soynlp_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
-sys.path.insert(0, soynlp_path)
 
 from soynlp.noun import LRNounExtractor
 from soynlp.tokenizer import NounMatchTokenizer
@@ -73,12 +71,13 @@ def test_nounmatch_tokenizer():
 
 
 def test_noun_tokenizer_usage():
-    train_data = f'{soynlp_path}/data/2016-10-20.txt'
-    train_zip_data = f'{soynlp_path}/data/2016-10-20.zip'
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
+    train_data = f'{root_dir}/data/2016-10-20.txt'
+    train_zip_data = f'{root_dir}/data/2016-10-20.zip'
     if not os.path.exists(train_data):
         assert os.path.exists(train_zip_data)
         with zipfile.ZipFile(train_zip_data, 'r') as zip_ref:
-            zip_ref.extractall(f'{soynlp_path}/data/')
+            zip_ref.extractall(f'{root_dir}/data/')
     assert os.path.exists(train_data)
 
     noun_extractor = LRNounExtractor()

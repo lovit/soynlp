@@ -1,8 +1,6 @@
 import os
 import sys
 import zipfile
-soynlp_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
-sys.path.insert(0, soynlp_path)
 
 from soynlp.noun.lr import remove_ambiguous_features, check_r_features, predict_single_noun
 from soynlp.noun import LRNounExtractor
@@ -136,12 +134,13 @@ def test_usage():
         '아이디': {'frequency': 59, 'score': 1.0},
         '아이디어': {'frequency': 142, 'score': 1.0},
     }
-    train_data = f'{soynlp_path}/data/2016-10-20.txt'
-    train_zip_data = f'{soynlp_path}/data/2016-10-20.zip'
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
+    train_data = f'{root_dir}/data/2016-10-20.txt'
+    train_zip_data = f'{root_dir}/data/2016-10-20.zip'
     if not os.path.exists(train_data):
         assert os.path.exists(train_zip_data)
         with zipfile.ZipFile(train_zip_data, 'r') as zip_ref:
-            zip_ref.extractall(f'{soynlp_path}/data/')
+            zip_ref.extractall(f'{root_dir}/data/')
     assert os.path.exists(train_data)
 
     print()
