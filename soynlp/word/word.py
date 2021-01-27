@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 
 
@@ -105,3 +106,28 @@ class AccessVariety:
     subword: str
     leftside: float
     rightside: float
+
+
+def get_entropy(collection_of_numbers):
+    """
+    Args:
+        collection_of_numbers (collection of number)
+
+    Returns:
+        entropy (float)
+
+    Examples::
+        >>> get_entropy([3, 4, 3])
+        $ 1.0888999753452238
+
+        >>> get_entropy([100, 1, 1])
+        $ 0.11010008192339721
+    """
+    if not collection_of_numbers:
+        return 0.0
+    total = sum(collection_of_numbers)
+    entropy = 0
+    for number in collection_of_numbers:
+        prob = float(number) / total
+        entropy += prob * math.log(prob)
+    return -1 * entropy

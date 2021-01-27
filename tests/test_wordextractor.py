@@ -1,4 +1,4 @@
-from soynlp.word.word import CohesionScore, BranchingEntropy, AccessVariety
+from soynlp.word.word import CohesionScore, BranchingEntropy, AccessVariety, get_entropy
 
 
 def test_score_dataclass():
@@ -11,3 +11,8 @@ def test_score_dataclass():
     assert AccessVariety("토크나이저", 0.8, 0.5) == AccessVariety(
         subword="토크나이저", leftside=0.8, rightside=0.5
     )
+
+
+def test_get_entropy():
+    assert abs(get_entropy([3, 4, 3]) - 1.0888999) < 0.0001
+    assert abs(get_entropy([100, 1, 1]) - 0.11010) < 0.0001
