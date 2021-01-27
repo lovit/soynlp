@@ -75,7 +75,7 @@ class BranchingEntropy:
 
 
 @dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
-class AccessVariety:
+class AccessorVariety:
     """
     Args:
         subword (str) : Substring of word
@@ -88,16 +88,16 @@ class AccessVariety:
 
     Examples:
         # 토크나이 + 저 로 오른쪽에 한 종류의 글자가 등장
-        >>> av = AccessVariety("토크나이", 15, 1)
+        >>> av = AccessorVariety("토크나이", 15, 1)
 
         # 토 + 크나이저 로 왼쪽에 한 종류의 글자가 등장
-        >>> av = AccessVariety("크나이저", 1, 9)
+        >>> av = AccessorVariety("크나이저", 1, 9)
 
         # 토크나이저 + 는/의/를 등 다양한 조사가 출현
-        >>> av = AccessVariety("토크나이저", 15, 9)
+        >>> av = AccessorVariety("토크나이저", 15, 9)
 
         >>> av
-        $ AccessVariety(subword='토크나이저', leftside=0.8, rightside=0.5)
+        $ AccessorVariety(subword='토크나이저', leftside=0.8, rightside=0.5)
 
         >>> av.leftside
         $ 0.8
