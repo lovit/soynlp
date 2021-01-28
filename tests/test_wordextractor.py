@@ -103,6 +103,22 @@ def test_couting_substrings():
         '다 올': 1
     }
 
+    L, R, prev_L, R_next = count_substrings(
+        train_data=train_data,
+        L=defaultdict(int),
+        R=defaultdict(int),
+        prev_L=defaultdict(int),
+        R_next=defaultdict(int),
+        max_left_length=3,
+        max_right_length=2,
+        min_frequency=2,
+        prune_per_lines=-1,
+        cohesion_only=False,
+        verbose=True
+    )
+    assert L == {'여': 2, '여름': 2}
+
+
 def test_get_entropy():
     assert abs(get_entropy([3, 4, 3]) - 1.0888999) < 0.0001
     assert abs(get_entropy([100, 1, 1]) - 0.11010) < 0.0001
