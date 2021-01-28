@@ -14,8 +14,8 @@ class WordExtractor:
 
         self.L = {}
         self.R = {}
-        self.prev_L = {}
-        self.R_next = {}
+        self.prev_sub = {}
+        self.sub_next = {}
 
     @property
     def is_trained(self):
@@ -36,15 +36,15 @@ class WordExtractor:
         prune_per_lines=-1,
         remove_subwords=False,
     ):
-        L, R, prev_L, R_next = initialize_counters(
-            self.L, self.R, self.prev_L, self.R_next, cumulate
+        L, R, prev_sub, sub_next = initialize_counters(
+            self.L, self.R, self.prev_sub, self.sub_next, cumulate
         )
-        L, R, prev_L, R_next = count_substrings(
+        L, R, prev_sub, sub_next = count_substrings(
             train_data=train_data,
             L=L,
             R=R,
-            prev_L=prev_L,
-            R_next=R_next,
+            prev_sub=prev_sub,
+            sub_next=sub_next,
             max_left_length=self.max_left_length,
             max_right_length=self.max_right_length,
             min_frequency=min_frequency,
@@ -52,7 +52,7 @@ class WordExtractor:
             cohesion_only=cohesion_only,
             verbose=self.verbose,
         )
-        self.L, self.R, self.prev_L, self.R_next = L, R, prev_L, R_next
+        self.L, self.R, self.prev_sub, self.sub_next = L, R, prev_sub, sub_next
 
 
 def print_message(message):
@@ -60,9 +60,9 @@ def print_message(message):
     print(f"[WordExtractor] {now}, mem={get_process_memory():.4} GB : {message}")
 
 
-def initializer_counters(L, R, prev_L, R_next, cumulate: bool):
+def initializer_counters(L, R, prev_sub, sub_next, cumulate: bool):
     if cumulate:
-        return tuple(defaultdict(int, d) for d in [L, R, prev_L, R_next])
+        return tuple(defaultdict(int, d) for d in [L, R, prev_sub, sub_next])
     return tuple(defaultdict(int) for _ in range(4))
 
 
@@ -76,8 +76,8 @@ def count_substrings(
     train_data,
     L,
     R,
-    prev_L,
-    R_next,
+    prev_sub,
+    sub_next,
     max_left_length,
     max_right_length,
     min_frequency,
@@ -98,7 +98,7 @@ def count_substrings(
     for i_line, line in enumerate(train_iterator):
         # prune
         if (prune_per_lines > 0) and (i_line % prune_per_lines == 0):
-            L, R, prev_L, R_next = [prune_counter(d, 2) for d in [L, R, prev_L, R_next]]
+            L, R, prev_sub, sub_next = [prune_counter(d, 2) for d in [L, R, prev_sub, sub_next]]
 
         words = line.split()
 
@@ -122,16 +122,18 @@ def count_substrings(
             prev_char = prev_word[-1]
             next_char = next_word[0]
             n = len(word)
+            if n <= max_left_length:
+                sub_next[(word, next_char)] += 1
             for i in range(1, min(max_left_length, n) + 1):
-                prev_L[(prev_char, word[:i])] += 1
+                prev_sub[(prev_char, word[:i])] += 1
             for i in range(1, min(max_right_length + 1, n)):
-                R_next[(word[-i:], next_char)] += 1
+                sub_next[(word[-i:], next_char)] += 1
 
     L = dict(prune_counter(L, min_frequency))
     R = dict(prune_counter(R, min_frequency))
-    prev_L = dict(prune_counter(prev_L, min_frequency))
-    R_next = dict(prune_counter(R_next, min_frequency))
-    return L, R, prev_L, R_next
+    prev_sub = dict(prune_counter(prev_sub, min_frequency))
+    sub_next = dict(prune_counter(sub_next, min_frequency))
+    return L, R, prev_sub, sub_next
 
 
 def calculate_cohesion(word: str, L: dict, R: dict):
@@ -158,7 +160,7 @@ def calculate_cohesion_batch(
 ):
     words = set(L).union(set(R))
     if verbose:
-        word_iterator = tqdm(words, desc="Calculate cohesion in batch", total=len(words))
+        word_iterator = tqdm(words, desc="Calculating cohesions in batch", total=len(words))
     else:
         word_iterator = words
     extracteds = {}

@@ -25,12 +25,12 @@ def test_score_dataclass():
 
 def test_couting_substrings():
     train_data = ["여름이는 여름을 좋아한다", "올겨울에는 겨울에 갔다"]
-    L, R, prev_L, R_next = count_substrings(
+    L, R, prev_sub, sub_next = count_substrings(
         train_data=train_data,
         L=defaultdict(int),
         R=defaultdict(int),
-        prev_L=defaultdict(int),
-        R_next=defaultdict(int),
+        prev_sub=defaultdict(int),
+        sub_next=defaultdict(int),
         max_left_length=3,
         max_right_length=2,
         min_frequency=1,
@@ -71,7 +71,7 @@ def test_couting_substrings():
         '울에': 1
     }
 
-    assert prev_L == {
+    assert prev_sub == {
         ('다', '여'): 1,
         ('다', '여름'): 1,
         ('다', '여름이'): 1,
@@ -91,27 +91,29 @@ def test_couting_substrings():
         ('에', '갔다'): 1
     }
 
-    # "갔다"는 L 이므로 포함되지 않으며, "갔다 - 올겨울에는" 으로부터 "다 올" 이 계산되었다.
-    assert R_next == {
+    assert sub_next == {
         ('는', '여'): 1,
         ('이는', '여'): 1,
+        ('여름을', '좋'): 1,
         ('을', '좋'): 1,
         ('름을', '좋'): 1,
         ('다', '여'): 1,
         ('한다', '여'): 1,
         ('는', '겨'): 1,
         ('에는', '겨'): 1,
+        ('겨울에', '갔'): 1,
         ('에', '갔'): 1,
         ('울에', '갔'): 1,
+        ('갔다', '올'): 1,
         ('다', '올'): 1
     }
 
-    L, R, prev_L, R_next = count_substrings(
+    L, R, prev_sub, sub_next = count_substrings(
         train_data=train_data,
         L=defaultdict(int),
         R=defaultdict(int),
-        prev_L=defaultdict(int),
-        R_next=defaultdict(int),
+        prev_sub=defaultdict(int),
+        sub_next=defaultdict(int),
         max_left_length=3,
         max_right_length=2,
         min_frequency=2,
@@ -153,12 +155,12 @@ def test_cohesion_score():
 
 def test_cohesion_score_batch():
     train_data = ["여름이는 여름을 좋아한다", "올겨울에는 겨울에 갔다", "겨울이는 겨울이를 겨울겨울", "여름이 여름에 여름을 여름여름", "여지가 있다"]
-    L, R, prev_L, R_next = count_substrings(
+    L, R, prev_sub, sub_next = count_substrings(
         train_data=train_data,
         L=defaultdict(int),
         R=defaultdict(int),
-        prev_L=defaultdict(int),
-        R_next=defaultdict(int),
+        prev_sub=defaultdict(int),
+        sub_next=defaultdict(int),
         max_left_length=3,
         max_right_length=2,
         min_frequency=2,
