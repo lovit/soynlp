@@ -4,7 +4,8 @@ from soynlp.word.word import (
     BranchingEntropy,
     AccessorVariety,
     get_entropy,
-    count_substrings
+    count_substrings,
+    calculate_cohesion,
 )
 
 
@@ -117,6 +118,35 @@ def test_couting_substrings():
         verbose=True
     )
     assert L == {'여': 2, '여름': 2}
+
+
+def test_cohesion_score():
+    def assert_e6(value):
+        assert abs(value) < 1e-6
+
+    L = {"아": 30000, "아이": 4910, "아이폰": 700, "아이폰의": 100, "아이돌": 350,
+         "아이오": 307, "아이오아": 270, "아이오아이": 270, "아이오아이는": 40}
+    R = {"이오아이는": 40, "오아이는": 40, "아이는": 350, "이는": 9500, "는": 54000,
+         "이폰의": 100, "이폰": 700, "아이돌": 50, "간아이돌": 50}
+    queries = ["아이", "아이오", "아이오아", "아이오아이", "아이오아이는", "아이폰", "아이폰의", "아이돌", "주간아이돌"]
+    print(f"\nL: {L}\nR: {R}")
+    answers = {
+        "아이": (0.16366666666666665, 0),
+        "아이오": (0.10115993936995679, 0),
+        "아이오아": (0.20800838230519042, 0),
+        "아이오아이": (0.3080070288241023, 0),
+        "아이오아이는": (0.26606499942619716, 0.0),
+        "아이폰": (0.15275252316519466, 0),
+        "아이폰의": (0.14938015821857217, 0),
+        "아이돌": (0.10801234497346433, 0),
+        "주간아이돌": (0, 0),
+    }
+    for word in queries:
+        l_score, r_score = calculate_cohesion(word, L, R)
+        l_answer, r_answer = answers[word]
+        print(f"{word}: ({l_score}, {r_score})")
+        assert_e6(l_score - l_answer)
+        assert_e6(r_score - r_answer)
 
 
 def test_get_entropy():

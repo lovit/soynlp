@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from collections import defaultdict
 from dataclasses import dataclass
 from tqdm import tqdm
@@ -131,6 +132,21 @@ def count_substrings(
     prev_L = dict(prune_counter(prev_L, min_frequency))
     R_next = dict(prune_counter(R_next, min_frequency))
     return L, R, prev_L, R_next
+
+
+def calculate_cohesion(word: str, L: dict, R: dict):
+    n = len(word)
+    inv_p = 1 / (n - 1)
+    if n <= 1:
+        return (0, 0)
+    l_nominator, r_nominator = L.get(word, 0), R.get(word, 0)
+    l_denominator, r_denominator = L.get(word[0], 0), R.get(word[-1], 0)
+    l_score, r_score = 0, 0
+    if l_denominator > 0:
+        l_score = np.power((l_nominator / l_denominator), inv_p)
+    if r_denominator > 0:
+        r_score = np.power((r_nominator / r_denominator), inv_p)
+    return (l_score, r_score)
 
 
 def get_entropy(collection_of_numbers):
