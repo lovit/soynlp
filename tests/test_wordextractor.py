@@ -1,4 +1,5 @@
 from collections import defaultdict
+from pprint import pprint
 from soynlp.word.word import (
     CohesionScore,
     BranchingEntropy,
@@ -6,6 +7,7 @@ from soynlp.word.word import (
     get_entropy,
     count_substrings,
     calculate_cohesion,
+    calculate_cohesion_batch,
 )
 
 
@@ -38,7 +40,7 @@ def test_couting_substrings():
     )
 
     # ["여름이는", "좋아한다", "올겨울에", "올겨울에는"] 는 길이가 4 이상이므로 포함되지 않음
-    L == {
+    assert L == {
         '여': 2,
         '여름': 2,
         '여름이': 1,
@@ -147,6 +149,36 @@ def test_cohesion_score():
         print(f"{word}: ({l_score}, {r_score})")
         assert_e6(l_score - l_answer)
         assert_e6(r_score - r_answer)
+
+
+def test_cohesion_score_batch():
+    train_data = ["여름이는 여름을 좋아한다", "올겨울에는 겨울에 갔다", "겨울이는 겨울이를 겨울겨울", "여름이 여름에 여름을 여름여름", "여지가 있다"]
+    L, R, prev_L, R_next = count_substrings(
+        train_data=train_data,
+        L=defaultdict(int),
+        R=defaultdict(int),
+        prev_L=defaultdict(int),
+        R_next=defaultdict(int),
+        max_left_length=3,
+        max_right_length=2,
+        min_frequency=2,
+        prune_per_lines=-1,
+        cohesion_only=False,
+        verbose=True
+    )
+
+    extracteds_L = calculate_cohesion_batch(L, R, 0.8, 0.0)
+    extracteds_R = calculate_cohesion_batch(L, R, 0.0, 0.1)
+    print("\ncohesion score batch test.\nTrain data")
+    for line in train_data:
+        print(f"  {line}")
+    print("extracteds L:")
+    pprint(extracteds_L)
+    print("extracteds R:")
+    pprint(extracteds_R)
+
+    assert ("여름" not in extracteds_R) and ("겨울" not in extracteds_R) and ("이는" in extracteds_R)
+    assert ("여름" in extracteds_L) and ("겨울" in extracteds_L) and ("이는" not in extracteds_L)
 
 
 def test_get_entropy():

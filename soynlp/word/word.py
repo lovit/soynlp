@@ -136,9 +136,9 @@ def count_substrings(
 
 def calculate_cohesion(word: str, L: dict, R: dict):
     n = len(word)
-    inv_p = 1 / (n - 1)
     if n <= 1:
         return (0, 0)
+    inv_p = 1 / (n - 1)
     l_nominator, r_nominator = L.get(word, 0), R.get(word, 0)
     l_denominator, r_denominator = L.get(word[0], 0), R.get(word[-1], 0)
     l_score, r_score = 0, 0
@@ -147,6 +147,27 @@ def calculate_cohesion(word: str, L: dict, R: dict):
     if r_denominator > 0:
         r_score = np.power((r_nominator / r_denominator), inv_p)
     return (l_score, r_score)
+
+
+def calculate_cohesion_batch(
+    L: dict,
+    R: dict,
+    min_cohesion_leftside: float,
+    min_cohesion_rightside: float,
+    verbose: bool = True
+):
+    words = set(L).union(set(R))
+    if verbose:
+        word_iterator = tqdm(words, desc="Calculate cohesion in batch", total=len(words))
+    else:
+        word_iterator = words
+    extracteds = {}
+    for word in word_iterator:
+        l_score, r_score = calculate_cohesion(word, L, R)
+        if (l_score < min_cohesion_leftside) or (r_score < min_cohesion_rightside):
+            continue
+        extracteds[word] = CohesionScore(word, l_score, r_score)
+    return extracteds
 
 
 def get_entropy(collection_of_numbers):
