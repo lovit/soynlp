@@ -123,9 +123,9 @@ def count_substrings(
             next_char = next_word[0]
             n = len(word)
             for i in range(1, min(max_left_length, n) + 1):
-                prev_L[f"{prev_char} {word[:i]}"] += 1
+                prev_L[(prev_char, word[:i])] += 1
             for i in range(1, min(max_right_length + 1, n)):
-                R_next[f"{word[-i:]} {next_char}"] += 1
+                R_next[(word[-i:], next_char)] += 1
 
     L = dict(prune_counter(L, min_frequency))
     R = dict(prune_counter(R, min_frequency))
