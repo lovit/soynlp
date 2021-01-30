@@ -1,3 +1,32 @@
+> Table of contents
+- [soynlp](#soynlp)
+  * [Guide](#guide)
+    + [Usage guide](#usage-guide)
+    + [Parameter naming](#parameter-naming)
+  * [Setup](#setup)
+  * [Python version](#python-version)
+  * [Requires](#requires)
+  * [Noun Extractor](#noun-extractor)
+    + [Noun Extractor ver 1 & News Noun Extractor](#Noun-Extractor-ver-1-&-News-Noun-Extractor)
+    + [Noun Extractor ver 2](#noun-extractor-ver-2)
+  * [Word Extraction](#word-extraction)
+  * [Tokenizer](#tokenizer)
+    + [LTokenizer](#ltokenizer)
+    + [MaxScoreTokenizer](#maxscoretokenizer)
+    + [RegexTokenizer](#regextokenizer)
+  * [Part of Speech Tagger](#part-of-speech-tagger)
+  * [Vectorizer](#vectorizer)
+  * [Normalizer](#normalizer)
+  * [Point-wise Mutual Information (PMI)](#point-wise-mutual-information-(pmi))
+  * [notes](#notes)
+    + [Slides](#slides)
+    + [Blogs](#blogs)
+  * [함께 이용하면 좋은 라이브러리들](#함께-이용하면-좋은-라이브러리들)
+    + [세종 말뭉치 정제를 위한 utils](#세종-말뭉치-정제를-위한-utils)
+    + [soyspacing](#soyspacing)
+    + [KR-WordRank](#kr-wordrank)
+    + [soykeyword](#soykeyword)
+    
 # soynlp
 
 한국어 분석을 위한 pure python code 입니다. 학습데이터를 이용하지 않으면서 데이터에 존재하는 단어를 찾거나, 문장을 단어열로 분해, 혹은 품사 판별을 할 수 있는 비지도학습 접근법을 지향합니다.
