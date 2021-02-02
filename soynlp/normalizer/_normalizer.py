@@ -19,6 +19,9 @@ hangle_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣]')
 hangle_number_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]')
 text_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9,\.\?\!\"\'-()\[\]\{\}]')
 
+# text + 한자 filter
+text_with_hanja_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9,\.\?\!\"\'-()\[\]\{\}\u2E80-\u2FDF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]')
+
 def normalize(doc, alphabet=False, number=False,
     punctuation=False, symbol=False, remove_repeat=0):
 
@@ -110,3 +113,7 @@ def normalize_sent_for_lrgraph(sent):
     if not sent_:
         return ''
     return ' '.join(sent_)
+
+# only_test()에 한자를 추가
+def text_with_hanja(sent):
+    return doublespace_pattern.sub(' ',text_with_hanja_filter.sub(' ', sent)).strip()
