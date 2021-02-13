@@ -314,6 +314,8 @@ def task_normalize(
 
     n_lines, n_exceptions = 0, 0
     for inp, outp in file_iterator:
+        if not os.path.exists(inp):
+            continue
         if os.path.exists(outp) and (not force):
             raise ValueError(f"Already exist {outp}. Set `force==True` or `--force`")
         os.makedirs(os.path.dirname(os.path.abspath(outp)), exist_ok=True)
@@ -335,6 +337,7 @@ def task_normalize(
                             print(f"Exception {err} at {line}")
                         fo.write(f"{line.strip()}\n")
                         n_exceptions += 1
+                        continue
     if verbose:
         print(f"Found {n_exceptions} from {n_lines}")
 
