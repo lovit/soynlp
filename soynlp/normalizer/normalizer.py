@@ -3,6 +3,7 @@ import re
 import unicodedata
 from glob import glob
 from typing import Callable, List, Union
+from tqdm import tqdm
 
 
 class Normalizer:
@@ -257,8 +258,8 @@ class TextNormalizer(Normalizer):
 
 
 def task_normalize(
-    input: str,
-    output: str,
+    input: Union[str, List[str]],
+    output: Union[str, List[str]],
     verbose: bool = True,
     force: bool = False,
     alphabet: bool = True,
@@ -270,7 +271,60 @@ def task_normalize(
     remove_repeatchar: int = 2,
     remove_longspace: bool = True,
 ):
-    return None
+
+    task_normalizer = TextNormalizer.build_normalizer(
+        alphabet=alphabet,
+        hangle=hangle,
+        number=number,
+        symbol=symbol,
+        custom=custom,
+        decompose_hangle_emoji=decompose_hangle_emoji,
+        remove_repeatchar=remove_repeatchar,
+        remove_longspace=remove_longspace,
+    )
+
+    if isinstance(input, list) and len(input) == 1:
+        input = input[0]
+    if isinstance(output, list) and len(output) == 1:
+        output = output[0]
+
+    if isinstance(input, list) and isinstance(output, list):
+        if len(input) != len(output):
+            raise ValueError("The length of `input` and `output` must be same")
+    elif isinstance(input, str) and isinstance(output, str):
+        if os.path.isdir(input):
+            input = sorted([inp for inp in glob(f"{input}/*") if os.path.isfile(inp)])
+            output = [f"{output}/{os.path.basename(inp)}" for inp in input]
+        else:
+            input = [input]
+            output = [output]
+    elif isinstance(input, list) and isinstance(output, str):
+        input = [inp for inp in input if os.path.isfile(inp)]
+        output = [f"{output}/{os.path.basename(inp)}" for inp in input]
+
+    assert len(input) == len(output)
+
+    if verbose:
+        file_iterator = tqdm(
+            zip(input, output), desc="Task normalize", total=len(input)
+        )
+    else:
+        file_iterator = zip(input, output)
+
+    for inp, outp in file_iterator:
+        if os.path.exists(outp) and (not force):
+            raise ValueError(f"Already exist {outp}. Set `force==True` or `--force`")
+        os.makedirs(os.path.dirname(os.path.abspath(outp)), exist_ok=True)
+        with open(inp, encoding="utf-8") as fi:
+            with open(outp, "w", encoding="utf-8") as fo:
+                if verbose:
+                    line_iterator = tqdm(
+                        fi, desc=f"Normalize {os.path.basename(inp)}", leave=False
+                    )
+                else:
+                    line_iterator = fi
+                for line in line_iterator:
+                    fo.write(f"{task_normalizer(line)}\n")
 
 
 text_normalizer = TextNormalizer.build_normalizer()  # default normalizer
