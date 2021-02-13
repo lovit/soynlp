@@ -1,5 +1,7 @@
+import os
 import re
 import unicodedata
+from glob import glob
 from typing import Callable, List, Union
 
 
@@ -77,19 +79,20 @@ class HangleEmojiNormalizer(Normalizer):
         >>> repeat_character(hangle_emoji(s))
         $ '어머나 ㅋㅋㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅜㅜ 하하'
     """
+
     def __init__(self):
-        self.pattern = re.compile('[ㄱ-ㅎ]+[가-힣]{1}[ㅏ-ㅣ]+')
-        self._hangle = re.compile('[가-힣]')
+        self.pattern = re.compile("[ㄱ-ㅎ]+[가-힣]{1}[ㅏ-ㅣ]+")
+        self._hangle = re.compile("[가-힣]")
 
     def normalize(self, s: str) -> str:
         def decompose(target):
             i = list(self._hangle.finditer(target))[0].span()[0]
             hangle = unicodedata.normalize("NFKD", target[i])
-            jaum, moum = target[i-1], target[i+1]
+            jaum, moum = target[i - 1], target[i + 1]
             jaum_ = unicodedata.normalize("NFKD", jaum)
             moum_ = unicodedata.normalize("NFKD", moum)
             if (jaum_ == hangle[0]) and (hangle[-1] == moum_):
-                return target[:i] + jaum + moum + target[i+1:]
+                return target[:i] + jaum + moum + target[i + 1 :]
             return target
 
         s_ = []
@@ -101,7 +104,7 @@ class HangleEmojiNormalizer(Normalizer):
             s_.append(decompose(target))
             offset = end
         s_.append(s[offset:])
-        return ''.join(s_)
+        return "".join(s_)
 
 
 class RepeatCharacterNormalizer(Normalizer):
@@ -114,6 +117,7 @@ class RepeatCharacterNormalizer(Normalizer):
         >>> RepeatCharacterNormalizer(max_repeat=3)("ㅇㅇㅇㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ")
         $ 'ㅇㅇㅇㅋㅋㅋ'
     """
+
     def __init__(self, max_repeat: int = 2):
         pattern = "(\w)\\1{" + str(max_repeat) + ",}"
         self.pattern = re.compile(pattern)
@@ -129,8 +133,9 @@ class RemoveLongspaceNormalizer(Normalizer):
         >>> RemoveLongspaceNormalizer()("ab     cd    d  f ")
         $ 'ab  cd  d  f '
     """
+
     def __init__(self):
-        self.pattern = re.compile('[ ]{2,}')
+        self.pattern = re.compile("[ ]{2,}")
 
     def normalize(self, s: str) -> str:
         return self.pattern.sub("  ", s)
@@ -142,6 +147,7 @@ class PaddingSpacetoWordsNormalizer(Normalizer):
         >>> PaddingSpacetoWordsNormalizer()("(주)일이삼 [[공지]]제목 이것은예시다!!")
         $ '( 주 ) 일이삼  [[ 공지 ]] 제목   이것은예시다 !!'
     """
+
     def __init__(self, custom_character: str = None):
         pattern = "a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ0-9"
         if isinstance(custom_character, str):
@@ -157,7 +163,7 @@ class PaddingSpacetoWordsNormalizer(Normalizer):
             s_.append(f" {s[begin:end]} ")
             offset = end
         s_.append(s[offset:])
-        return ''.join(s_)
+        return "".join(s_)
 
 
 class TextNormalizer(Normalizer):
@@ -186,6 +192,7 @@ class TextNormalizer(Normalizer):
         >>> normalizer("soynlp의 주소는 https://github.com/lovit/soynlp/ 입니다.")
         $ 'soynlp의 주소는 https://github.com/lovit/soynlp/ 입니다.'
     """
+
     def __init__(self, normalizer_list):
         if not isinstance(normalizer_list, list):
             raise ValueError("Available only `list` as `normalizer_list`")
@@ -211,7 +218,9 @@ class TextNormalizer(Normalizer):
         remove_repeatchar: int = 2,
         remove_longspace: bool = True,
         padding_space: bool = False,
-        custom_normalizers: Union[None, Callable[[str], str], List[Callable[[str], str]]] = None
+        custom_normalizers: Union[
+            None, Callable[[str], str], List[Callable[[str], str]]
+        ] = None,
     ) -> Callable[[str], str]:
         modules = []
         if alphabet or hangle or number or symbol or isinstance(custom, str):
@@ -221,17 +230,13 @@ class TextNormalizer(Normalizer):
                     hangle=hangle,
                     number=number,
                     symbol=symbol,
-                    custom=custom
+                    custom=custom,
                 )
             )
         if padding_space:
-            modules.append(
-                PaddingSpacetoWordsNormalizer()
-            )
+            modules.append(PaddingSpacetoWordsNormalizer())
         if decompose_hangle_emoji:
-            modules.append(
-                HangleEmojiNormalizer()
-            )
+            modules.append(HangleEmojiNormalizer())
         if callable(custom_normalizers) and not isinstance(custom_normalizers, list):
             custom_normalizers = [custom_normalizers]
         if isinstance(custom_normalizers, list):
@@ -243,16 +248,29 @@ class TextNormalizer(Normalizer):
                     raise ValueError("Module in `custom_normalizer` must return `str`")
             modules += custom_normalizers
         if remove_repeatchar > 0:
-            modules.append(
-                RepeatCharacterNormalizer(max_repeat=remove_repeatchar)
-            )
+            modules.append(RepeatCharacterNormalizer(max_repeat=remove_repeatchar))
         if remove_longspace:
-            modules.append(
-                RemoveLongspaceNormalizer()
-            )
+            modules.append(RemoveLongspaceNormalizer())
         if not modules:
             raise ValueError("Empty components. Check normalizer builder arguments")
         return TextNormalizer(modules)
+
+
+def task_normalize(
+    input: str,
+    output: str,
+    verbose: bool = True,
+    force: bool = False,
+    alphabet: bool = True,
+    hangle: bool = True,
+    number: bool = True,
+    symbol: bool = True,
+    custom: Union[None, str] = None,
+    decompose_hangle_emoji: bool = True,
+    remove_repeatchar: int = 2,
+    remove_longspace: bool = True,
+):
+    return None
 
 
 text_normalizer = TextNormalizer.build_normalizer()  # default normalizer
