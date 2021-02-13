@@ -262,6 +262,7 @@ def task_normalize(
     output: Union[str, List[str]],
     verbose: bool = True,
     force: bool = False,
+    debug: bool = False,
     alphabet: bool = True,
     hangle: bool = True,
     number: bool = True,
@@ -311,6 +312,7 @@ def task_normalize(
     else:
         file_iterator = zip(input, output)
 
+    n_lines, n_exceptions = 0, 0
     for inp, outp in file_iterator:
         if os.path.exists(outp) and (not force):
             raise ValueError(f"Already exist {outp}. Set `force==True` or `--force`")
@@ -324,7 +326,17 @@ def task_normalize(
                 else:
                     line_iterator = fi
                 for line in line_iterator:
-                    fo.write(f"{task_normalizer(line)}\n")
+                    n_lines += 1
+                    try:
+                        normed = task_normalizer(line.strip())
+                        fo.write(f"{normed}\n")
+                    except Exception as err:
+                        if debug:
+                            print(f"Exception {err} at {line}")
+                        fo.write(f"{line.strip()}\n")
+                        n_exceptions += 1
+    if verbose:
+        print(f"Found {n_exceptions} from {n_lines}")
 
 
 text_normalizer = TextNormalizer.build_normalizer()  # default normalizer

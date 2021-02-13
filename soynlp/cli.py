@@ -19,6 +19,7 @@ def main():
     common_parser.add_argument("-o", "--output", type=str, nargs="+", required=True, help="output file or directory")
     common_parser.add_argument("-v", "--verbose", action="store_true", help="print progress")
     common_parser.add_argument("-f", "--force", action="store_true", help="overwrite `output` even if it already exists")
+    common_parser.add_argument("-d", "--debug", action="store_true", help="print debug information")
 
     # normalize
     normalize_parser = subparsers.add_parser("normalize", help="normalize file[s]", parents=[common_parser])
