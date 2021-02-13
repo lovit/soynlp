@@ -318,23 +318,22 @@ def task_normalize(
             continue
         if os.path.exists(outp) and (not force):
             raise ValueError(f"Already exist {outp}. Set `force==True` or `--force`")
+        basename = os.path.basename(inp)
         os.makedirs(os.path.dirname(os.path.abspath(outp)), exist_ok=True)
         with open(inp, encoding="utf-8") as fi:
             with open(outp, "w", encoding="utf-8") as fo:
                 if verbose:
-                    line_iterator = tqdm(
-                        fi, desc=f"Normalize {os.path.basename(inp)}", leave=False
-                    )
+                    line_iterator = tqdm(fi, desc=f"Normalize {basename}", leave=False)
                 else:
                     line_iterator = fi
-                for line in line_iterator:
+                for i, line in enumerate(line_iterator):
                     n_lines += 1
                     try:
                         normed = task_normalizer(line.strip())
                         fo.write(f"{normed}\n")
                     except Exception as err:
                         if debug:
-                            print(f"Exception {err} at {line}")
+                            print(f"Exception {err}\n@{basename} LN{i}: {line}")
                         fo.write(f"{line.strip()}\n")
                         n_exceptions += 1
                         continue
