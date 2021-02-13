@@ -10,7 +10,7 @@ from .normalizer.normalizer import task_normalize
 
 def main():
     parser = argparse.ArgumentParser(description=f"{__name__}=={__version__}")
-    parser.set_defaults(func=lambda x: print_helps)
+    parser.set_defaults(func=lambda: parser.print_help)
     subparsers = parser.add_subparsers(help=f"{__name__} tasks")
 
     # common parser
@@ -42,8 +42,11 @@ def main():
 
 def execute(function: Callable, args: argparse.Namespace):
     argument_names = inspect.signature(function).parameters
+    function_name = function.__name__
+    if function_name == "<lambda>":
+        function_name = "print_help"
     kwargs = {name: getattr(args, name) for name in argument_names}
-    print(f"\n{__name__}=={__version__} CLI\n{function.__name__}")
+    print(f"\n{__name__}=={__version__} Command Line Interface\n{function_name}")
     for name, value in kwargs.items():
         print(f"  - {name}: {pformat(value)}")
     function(**kwargs)
