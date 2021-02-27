@@ -214,7 +214,7 @@ class LTokenizer:
             """Returns: (score of L, L, R)"""
             n = len(token)
             if n <= 2:
-                return (self.scores.get(l, self.unknown_score), token, '')
+                return (self.scores.get(token, self.unknown_score), token, '')
 
             candidates = [(token[:end], token[end:]) for end in range(2, n + 1)]
             candidates = [(self.scores.get(l, self.unknown_score), l, r) for l, r in candidates]
