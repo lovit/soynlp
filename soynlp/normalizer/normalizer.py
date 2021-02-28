@@ -120,7 +120,7 @@ class RepeatCharacterNormalizer(Normalizer):
     """
 
     def __init__(self, max_repeat: int = 2):
-        pattern = "(\w)\\1{" + str(max_repeat) + ",}"
+        pattern = "(\S)\\1{" + str(max_repeat) + ",}"
         self.pattern = re.compile(pattern)
         self.replace_str = "\\1" * max_repeat
 
