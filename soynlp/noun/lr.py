@@ -644,7 +644,7 @@ def extract_compounds_func(lrgraph, noun_scores,
         lrgraph.remove_eojeol(word)
 
     compounds = {
-        noun: (score, compounds_counts.get(noun, 0))
+        noun: (compounds_counts.get(noun, 0), score)
         for noun, score in compounds_scores.items()}
 
     if verbose:
