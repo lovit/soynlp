@@ -1,16 +1,19 @@
 import math
 import numpy as np
+import os
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime
 from tqdm import tqdm
 
-from soynlp.utils import get_process_memory
+from soynlp.utils import get_process_memory, DoublespaceLineCorpus
 
 
 class WordExtractor:
     def __init__(self, max_l_length=10, max_r_length=6, verbose=True):
         self.max_l_length = max_l_length
         self.max_r_length = max_r_length
+        self.verbose = verbose
 
         self.L = {}
         self.R = {}
@@ -29,30 +32,56 @@ class WordExtractor:
         min_frequency=5,
         min_cohesion_leftside=0.05,
         min_cohesion_rightside=0.0,
-        min_brancingentropy_leftside=0.0,
-        min_brancingentropy_rightside=0.0,
-        min_accessorvariety_leftside=1,
-        min_accessorvariety_rightside=1,
+        min_brancingentropy_leftside=0.1,
+        min_brancingentropy_rightside=0.1,
+        min_accessorvariety_leftside=2,
+        min_accessorvariety_rightside=2,
         prune_per_lines=-1,
         remove_subwords=False,
     ):
+        if isinstance(train_data, str) and os.path.exists(train_data):
+            train_data = DoublespaceLineCorpus(train_data)
         L, R, prev_sub, sub_next = initialize_counters(
             self.L, self.R, self.prev_sub, self.sub_next, cumulate
         )
-        L, R, prev_sub, sub_next = count_substrings(
+        self.L, self.R, self.prev_sub, self.sub_next = count_substrings(
             train_data=train_data,
             L=L,
             R=R,
             prev_sub=prev_sub,
             sub_next=sub_next,
-            max_left_length=self.max_left_length,
-            max_right_length=self.max_right_length,
+            max_left_length=self.max_l_length,
+            max_right_length=self.max_r_length,
             min_frequency=min_frequency,
             prune_per_lines=prune_per_lines,
-            cohesion_only=cohesion_only,
+            cohesion_only=extract_cohesion_only,
             verbose=self.verbose,
         )
         self.L, self.R, self.prev_sub, self.sub_next = L, R, prev_sub, sub_next
+        cohesions = calculate_cohesion_batch(
+            L=self.L,
+            R=self.R,
+            min_cohesion_leftside=min_cohesion_leftside,
+            min_cohesion_rightside=min_cohesion_rightside,
+            verbose=self.verbose,
+        )
+        if extract_cohesion_only:
+            return cohesions
+        av, be = calculate_branching_entropy_accessor_variety_batch(
+            L=self.L,
+            R=self.R,
+            prev_sub=self.prev_sub,
+            sub_next=self.sub_next,
+            min_brancingentropy_leftside=min_brancingentropy_leftside,
+            min_brancingentropy_rightside=min_brancingentropy_rightside,
+            min_accessorvariety_leftside=min_accessorvariety_leftside,
+            min_accessorvariety_rightside=min_accessorvariety_rightside,
+            verbose=self.verbose,
+        )
+        return cohesions, av, be
+
+
+R_suffix = "▁"
 
 
 def print_message(message):
@@ -60,7 +89,7 @@ def print_message(message):
     print(f"[WordExtractor] {now}, mem={get_process_memory():.4} GB : {message}")
 
 
-def initializer_counters(L, R, prev_sub, sub_next, cumulate: bool):
+def initialize_counters(L, R, prev_sub, sub_next, cumulate: bool):
     if cumulate:
         return tuple(defaultdict(int, d) for d in [L, R, prev_sub, sub_next])
     return tuple(defaultdict(int) for _ in range(4))
@@ -98,7 +127,9 @@ def count_substrings(
     for i_line, line in enumerate(train_iterator):
         # prune
         if (prune_per_lines > 0) and (i_line % prune_per_lines == 0):
-            L, R, prev_sub, sub_next = [prune_counter(d, 2) for d in [L, R, prev_sub, sub_next]]
+            L, R, prev_sub, sub_next = [
+                prune_counter(d, 2) for d in [L, R, prev_sub, sub_next]
+            ]
 
         words = line.split()
 
@@ -156,11 +187,12 @@ def calculate_cohesion_batch(
     R: dict,
     min_cohesion_leftside: float,
     min_cohesion_rightside: float,
-    verbose: bool = True
+    verbose: bool = True,
 ):
     words = set(L).union(set(R))
     if verbose:
-        word_iterator = tqdm(words, desc="Calculating cohesions in batch", total=len(words))
+        desc = "[WordExtractor] calculating cohesions"
+        word_iterator = tqdm(words, desc=desc, total=len(words))
     else:
         word_iterator = words
     extracteds = {}
@@ -195,6 +227,107 @@ def get_entropy(collection_of_numbers):
         prob = float(number) / total
         entropy += prob * math.log(prob)
     return -1 * entropy
+
+
+def calculate_branching_entropy_accessor_variety_batch(
+    L: dict,
+    R: dict,
+    prev_sub: dict,
+    sub_next: dict,
+    min_brancingentropy_leftside: float,
+    min_brancingentropy_rightside: float,
+    min_accessorvariety_leftside: int,
+    min_accessorvariety_rightside: int,
+    verbose: bool = True,
+):
+    l_groupby_len, r_groupby_len = defaultdict(lambda: {}), defaultdict(lambda: {})
+    for l, count in L.items():
+        l_groupby_len[len(l)][l] = count
+    for r, count in R.items():
+        r_groupby_len[len(r)][r] = count
+
+    total_l, total_r = len(L), len(R)
+    be_l, be_r, av_l, av_r = {}, {}, {}, {}
+
+    offset = 0
+    max_l_length = max(l_groupby_len)
+    for l_len, l_count in sorted(l_groupby_len.items()):
+        if l_len == 1:
+            continue
+        prev_dict = defaultdict(lambda: {})
+        for (prev, sub), count in prev_sub.items():
+            if len(sub) == l_len:
+                prev_dict[sub][prev] = count
+        extensions_left, extensions_right = defaultdict(lambda: []), defaultdict(
+            lambda: []
+        )
+        if verbose:
+            l_count_iterator = tqdm(
+                l_count.items(),
+                desc="[WordExtractor] calculating AV/BE L",
+                initial=offset,
+                total=total_l,
+                leave=(l_len == max_l_length),
+            )
+        else:
+            l_count_iterator = l_count.items()
+        for l, count in l_count_iterator:
+            for sub, count in prev_dict.get(l, {}).items():
+                extensions_left[l].append(count)
+            extensions_right[l[:-1]].append(count)
+        for l, counts in extensions_left.items():
+            be_l[l] = get_entropy(counts)
+            av_l[l] = len(counts)
+        for l, counts in extensions_right.items():
+            be_r[l] = get_entropy(counts)
+            av_r[l] = len(counts)
+        offset += len(l_count)
+
+    offset = 0
+    max_r_length = max(r_groupby_len)
+    for r_len, r_count in sorted(r_groupby_len.items()):
+        if r_len == 1:
+            continue
+        prev_dict = defaultdict(lambda: {})
+        for (sub, next), count in sub_next.items():
+            if len(sub) == r_len:
+                prev_dict[sub][next] = count
+        extensions_left, extensions_right = defaultdict(lambda: []), defaultdict(
+            lambda: []
+        )
+        if verbose:
+            r_count_iterator = tqdm(
+                r_count.items(),
+                desc="[WordExtractor] calculating AV/BE R",
+                initial=offset,
+                total=total_r,
+                leave=(r_len == max_r_length),
+            )
+        else:
+            r_count_iterator = r_count.items()
+        for r, count in r_count_iterator:
+            for sub, count in prev_dict.get(r, {}).items():
+                extensions_right[r].append(count)
+            extensions_left[r[1:]].append(count)
+        for r, counts in extensions_left.items():
+            be_l[f"{r}{R_suffix}"] = get_entropy(counts)
+            av_l[f"{r}{R_suffix}"] = len(counts)
+        for r, counts in extensions_right.items():
+            be_r[f"{r}{R_suffix}"] = get_entropy(counts)
+            av_r[f"{r}{R_suffix}"] = len(counts)
+        offset += len(r_count)
+
+    av, be = {}, {}
+    for term in be_l:
+        if (av_l.get(term, 0) >= min_accessorvariety_leftside) and (
+            av_r.get(term, 0) >= min_accessorvariety_rightside
+        ):
+            av[term] = AccessorVariety(term, av_l[term], av_r[term])
+        if (be_l.get(term, 0) >= min_brancingentropy_leftside) and (
+            be_r.get(term, 0) >= min_brancingentropy_rightside
+        ):
+            be[term] = BranchingEntropy(term, be_l[term], be_r[term])
+    return av, be
 
 
 @dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
