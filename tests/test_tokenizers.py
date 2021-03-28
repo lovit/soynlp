@@ -149,9 +149,8 @@ def test_maxscore_tokenizer_usage():
         sents = [sent.strip() for doc in f for sent in doc.split("  ")]
     sents = [sent for sent in sents if sent][:10000]
     word_extractor = WordExtractor()
-    word_extractor.train(sents)
-    cohesion_scores = word_extractor.all_cohesion_scores()
-    cohesion_scores = {l: cohesion for l, (cohesion, _) in cohesion_scores.items()}
+    cohesion_scores = word_extractor.extract(sents, extract_cohesion_only=True)["cohesion"]
+    cohesion_scores = {l: score.leftside for l, score in cohesion_scores.items()}
     tokenizer = MaxScoreTokenizer(cohesion_scores)
 
     for i, sentence in enumerate(
