@@ -10,10 +10,11 @@ from soynlp.utils import get_process_memory, DoublespaceLineCorpus
 
 
 class WordExtractor:
-    def __init__(self, max_l_length=10, max_r_length=6, verbose=True):
+    def __init__(self, max_l_length=10, max_r_length=6, verbose=True, R_suffix="▁"):
         self.max_l_length = max_l_length
         self.max_r_length = max_r_length
         self.verbose = verbose
+        self.R_suffix = R_suffix
 
         self.L = {}
         self.R = {}
@@ -66,7 +67,7 @@ class WordExtractor:
             verbose=self.verbose,
         )
         if extract_cohesion_only:
-            return cohesions
+            return {"cohesion": cohesions}
         av, be = calculate_branching_entropy_accessor_variety_batch(
             L=self.L,
             R=self.R,
@@ -77,11 +78,9 @@ class WordExtractor:
             min_accessorvariety_leftside=min_accessorvariety_leftside,
             min_accessorvariety_rightside=min_accessorvariety_rightside,
             verbose=self.verbose,
+            R_suffix=self.R_suffix
         )
-        return cohesions, av, be
-
-
-R_suffix = "▁"
+        return {"cohesion": cohesions, "accessor_variety": av, "branching_entropy": be}
 
 
 def print_message(message):
@@ -239,6 +238,7 @@ def calculate_branching_entropy_accessor_variety_batch(
     min_accessorvariety_leftside: int,
     min_accessorvariety_rightside: int,
     verbose: bool = True,
+    R_suffix = "▁",
 ):
     l_groupby_len, r_groupby_len = defaultdict(lambda: {}), defaultdict(lambda: {})
     for l, count in L.items():
@@ -322,11 +322,11 @@ def calculate_branching_entropy_accessor_variety_batch(
         if (av_l.get(term, 0) >= min_accessorvariety_leftside) and (
             av_r.get(term, 0) >= min_accessorvariety_rightside
         ):
-            av[term] = AccessorVariety(term, av_l[term], av_r[term])
+            av[term] = AccessorVariety(term, av_l.get(term, 0), av_r.get(term, 0))
         if (be_l.get(term, 0) >= min_brancingentropy_leftside) and (
             be_r.get(term, 0) >= min_brancingentropy_rightside
         ):
-            be[term] = BranchingEntropy(term, be_l[term], be_r[term])
+            be[term] = BranchingEntropy(term, be_l.get(term, 0.0), be_r.get(term, 0.0))
     return av, be
 
 
