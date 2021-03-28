@@ -1,3 +1,4 @@
+import os
 from collections import defaultdict
 from pprint import pprint
 from soynlp.word.word import (
@@ -8,6 +9,7 @@ from soynlp.word.word import (
     count_substrings,
     calculate_cohesion,
     calculate_cohesion_batch,
+    WordExtractor
 )
 
 
@@ -186,3 +188,40 @@ def test_cohesion_score_batch():
 def test_get_entropy():
     assert abs(get_entropy([3, 4, 3]) - 1.0888999) < 0.0001
     assert abs(get_entropy([100, 1, 1]) - 0.11010) < 0.0001
+
+
+def test_word_extractor_usage():
+    word_extractor = WordExtractor()
+    test_cases = {
+        "트와이",
+        "트와이스",
+        f"트와이스{word_extractor.R_suffix}",
+        f"와이스{word_extractor.R_suffix}",
+        "아이",
+        "아이오",
+        "아이오아",
+        "아이오아이",
+        "아이오아이는",
+        f"아이오아이{word_extractor.R_suffix}",
+        f"아이오아이는{word_extractor.R_suffix}"
+    }
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+    train_data = f"{root_dir}/data/2016-10-20.txt"
+    train_zip_data = f"{root_dir}/data/2016-10-20.zip"
+    if not os.path.exists(train_data):
+        assert os.path.exists(train_zip_data)
+        with zipfile.ZipFile(train_zip_data, "r") as zip_ref:
+            zip_ref.extractall(f"{root_dir}/data/")
+    assert os.path.exists(train_data)
+
+    print()
+    words = word_extractor.extract(train_data)
+    for word in test_cases:
+        print(f"\nword={word}")
+        print(f"  - cohesion         : {words['cohesion'].get(word)}")
+        print(f"  - accessor variety : {words['accessor_variety'].get(word)}")
+        print(f"  - branching entropy: {words['branching_entropy'].get(word)}")
+
+    assert "트와이스" in words["cohesion"] and "트와이스" in words["branching_entropy"]
+    assert "아이오아이" in words["cohesion"] and "아이오아이" in words["branching_entropy"]
+    assert f"트와이스{word_extractor.R_suffix}" not in words["cohesion"] and f"트와이스{word_extractor.R_suffix}" not in words["branching_entropy"]

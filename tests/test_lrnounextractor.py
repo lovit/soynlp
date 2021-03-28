@@ -188,7 +188,7 @@ def test_predict_single_noun():
         assert score == test_case["score"]
 
 
-def test_usage():
+def test_lrnounextractor_usage():
     test_cases = {
         "아이오아이": {"frequency": 127, "score": 1.0},
         "아이디": {"frequency": 59, "score": 1.0},
