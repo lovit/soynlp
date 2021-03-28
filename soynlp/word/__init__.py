@@ -1,3 +1,3 @@
-from .word import WordExtractor
+from .ngram import BigramExtractor
 from .pmi import pmi
-from ._phrase import BigramExtractor
+from .word import WordExtractor
