@@ -119,4 +119,4 @@ def _encode_as_matrix(word2contexts, vocab2idx, verbose):
         print('  - (word, context) matrix was constructed. shape = {}{}'.format(
             x.shape, ' '*20))
 
-    return x
+    return x.astype(float)
