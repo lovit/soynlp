@@ -275,7 +275,7 @@ tokenizer = LTokenizer(scores=cohesion_score)
 명사 추출기의 명사 점수와 Cohesion 을 함께 이용할 수도 있습니다. 한 예로, "Cohesion 점수 + 명사 점수"를 단어 점수로 이용하려면 아래처럼 작업할 수 있습니다.
 
 ```python
-from soynlp.noun import LRNounExtractor_2
+from soynlp.noun import LRNounExtractor_v2
 noun_extractor = LRNounExtractor_v2()
 nouns = noun_extractor.train_extract(corpus) # list of str like
 
