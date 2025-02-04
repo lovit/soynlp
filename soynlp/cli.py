@@ -3,7 +3,7 @@ import inspect
 from importlib.metadata import metadata
 from typing import Callable
 
-from soynlp.dummy import dummy
+from soynlp.pipeline.pipeline import Pipeline
 
 
 def main():
@@ -18,8 +18,9 @@ def main():
     parser.set_defaults(func=lambda: parser.print_usage())
     subparsers = parser.add_subparsers()
 
-    sp_dummy = subparsers.add_parser("dummy", help="dummy function")
-    sp_dummy.set_defaults(func=dummy)
+    sp_pipeline = subparsers.add_parser("pipeline", help="Run pipeline with config")
+    sp_pipeline.add_argument("-c", "--config_file", type=str, required=True, help="Config file path")
+    sp_pipeline.set_defaults(func=Pipeline.run)
 
     args = parser.parse_args()
     func = args.func
