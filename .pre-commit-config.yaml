@@ -5,7 +5,7 @@ repos:
     rev: v1.1.393
     hooks:
       - id: pyright
-        entry: env PYRIGHT_PYTHON_NODE_VERSION=16.20.2 pyright
+        entry: pyright
         additional_dependencies: []
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.9.4
