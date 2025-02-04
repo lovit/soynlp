@@ -5,35 +5,34 @@ name: Pytest
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
 on:
-    pull_request:
-        branches:
-            - master
-            - dev
-            - refactoring
+  pull_request:
+    branches:
+      - master
+      - dev
+      - refactoring
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-    Pytest:
-        # The type of runner that the job will run on
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                python-version:
-                    - 3.x
-        timeout-minutes: 60
+  Pytest:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - 3.x
+    timeout-minutes: 60
 
-        # Steps represent a sequence of tasks that will be executed as part of the job
-        steps:
-            # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-            - uses: actions/checkout@v2
-              with:
-                  ref: ${{ github.event.pull_request.head.sha }}
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
-            - name: Prerequeist
-              run: |
-                  pip3 install --upgrade pip setuptools
-                  pip3 install pytest pytest-cov --no-cache --user
-                  pip3 install -r requirements.txt --user
-            - name: test with pytest
-              run: python3 -m pytest -s -v --cov-report=xml --cov=./ tests/test*.py
-
+      - name: Prerequeist
+        run: |
+          pip3 install --upgrade pip setuptools
+          pip3 install pytest pytest-cov --no-cache --user
+          pip3 install -r requirements.txt --user
+      - name: test with pytest
+        run: python3 -m pytest -s -v --cov-report=xml --cov=./ tests/test*.py
