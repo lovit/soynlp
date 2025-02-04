@@ -6,7 +6,8 @@ repos:
     hooks:
       - id: pyright
         entry: pyright
-        additional_dependencies: []
+        additional_dependencies:
+          - dacite==1.9.1
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.9.4
     hooks:

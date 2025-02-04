@@ -81,6 +81,20 @@ files = [
 ]
 
 [[package]]
+name = "dacite"
+version = "1.9.1"
+description = "Simple creation of data classes from dictionaries."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "dacite-1.9.1-py3-none-any.whl", hash = "sha256:55a5ac04207d34a92d7951d2d1ccaa642bf340b29db6399848a1e41ff6e0f48f"},
+    {file = "dacite-1.9.1.tar.gz", hash = "sha256:50e97b408f9fdc5619f341c5415c4ad1cf771a3dbd85626cda44db78ee45df8c"},
+]
+
+[package.extras]
+dev = ["black", "coveralls", "mypy", "pre-commit", "pylint", "pytest (>=5)", "pytest-benchmark", "pytest-cov"]
+
+[[package]]
 name = "distlib"
 version = "0.3.9"
 description = "Distribution utilities"
@@ -388,4 +402,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.12.8"
-content-hash = "56056d37271597756fc0ee1867f36aa8255f6744e8542dfd70a05e0e6ee9005c"
+content-hash = "52b32b49d1dc9577dd0de3e7126331431eaba0c0898966bb9233eff8481a6d6c"
