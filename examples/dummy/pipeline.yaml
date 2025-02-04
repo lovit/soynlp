@@ -1,0 +1,4 @@
+pipeline:
+  - name: Dummy
+    args:
+      name: soynlp
