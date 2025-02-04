@@ -1,0 +1,2 @@
+def dummy():
+    print("Dummy")

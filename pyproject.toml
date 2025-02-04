@@ -1,0 +1,34 @@
+[tool.poetry]
+name = "soynlp"
+version = "0.0.0-dev"
+description = "Python package for Korean Natural Language Processing"
+authors = ["lovit <soy.lovit@gmail.com>"]
+
+[tool.poetry.scripts]
+soynlp = "soynlp.__main__:main"
+
+[tool.poetry.dependencies]
+python = "~3.12.8"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"
+black = "^25.1.0"
+ruff = "^0.9.4"
+pre-commit = "^4.1.0"
+pyright = "^1.1.393"
+
+[tool.black]
+target-version = ['py312']
+line-length = 127
+
+[tool.ruff]
+lint.extend-select = ["I001", "I002"]
+line-length = 127
+
+[tool.pyright]
+typeCheckingMode = "basic"
+reportPrivateImportUsage = "none"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
