@@ -1,0 +1,8 @@
+pipeline:
+  - name: ReadText
+    args:
+      path: ../../data/91031.txt
+      text_key: text
+  - name: WriteJson
+    args:
+      path: 91031.jsonl

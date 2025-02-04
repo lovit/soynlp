@@ -1,0 +1,27 @@
+import json
+import os
+from dataclasses import dataclass
+
+from soynlp.pipeline.tasks.task import Task, TaskArgs
+
+
+@dataclass
+class WriteJsonTaskArgs(TaskArgs):
+    path: str
+    in_key: str = "corpus"
+
+
+class WriteJsonTask(Task[WriteJsonTaskArgs]):
+    def __call__(self, parameters: dict) -> dict:
+        if self._args.in_key not in parameters:
+            raise ValueError(f"Not found `{self._args.in_key}` in `parameters`")
+        examples = parameters[self._args.in_key]
+
+        assert not os.path.exists(self._args.path), f"Already exist `{self._args.path}`"
+        os.makedirs(os.path.dirname(os.path.abspath(self._args.path)), exist_ok=True)
+
+        with open(self._args.path, "w", encoding="utf-8") as file:
+            for example in examples:
+                file.write(f"{json.dumps(example, ensure_ascii=False)}\n")
+
+        return parameters
