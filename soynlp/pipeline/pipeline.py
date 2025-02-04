@@ -29,4 +29,4 @@ class Pipeline:
     def run(cls, config_file: str):
         config = from_yaml(config_file)
         pipeline = Pipeline()
-        print(pipeline(config))
+        pipeline(config)
