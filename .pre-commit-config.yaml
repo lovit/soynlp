@@ -1,0 +1,37 @@
+fail_fast: true
+minimum_pre_commit_version: "4.1.0"
+repos:
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.393
+    hooks:
+      - id: pyright
+        entry: env PYRIGHT_PYTHON_NODE_VERSION=16.20.2 pyright
+        additional_dependencies: []
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.4
+    hooks:
+      - id: ruff
+        name: Run ruff
+        args: [--fix, --exit-non-zero-on-fix]
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        name: Run black
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        name: Run preittier
+        language_version: 16.20.2
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
