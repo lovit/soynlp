@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional, Union
 
+from soynlp.core.lrgraph import LRGraph, corpus_to_lrgraph
 from soynlp.pipeline.tasks.task import Task, TaskArgs
 
 
@@ -24,14 +25,17 @@ class ExtractNounTaskArgs(TaskArgs):
     negative_features: Optional[Union[str, set]] = None
 
     in_key: str = "corpus"
+    text_key: str = "text"
 
 
 class ExtractNounTask(Task[ExtractNounTaskArgs]):
     def __call__(self, parameters: dict) -> dict:
         if self._args.in_key not in parameters:
             raise ValueError(f"Not found `{self._args.in_key}` in `parameters`")
+        examples = parameters[self._args.in_key]
+        texts = [example[self._args.text_key] for example in examples]
 
-        lrgraph = corpus_to_lrgraph()  # noqa F841
+        lrgraph: LRGraph = corpus_to_lrgraph(texts)  # noqa F841
         candidates = noun_candidates_from_lrgraph()  # noqa F841
         nouns = select_nouns_from_candidates()  # noqa F841
         if self._args.extract_compounds:
@@ -40,10 +44,6 @@ class ExtractNounTask(Task[ExtractNounTaskArgs]):
         nouns = postprocessing()  # noqa F841
 
         return parameters
-
-
-def corpus_to_lrgraph(**kwargs):
-    pass
 
 
 def noun_candidates_from_lrgraph(**kwagrs):
