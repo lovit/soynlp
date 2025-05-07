@@ -2,6 +2,11 @@
 
 Renewing ...
 
+## Requirements
+
+- Python >= 3.10
+- uv (recommended) or Poetry
+
 ## Install
 
 ### Using uv (Recommended)

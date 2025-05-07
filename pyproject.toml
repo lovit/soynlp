@@ -5,7 +5,7 @@ description = "Python package for Korean Natural Language Processing"
 authors = [
     {name = "lovit", email = "soy.lovit@gmail.com"}
 ]
-requires-python = ">=3.8,<3.13"
+requires-python = ">=3.10,<3.13"
 
 [project.scripts]
 soynlp = "soynlp.__main__:main"
