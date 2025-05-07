@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, TypeVar, get_args
+from typing import Generic, Type, TypeVar, get_args
 
 
 @dataclass
@@ -16,7 +16,7 @@ class Task(ABC, Generic[TaskArgsType]):
         self._args = args
 
     @classmethod
-    def args(cls) -> type[TaskArgs]:
+    def args(cls) -> Type[TaskArgs]:
         generic_type = cls.__orig_bases__[0]  # type: ignore[attr-defined]
         return get_args(generic_type)[0]
 

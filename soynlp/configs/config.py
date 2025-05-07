@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 
 import dacite
 import yaml
@@ -12,7 +13,7 @@ class TaskConfig:
 
 @dataclass
 class Config:
-    pipeline: list[TaskConfig]
+    pipeline: List[TaskConfig]
 
 
 def from_yaml(path: str) -> Config:
