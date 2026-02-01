@@ -483,10 +483,10 @@ class PredicatorExtractor:
                 # others are extracted stems
                 # rule based classifier, verb preference
                 answer = rule_classify(lemma[0])
-                if answer is 'Verb':
+                if answer == 'Verb':
                     v.add(lemma)
                     continue
-                if answer is 'Adjective':
+                if answer == 'Adjective':
                     adj.add(lemma)
                     continue
 
