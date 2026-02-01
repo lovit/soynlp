@@ -38,8 +38,8 @@ jaum_list = ['ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄸ', 'ㄹ',
 moum_list = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 
               'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ']
 
-doublespace_pattern = re.compile('\s+')
-repeatchars_pattern = re.compile('(\w)\\1{3,}')
+doublespace_pattern = re.compile(r'\s+')
+repeatchars_pattern = re.compile(r'(\w)\1{3,}')
 
 def normalize(doc, english=False, number=False, punctuation=False, remove_repeat = 0, remains={}):
     message = 'normalize func will be moved soynlp.normalizer at ver 0.1\nargument remains will be removed at ver 0.1'

@@ -7,17 +7,17 @@ if sys.version_info <= (2,7):
 import re
 from soynlp.hangle import compose, decompose
 
-doublespace_pattern = re.compile('\s+')
-repeatchars_pattern = re.compile('(\w)\\1{2,}')
-number_pattern = re.compile('[0-9]')
-punctuation_pattern = re.compile('[,\.\?\!]')
-symbol_pattern = re.compile('[()\[\]\{\}`]')
-hangle_pattern = re.compile('[ㄱ-ㅎㅏ-ㅣ가-힣]')
-alphabet_pattern = re.compile('[a-zA-Z]')
+doublespace_pattern = re.compile(r'\s+')
+repeatchars_pattern = re.compile(r'(\w)\1{2,}')
+number_pattern = re.compile(r'[0-9]')
+punctuation_pattern = re.compile(r'[,.\?!]')
+symbol_pattern = re.compile(r'[()\[\]\{\}`]')
+hangle_pattern = re.compile(r'[ㄱ-ㅎㅏ-ㅣ가-힣]')
+alphabet_pattern = re.compile(r'[a-zA-Z]')
 
-hangle_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣]')
-hangle_number_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]')
-text_filter = re.compile('[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9,\.\?\!\"\'-()\[\]\{\}]')
+hangle_filter = re.compile(r'[^ㄱ-ㅎㅏ-ㅣ가-힣]')
+hangle_number_filter = re.compile(r'[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]')
+text_filter = re.compile(r'[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9,.\?!\"\'\-()\[\]\{\}]')
 
 def normalize(doc, alphabet=False, number=False,
     punctuation=False, symbol=False, remove_repeat=0):

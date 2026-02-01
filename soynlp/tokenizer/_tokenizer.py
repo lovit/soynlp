@@ -12,14 +12,14 @@ class RegexTokenizer:
     
     def __init__(self):
         self._patterns = [
-            ('number', re.compile(u'[-+]?\d*[\.]?[\d]+|[-+]?\d+', re.UNICODE)),
-            ('korean', re.compile(u'[가-힣]+', re.UNICODE)),
-            ('jaum', re.compile(u'[ㄱ-ㅎ]+', re.UNICODE)),
-            ('moum', re.compile(u'[ㅏ-ㅣ]+', re.UNICODE)),
-            ('english & latin', re.compile(u"[a-zA-ZÀ-ÿ]+[[`']?s]*|[a-zA-ZÀ-ÿ]+", re.UNICODE))
+            ('number', re.compile(r'[-+]?\d*[.]?[\d]+|[-+]?\d+', re.UNICODE)),
+            ('korean', re.compile(r'[가-힣]+', re.UNICODE)),
+            ('jaum', re.compile(r'[ㄱ-ㅎ]+', re.UNICODE)),
+            ('moum', re.compile(r'[ㅏ-ㅣ]+', re.UNICODE)),
+            ('english & latin', re.compile(r"[a-zA-ZÀ-ÿ]+(?:[`']?s)*|[a-zA-ZÀ-ÿ]+", re.UNICODE))
         ]
         
-        self.doublewhite_pattern = re.compile('\s+')
+        self.doublewhite_pattern = re.compile(r'\s+')
 
     def __call__(self, s, debug=True, flatten=True):
         return self.tokenize(s, debug, flatten)

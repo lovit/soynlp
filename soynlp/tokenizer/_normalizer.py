@@ -4,10 +4,10 @@ import re
 from soynlp.hangle import decompose, compose
 
 repeatchars_patterns = [
-    re.compile('(\w\w\w\w)\\1{3,}'),
-    re.compile('(\w\w\w)\\1{3,}'),
-    re.compile('(\w\w)\\1{3,}'),
-    re.compile('(\w)\\1{3,}')
+    re.compile(r'(\w\w\w\w)\1{3,}'),
+    re.compile(r'(\w\w\w)\1{3,}'),
+    re.compile(r'(\w\w)\1{3,}'),
+    re.compile(r'(\w)\1{3,}')
 ]
 
 def normalize(sentence, num_repeat=2):
