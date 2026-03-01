@@ -20,6 +20,9 @@ dev = [
     "pyright>=1.1.393",
 ]
 
+[tool.pytest.ini_options]
+markers = ["slow: tests that require large data files"]
+
 [tool.ruff]
 line-length = 127
 target-version = "py312"
