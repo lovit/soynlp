@@ -1,35 +1,36 @@
-[tool.poetry]
+[project]
 name = "soynlp"
 version = "0.0.0-dev"
 description = "Python package for Korean Natural Language Processing"
-authors = ["lovit <soy.lovit@gmail.com>"]
+authors = [{ name = "lovit", email = "soy.lovit@gmail.com" }]
+requires-python = ">=3.12"
+dependencies = [
+    "dacite>=1.9.1",
+    "pyyaml>=6.0",
+]
 
-[tool.poetry.scripts]
+[project.scripts]
 soynlp = "soynlp.__main__:main"
 
-[tool.poetry.dependencies]
-python = "~3.12.8"
-dacite = "^1.9.1"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.0"
-black = "^25.1.0"
-ruff = "^0.9.4"
-pre-commit = "^4.1.0"
-pyright = "^1.1.393"
-
-[tool.black]
-target-version = ['py312']
-line-length = 127
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "ruff>=0.9.4",
+    "pre-commit>=4.1.0",
+    "pyright>=1.1.393",
+]
 
 [tool.ruff]
-lint.extend-select = ["I001", "I002"]
 line-length = 127
+target-version = "py312"
+
+[tool.ruff.lint]
+extend-select = ["I"]
 
 [tool.pyright]
 typeCheckingMode = "basic"
 reportPrivateImportUsage = "none"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

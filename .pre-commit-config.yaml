@@ -9,22 +9,20 @@ repos:
         additional_dependencies:
           - pytest==8.3.0
           - dacite==1.9.1
+          - pyyaml==6.0.2
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.9.4
     hooks:
       - id: ruff
-        name: Run ruff
+        name: Run ruff lint
         args: [--fix, --exit-non-zero-on-fix]
-  - repo: https://github.com/psf/black
-    rev: 25.1.0
-    hooks:
-      - id: black
-        name: Run black
+      - id: ruff-format
+        name: Run ruff format
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:
       - id: prettier
-        name: Run preittier
+        name: Run prettier
         language_version: 16.20.2
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
