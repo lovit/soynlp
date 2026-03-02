@@ -19,7 +19,33 @@ class Token(namedtuple("Token", "word begin end score length eojeol_id")):
 
 
 class RegexTokenizer:
-    """Split sentence based on type of characters and regex pattern."""
+    """Split sentence based on type of characters and regex pattern.
+    Or it is available to customize RegexTokenizer with my regex patterns.
+
+    Args:
+        pipelines (list of re.Pattern or None) :
+            The regex patterns will be applied one by one to input string.
+            If None, it uses default patterns (number -> Korean -> jaum -> moum -> Alphabet)
+
+    Examples::
+        >>> from soynlp.tokenizer import RegexTokenizer
+
+        >>> s = 'abc123가나다 alphabet!!3.14한글 hank`s report'
+        >>> regex_tokenizer = RegexTokenizer()
+        >>> regex_tokenizer.tokenize(s)
+        $ ['abc', '123', '가나다', 'alphabet', '!!', '3.14', '한글', 'hank`s', 'report']
+
+        >>> regex_tokenizer(s, return_words=False)
+        $ [Token(abc, score=1, position=(0, 3), eojeol_id=0),
+           Token(123, score=1, position=(3, 6), eojeol_id=0),
+           Token(가나다, score=1, position=(6, 9), eojeol_id=0),
+           Token(alphabet, score=1, position=(10, 18), eojeol_id=1),
+           Token(!!, score=1, position=(18, 20), eojeol_id=1),
+           Token(3.14, score=1, position=(20, 24), eojeol_id=1),
+           Token(한글, score=1, position=(24, 26), eojeol_id=1),
+           Token(hank`s, score=1, position=(27, 33), eojeol_id=2),
+           Token(report, score=1, position=(34, 40), eojeol_id=3)]
+    """
 
     def __init__(self, pipelines=None):
         if pipelines is None:
@@ -50,6 +76,26 @@ class RegexTokenizer:
 
         Returns:
             tokens (list of str or list of Token)
+
+        Examples::
+            >>> from soynlp.tokenizer import RegexTokenizer
+
+            >>> s = 'abc123가나다 alphabet!!3.14한글 hank`s report'
+            >>> regex_tokenizer = RegexTokenizer()
+            >>> regex_tokenizer.tokenize(s)
+            >>> regex_tokenizer(s)  # same with above line.
+            $ ['abc', '123', '가나다', 'alphabet', '!!', '3.14', '한글', 'hank`s', 'report']
+
+            >>> regex_tokenizer(s, return_words=False)
+            $ [Token(abc, score=1, position=(0, 3), eojeol_id=0),
+               Token(123, score=1, position=(3, 6), eojeol_id=0),
+               Token(가나다, score=1, position=(6, 9), eojeol_id=0),
+               Token(alphabet, score=1, position=(10, 18), eojeol_id=1),
+               Token(!!, score=1, position=(18, 20), eojeol_id=1),
+               Token(3.14, score=1, position=(20, 24), eojeol_id=1),
+               Token(한글, score=1, position=(24, 26), eojeol_id=1),
+               Token(hank`s, score=1, position=(27, 33), eojeol_id=2),
+               Token(report, score=1, position=(34, 40), eojeol_id=3)]
         """
         offset = 0
         tokens = []
@@ -98,11 +144,37 @@ class RegexTokenizer:
 
 class LTokenizer:
     """It finds the most word-like substring which is positioned on the left-side
-    in given Eojeol.
+    in given Eojeol. An `Eojeol` is space-separated token in Korean.
 
     Args:
         scores ({str: float}) : {word: score}
         unknown_score (float) : unknown word score
+
+    Examples::
+        Without tolerance
+
+            >>> from soynlp.tokenizer import LTokenizer
+
+            >>> scores = {'파스': 0.65, '파스타': 0.7, '좋아': 0.3}
+            >>> ltokenizer = LTokenizer(scores)
+            >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요')
+            >>> ltokenizer('파스타가 좋아요 파스타가좋아요')  # same with above line
+            $ ['파스타', '가', '좋아', '요', '파스타', '가좋아요']
+
+            >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', return_words=False)
+            $ [Token(파스타, score=0.7, position=(0, 3), eojeol_id=0),
+               Token(가, score=0, position=(3, 4), eojeol_id=0),
+               Token(좋아, score=0.3, position=(5, 7), eojeol_id=1),
+               Token(요, score=0, position=(7, 8), eojeol_id=1),
+               Token(파스타, score=0.7, position=(9, 12), eojeol_id=2),
+               Token(가좋아요, score=0, position=(12, 16), eojeol_id=2)]
+
+        With tolerance
+
+            >>> scores = {'파스': 0.75, '파스타': 0.7, '좋아': 0.3}
+            >>> ltokenizer = LTokenizer(scores)
+            >>> ltokenizer.tokenize('파스타가 좋아요 파스타가좋아요', tolerance=0.06)
+            $ ['파스타', '가', '좋아', '요', '파스타', '가좋아요']
     """
 
     def __init__(self, scores, unknown_score=0.0):
@@ -170,12 +242,43 @@ class LTokenizer:
 
 
 class MaxScoreTokenizer:
-    """It finds the most word-like substring in a given Eojeol regardless the position.
+    """It finds the most word-like substring in a given Eojeol regardless the position
+    of substring in eojeol. An `Eojeol` is space-separated token in Korean.
 
     Args:
         scores ({str: float}) : {word: word_score}
         max_length (int) : maximum length of L part word
         unknown_score (float) : score of unknown word
+
+    Examples::
+        Import class
+
+            >>> from soynlp.tokenizer import MaxScoreTokenizer
+            >>> from soynlp.utils import CorpusLoader
+            >>> from soynlp.word import WordExtractor
+
+        With pretrained word scores
+
+            >>> scores = {'파스': 0.65, '파스타': 0.7, '좋아': 0.3}
+            >>> tokenizer = MaxScoreTokenizer(scores)
+            >>> tokenizer.tokenize('파스타가좋아요')
+            $ ['파스타', '가', '좋아', '요']
+
+            >>> tokenizer.tokenize('파스타가좋아요', return_words=False)
+            $ [Token(파스타, score=0.7, position=(0, 3), eojeol_id=0),
+               Token(가, score=0.0, position=(3, 4), eojeol_id=0),
+               Token(좋아, score=0.3, position=(4, 6), eojeol_id=0),
+               Token(요, score=0.0, position=(6, 7), eojeol_id=0)]
+
+        With training word extractor
+
+            >>> corpus = CorpusLoader('path/to/corpus.jsonl', format='jsonl')
+            >>> word_extractor = WordExtractor()
+            >>> word_extractor.train(corpus)
+            >>> cohesion_scores = word_extractor.all_cohesion_scores()
+            >>> cohesion_scores = {l: l_score for l, (l_score, r_score) in cohesion_scores.items()}
+            >>> tokenizer = MaxScoreTokenizer(cohesion_scores)
+            >>> tokenizer.tokenize('예시문장입니다')
     """
 
     def __init__(self, scores, max_length=10, unknown_score=0.0):
@@ -287,9 +390,40 @@ class MaxScoreTokenizer:
 
 class NounMatchTokenizer(MaxScoreTokenizer):
     """NounMatchTokenizer recognizes nouns from input sentence.
+    NounMatchTokenizer works similar to soynlp.tokenizer.MaxScoreTokenizer.
+    The difference is that NounMatchTokenizer provides merging
+    consecutive nouns into one compound noun.
 
     Args:
         noun_scores ({str: float}) : {noun: noun_score}
+
+    Examples::
+        With noun scores. Match first with higher scored noun.
+
+            >>> from soynlp.tokenizer import NounMatchTokenizer
+
+            >>> noun_scores = {'아이': 0.5, '아이오': 0.7, '아이오아이': 0.8, '오이': 0.7}
+            >>> noun_tokenizer = NounMatchTokenizer(noun_scores)
+            >>> sentence = '아이오아이의아이들은 오이오이를 좋아하는 아이들이오'
+            >>> noun_tokenizer.tokenize(sentence)
+            $ ['아이오아이', '아이', '오이오이', '아이']
+
+        With noun set or list. Match longer one first if noun scores are tied.
+
+            >>> noun_set = {'아이', '아이오', '아이오아이', '오이'}
+            >>> noun_tokenizer = NounMatchTokenizer(noun_set)
+            >>> noun_tokenizer.tokenize(sentence)
+            $ ['아이오아이', '아이', '오이오이', '아이']
+
+        Without concatenating consecutive nouns
+
+            >>> noun_tokenizer.tokenize(sentence, concat_compound=False)
+            $ ['아이오아이', '아이', '오이', '오이', '아이']
+
+        Remain only L parts
+
+            >>> noun_tokenizer.tokenize(sentence, concat_compound=True, must_be_L=True)
+            $ ['아이오아이', '오이오이', '아이']
     """
 
     def __init__(self, noun_scores):

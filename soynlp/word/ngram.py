@@ -5,7 +5,7 @@ from math import log
 
 from tqdm import tqdm
 
-from soynlp.utils import DoublespaceLineCorpus
+from soynlp.utils import CorpusLoader
 
 
 @dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
@@ -74,7 +74,8 @@ class BigramExtractor:
             return bigrams
 
         if isinstance(train_data, str) and os.path.exists(train_data):
-            train_data = DoublespaceLineCorpus(train_data, verbose=False)
+            fmt = "jsonl" if train_data.endswith(".jsonl") else "text"
+            train_data = CorpusLoader(train_data, format=fmt)
 
         total = len(train_data)
         if not self.verbose:
@@ -91,6 +92,8 @@ class BigramExtractor:
         for i_sent, sent in enumerate(train_iterator):
             if self.filtering_checkpoint > 0 and (i_sent % self.filtering_checkpoint == 0):
                 bigrams = {bigram: freq for bigram, freq in bigrams.items() if freq >= self.min_frequency}
+            if isinstance(sent, dict):
+                sent = sent.get("text", "")
             words = self.tokenizer(sent)
             for word in words:
                 unigrams[word] = unigrams.get(word, 0) + 1

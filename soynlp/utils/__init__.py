@@ -2,7 +2,7 @@ from soynlp.core.lrgraph import LRGraph
 
 from .math import svd
 from .utils import (
-    DoublespaceLineCorpus,
+    CorpusLoader,
     EojeolCounter,
     check_corpus,
     check_dirs,
@@ -18,7 +18,7 @@ __all__ = [
     "check_dirs",
     "check_corpus",
     "most_similar",
-    "DoublespaceLineCorpus",
+    "CorpusLoader",
     "EojeolCounter",
     "LRGraph",
     # math

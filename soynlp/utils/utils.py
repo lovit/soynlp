@@ -1,3 +1,4 @@
+import json
 import os
 from collections import defaultdict
 
@@ -67,103 +68,75 @@ def check_corpus(corpus):
             It returns True when __len__ is implemented and the length is larger than 0
     """
     if not hasattr(corpus, "__iter__"):
-        raise ValueError("Input corpus must have __iter__ such as list or soynlp.utils.DoublespaceLineCorpus")
+        raise ValueError("Input corpus must have __iter__ such as list or soynlp.utils.CorpusLoader")
     if not hasattr(corpus, "__len__"):
-        raise ValueError("Input corpus must have __len__ such as list or soynlp.utils.DoublespaceLineCorpus")
+        raise ValueError("Input corpus must have __len__ such as list or soynlp.utils.CorpusLoader")
     if len(corpus) <= 0:
         raise ValueError("Input corpus must be longer than 0")
     return True
 
 
-class DoublespaceLineCorpus:
-    """Dataset class
-    It assumes that a line represents a document.
-    And each sentence in a document are separated with double-space.
+class CorpusLoader:
+    """JSONL/TXT 코퍼스 로더.
 
     Args:
-        corpus_path (str) : text file path
-        num_doc (int) : number of sample documents, defaults to -1 (all documents)
-        num_sent (int) : number of sample sentences, defaults to -1 (all sentences)
-        iter_sent (Boolean) : if True, it yields sentence else yields document
-        skip_header (int) : number of first lines to be skiped
-        verbose (Boolean) : if True, it shows progress
+        corpus_path (str) : 파일 경로
+        format (str) : "jsonl" 또는 "text"
+        text_key (str) : JSONL에서 텍스트 필드명 (기본: "text")
+        verbose (bool) : 진행률 표시 여부
+
+    iter 시 dict를 반환 (JSONL: 원본 dict, TXT: {text_key: line})
+    __len__ 구현으로 EojeolCounter 등 기존 코드 호환
+
+    Examples::
+        >>> loader = CorpusLoader("corpus.jsonl", format="jsonl")
+        >>> for item in loader:
+        ...     print(item["text"])
+
+        >>> loader = CorpusLoader("corpus.txt", format="text")
+        >>> for item in loader:
+        ...     print(item["text"])
     """
 
-    def __init__(self, corpus_path, num_doc=-1, num_sent=-1, iter_sent=False, skip_header=0, verbose=False):
+    def __init__(self, corpus_path, format="jsonl", text_key="text", verbose=False):
+        if format not in ("jsonl", "text"):
+            raise ValueError(f"format must be 'jsonl' or 'text', got '{format}'")
+        if not os.path.exists(corpus_path):
+            raise FileNotFoundError(f"corpus_path not found: {corpus_path}")
         self.corpus_path = corpus_path
-        self.num_doc = 0
-        self.num_sent = 0
-        self.iter_sent = iter_sent
-        self.skip_header = skip_header
-        if (num_doc > 0) or (num_sent > 0):
-            self.num_doc, self.num_sent = self._sample_first_lines(num_doc, num_sent)
+        self.format = format
+        self.text_key = text_key
         self.verbose = verbose
+        self._num_lines = None
 
-    def _sample_first_lines(self, num_doc, num_sent):
-        num_sent_ = 0
+    def _count_lines(self):
+        count = 0
         with open(self.corpus_path, encoding="utf-8") as f:
-            # skip head
-            try:
-                for _ in range(self.skip_header):
-                    next(f)
-            except StopIteration:
-                return 0, 0
+            for line in f:
+                if line.strip():
+                    count += 1
+        return count
 
-            # check length
-            for doc_idx, doc in enumerate(f):
-                if (num_doc > 0) and (doc_idx >= num_doc):
-                    return doc_idx, num_sent_
-                sents = doc.split("  ")
-                sents = [sent for sent in sents if sent.strip()]
-                num_sent_ += len(sents)
-                if (num_sent > 0) and (num_sent_ > num_sent):
-                    return doc_idx + 1, min(num_sent, num_sent_)
-
-        return doc_idx + 1, num_sent_
+    def __len__(self):
+        if self._num_lines is None:
+            self._num_lines = self._count_lines()
+        return self._num_lines
 
     def __iter__(self):
         with open(self.corpus_path, encoding="utf-8") as f:
-            # skip head
-            try:
-                for _ in range(self.skip_header):
-                    next(f)
-            except StopIteration:
-                return None
-
-            # set iterator
             if self.verbose:
-                if self.iter_sent:
-                    line_iterator = tqdm(f, desc="[DoublespaceLineCorpus] iter sent ... ")
-                else:
-                    line_iterator = tqdm(f, desc="[DoublespaceLineCorpus] iter doc ... ")
+                line_iterator = tqdm(f, desc=f"[CorpusLoader] reading {self.format}", total=len(self))
             else:
                 line_iterator = f
 
-            # iteration
-            num_sent, stop_doc_iter = 0, False
-            for doc_idx, doc in enumerate(line_iterator):
-                if stop_doc_iter:
-                    break
-                # yield doc
-                if not self.iter_sent:
-                    yield doc.strip()
-                    if (self.num_doc > 0) and ((doc_idx + 1) >= self.num_doc):
-                        stop_doc_iter = True
+            for line in line_iterator:
+                line = line.strip()
+                if not line:
                     continue
-                # yield sents
-                for sent in doc.split("  "):
-                    if (self.num_sent > 0) and (num_sent >= self.num_sent):
-                        stop_doc_iter = True
-                        break
-                    sent = sent.strip()
-                    if sent:
-                        yield sent
-                        num_sent += 1
-
-    def __len__(self):
-        if self.num_doc == 0:
-            self.num_doc, self.num_sent = self._sample_first_lines(-1, -1)
-        return self.num_sent if self.iter_sent else self.num_doc
+                if self.format == "jsonl":
+                    yield json.loads(line)
+                else:
+                    yield {self.text_key: line}
 
 
 class EojeolCounter:
@@ -187,11 +160,14 @@ class EojeolCounter:
         >>> lrgraph.get_r('이것')  # [('은', 2), ('도', 1)]
     """
 
-    def __init__(self, sents=None, min_count=1, max_length=15, filtering_checkpoint=0, verbose=False, preprocess=None):
+    def __init__(
+        self, sents=None, min_count=1, max_length=15, filtering_checkpoint=0, verbose=False, preprocess=None, text_key="text"
+    ):
         self.min_count = min_count
         self.max_length = max_length
         self.filtering_checkpoint = filtering_checkpoint
         self.verbose = verbose
+        self.text_key = text_key
 
         if preprocess is None:
 
@@ -210,6 +186,9 @@ class EojeolCounter:
     def count_sum(self):
         return sum(self._counter.values())
 
+    def _set_count_sum(self):
+        self._count_sum = sum(self._counter.values())
+
     def __getitem__(self, eojeol):
         return self._counter.get(eojeol, 0)
 
@@ -223,7 +202,11 @@ class EojeolCounter:
         else:
             sent_iterator = sents
         counter = {}
-        for i_sent, sent in enumerate(sent_iterator):
+        for i_sent, item in enumerate(sent_iterator):
+            if isinstance(item, dict):
+                sent = item[self.text_key]
+            else:
+                sent = item
             sent = self.preprocess(sent)
             if (self.filtering_checkpoint > 0) and ((i_sent + 1) % self.filtering_checkpoint == 0):
                 counter = {eojeol: count for eojeol, count in counter.items() if count >= self.min_count}

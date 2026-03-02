@@ -1,5 +1,9 @@
+import json
+
+import pytest
+
 from soynlp.core.lrgraph import LRGraph
-from soynlp.utils import EojeolCounter
+from soynlp.utils import CorpusLoader, EojeolCounter
 
 
 def test_lrgraph_construct():
@@ -143,3 +147,91 @@ def test_eojeol_counter():
 
     eojeol_counter.remove_eojeols({"이것도", "입니다"})
     assert sorted(eojeol_counter.items()) == [("어절", 1), ("예문", 2), ("이고요", 1)]
+
+
+def test_eojeol_counter_with_dicts():
+    sents = [{"text": "이것은 어절 입니다"}, {"text": "이것은 예문 입니다"}, {"text": "이것도 예문 이고요"}]
+    eojeol_counter = EojeolCounter(sents=sents)
+    assert sorted(eojeol_counter.items()) == [
+        ("어절", 1),
+        ("예문", 2),
+        ("이것도", 1),
+        ("이것은", 2),
+        ("이고요", 1),
+        ("입니다", 2),
+    ]
+
+
+# --- CorpusLoader tests ---
+
+
+@pytest.fixture
+def jsonl_file(tmp_path):
+    path = tmp_path / "corpus.jsonl"
+    lines = [
+        json.dumps({"text": "이것은 예문입니다"}, ensure_ascii=False),
+        json.dumps({"text": "두번째 문장입니다"}, ensure_ascii=False),
+        json.dumps({"text": "세번째 문장이에요"}, ensure_ascii=False),
+    ]
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return str(path)
+
+
+@pytest.fixture
+def text_file(tmp_path):
+    path = tmp_path / "corpus.txt"
+    lines = ["이것은 예문입니다", "두번째 문장입니다", "세번째 문장이에요"]
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return str(path)
+
+
+def test_corpus_loader_jsonl(jsonl_file):
+    loader = CorpusLoader(jsonl_file, format="jsonl")
+    items = list(loader)
+    assert len(items) == 3
+    assert items[0] == {"text": "이것은 예문입니다"}
+    assert items[1] == {"text": "두번째 문장입니다"}
+
+
+def test_corpus_loader_text(text_file):
+    loader = CorpusLoader(text_file, format="text")
+    items = list(loader)
+    assert len(items) == 3
+    assert items[0] == {"text": "이것은 예문입니다"}
+
+
+def test_corpus_loader_text_custom_key(text_file):
+    loader = CorpusLoader(text_file, format="text", text_key="content")
+    items = list(loader)
+    assert items[0] == {"content": "이것은 예문입니다"}
+
+
+def test_corpus_loader_len(jsonl_file):
+    loader = CorpusLoader(jsonl_file, format="jsonl")
+    assert len(loader) == 3
+
+
+def test_corpus_loader_invalid_format(jsonl_file):
+    with pytest.raises(ValueError, match="format must be"):
+        CorpusLoader(jsonl_file, format="csv")
+
+
+def test_corpus_loader_file_not_found():
+    with pytest.raises(FileNotFoundError):
+        CorpusLoader("/nonexistent/path.jsonl", format="jsonl")
+
+
+def test_corpus_loader_skips_empty_lines(tmp_path):
+    path = tmp_path / "corpus.txt"
+    path.write_text("첫번째\n\n두번째\n\n", encoding="utf-8")
+    loader = CorpusLoader(str(path), format="text")
+    items = list(loader)
+    assert len(items) == 2
+    assert len(loader) == 2
+
+
+def test_corpus_loader_with_eojeol_counter(jsonl_file):
+    loader = CorpusLoader(jsonl_file, format="jsonl")
+    counter = EojeolCounter(sents=loader)
+    assert counter["이것은"] == 1
+    assert counter["예문입니다"] == 1

@@ -7,7 +7,7 @@ from datetime import datetime
 import numpy as np
 from tqdm import tqdm
 
-from soynlp.utils import DoublespaceLineCorpus, get_process_memory
+from soynlp.utils import CorpusLoader, get_process_memory
 
 
 class WordExtractor:
@@ -42,7 +42,8 @@ class WordExtractor:
         remove_subwords=False,
     ):
         if isinstance(train_data, str) and os.path.exists(train_data):
-            train_data = DoublespaceLineCorpus(train_data)
+            fmt = "jsonl" if train_data.endswith(".jsonl") else "text"
+            train_data = CorpusLoader(train_data, format=fmt)
         L, R, prev_sub, sub_next = initialize_counters(self.L, self.R, self.prev_sub, self.sub_next, cumulate)
         self.L, self.R, self.prev_sub, self.sub_next = count_substrings(
             train_data=train_data,
@@ -125,6 +126,8 @@ def count_substrings(
         if (prune_per_lines > 0) and (i_line % prune_per_lines == 0):
             L, R, prev_sub, sub_next = [prune_counter(d, 2) for d in [L, R, prev_sub, sub_next]]
 
+        if isinstance(line, dict):
+            line = line.get("text", "")
         words = line.split()
 
         # cohesion only

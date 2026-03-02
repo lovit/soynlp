@@ -7,7 +7,7 @@ from pprint import pprint
 from tqdm import tqdm
 
 from soynlp.tokenizer import MaxScoreTokenizer, NounMatchTokenizer
-from soynlp.utils import DoublespaceLineCorpus, EojeolCounter, LRGraph, get_process_memory
+from soynlp.utils import CorpusLoader, EojeolCounter, LRGraph, get_process_memory
 
 from .postprocessing import check_N_is_NJ, detaching_features, ignore_features
 
@@ -23,10 +23,46 @@ class LRNounExtractor:
         max_r_length (int) : maximum length of R in L-R graph
         pos_features (set of str or None) :
             If None, it uses default positive features such as Josa in Korean
+            Or it provides customizing features set
         neg_features (set of str or None) :
             If None, it uses default negative features such as Eomi in Korean(ending)
+            Or it provides customizing features set
         verbose (Boolean) :
             If True, it shows progress
+
+    Examples::
+        Train noun extractor model
+
+            >>> from soynlp.noun import LRNounExtractor
+
+            >>> # train_data = '../data/2016-10-20.txt'
+            >>> train_data = 'path/to/train_text'
+            >>> noun_extractor = LRNounExtractor()
+            >>> nouns = noun_extractor.extract(train_data)
+
+        Check extracted nouns
+
+            >>> for noun in ['아이디', '아이디어', '아이오아이', '트와이스', '연합뉴스', '비선실세']:
+            >>>    print(f'{noun} : {nouns.get(noun, None)}')
+            $ 아이디 : NounScore(frequency=59, score=1.0)
+              아이디어 : NounScore(frequency=142, score=1.0)
+              아이오아이 : NounScore(frequency=127, score=1.0)
+              트와이스 : NounScore(frequency=654, score=0.992831541218638)
+              연합뉴스 : NounScore(frequency=4628, score=1.0)
+              비선실세 : NounScore(frequency=66, score=1.0)
+
+            >>> print(nouns['아이오아이'].frequency)
+            $ 127
+
+        Get noun tokenizer and use it
+
+            >>> noun_tokenizer = noun_extractor.get_noun_tokenizer()
+            >>> sentence = '네이버의 뉴스기사를 이용하여 학습한 모델예시입니다'
+            >>> noun_tokenizer.tokenize(sentence)
+            $ ['네이버', '뉴스기사', '이용', '학습', '모델예시']
+
+            >>> noun_tokenizer.tokenize(sentence, concat_compound=False)
+            $ ['네이버', '뉴스', '기사', '이용', '학습', '모델', '예시']
     """
 
     def __init__(
@@ -69,19 +105,75 @@ class LRNounExtractor:
         """Extract nouns from `train_data` or trained L-R graph
 
         Args:
-            train_data : Training input data.
-            min_noun_score (float) : minimum noun score threshold
-            min_noun_frequency (int) : minimum noun frequency
-            min_num_of_features (int) : minimum number of active features
-            min_eojeol_frequency (int) : minimum eojeol frequency
-            min_eojeol_is_noun_frequency (int) : minimum frequency for eojeol-is-noun
-            extract_compounds (Boolean) : If True, extracts compound nouns
-            exclude_syllables (Boolean) : If True, excludes syllables
-            exclude_numbers (Boolean) : If True, excludes numbers
-            custom_exclude_function (callable or None) : custom exclude function
+            train_data (str,
+                        list of str like,
+                        soynlp.utils.CorpusLoader,
+                        soynlp.utils.EojeolCounter,
+                        soynlp.utils.LRGraph) :
+                Training input data.
+
+                    >>> nouns = LRNounExtractor().extract('path/to/corpus.jsonl')
+                    >>> nouns = LRNounExtractor().extract(
+                    >>>    soynlp.utils.CorpusLoader('path/to/corpus.jsonl', format='jsonl'))
+
+            min_noun_score (float) :
+                If the predicted score is less than `min_noun_score`,
+                LRNounExtractor consider `word` is not Noun.
+            min_noun_frequency (int) :
+                Required minimum frequency of noun candidates.
+                It is used in finding noun candidates
+            min_num_of_features (int) :
+                The number of active features used in prediction.
+                When the number of features is too small, LRNounExtractor
+                consider `word` is not Noun.
+            min_eojeol_frequency (int) :
+                Required minimum frequency of eojeol.
+                It is used in constructing L-R graph.
+            min_eojeol_is_noun_frequency (int) :
+                Sometimes, especially in news domain, proper nouns appear alone in eojeol.
+            extract_compounds (Boolean) :
+                If True, it extracts compound nouns and train `self.compound_decomposer`.
+            exclude_syllables (Boolean) :
+                If True, it excludes syllables from noun candidates.
+            exclude_numbers (Boolean) :
+                If True, it excludes numbers such as '2016', '10' from noun candidates.
+            custom_exclude_function (callable or None) :
+                Custom exclude function. If you want to extract nouns of which suffix is '아이' then
+
+                    >>> def custom_exclude_function(l):
+                    >>>     return l[:2] != '아이'
+                    >>>
+                    >>> noun_extractor.extract(custom_exclude_function=custom_exclude_function)
+                    $ {'아이폰7플러스': NounScore(frequency=8, score=1.0),
+                       '아이돌그룹': NounScore(frequency=16, score=1.0),
+                       '아이덴티티': NounScore(frequency=25, score=1.0),
+                         ... }
 
         Returns:
-            nouns ({str: NounScore})
+            nouns ({str: NounScore}) : {word: NounScore}
+
+        Note:
+            LRNounExtractor 의 명사 추출 원리는 크게 두 가지 입니다.
+
+            첫째, 명사의 오른쪽에는 조사의 등장 비율이 높고, 어미의 등장 비율이 낮습니다.
+            `아이디어`는 명사이기 때문에 R parts 에 조사인 `-는`, `-의`. `-를` 와 함께 어절에 등장하여
+            `아이디어 + 는`, `아이디어 + 의`, `아이디어 + 를` 을 이룹니다.
+
+            이 원리로 주어진 L=`아이디어`가 명사인지 판단하는 함수가
+            `LRNounExtractor.predict()` 입니다. L 의 오른쪽에 등장하는 R 의 distribution 을 BOW 형태로
+            입력하면 이를 바탕으로 L 의 명사 점수를 계산합니다.
+
+                >>> noun_extractor = LRNounExtractor()
+                >>> l = '아이오아이'
+                >>> word_features = [('의', 100), ('는', 50), ('니까', 15), ('가', 10), ('끼리', 5)]
+                >>> noun_extractor.predict(l, word_features)
+
+            둘째, L-R graph 에서 길이가 긴 L 부터 명사유무를 판단한 다음,
+            L 이 명사이면 `L + ?` 형태인 모든 어절을 L-R graph 에서 제거합니다.
+            `아이디어` 가 명사로 판단되면 `아이디어 + ?`가 모두 지워지기 때문에 `아이디`의 R parts 에는
+            `-어`를 제외한 `-는`, `-의`. `-를` 만 남아있어 `아이디` 도 명사로 추출됩니다.
+
+            위의 과정은 `soynlp.noun.lr.longer_first_prediction()` 에 구현되어 있습니다.
         """
         if (not self.is_trained) and (train_data is None):
             raise ValueError("`train_data` must not be `None` if noun extractor has no LRGraph")
@@ -124,7 +216,21 @@ class LRNounExtractor:
         return self.nouns
 
     def decompose_compound(self, compound):
-        """Decompose input `compound` into nouns if `compound` is true compound"""
+        """Decompose input `compound` into nouns if `compound` is true compound
+
+        Args:
+            compound (str) : input words
+
+        Returns:
+            tokens (list of str or None) : noun list if input is true compound
+
+        Examples::
+            >>> noun_extractor.decompose_compound('아이폰아이스크림아이비리그')
+            $ ['아이폰', '아이스크림', '아이비리그']
+
+            >>> noun_extractor.decompose_compound('아이폰아이스크림아이비리그봤다')
+            $ None
+        """
         if self.compound_decomposer is None:
             raise ValueError("[LRNounExtractor] retrain using `extract(extract_compounds=True)` first")
         tokens = self.compound_decomposer.tokenize(compound)
@@ -147,13 +253,50 @@ class LRNounExtractor:
         Args:
             word (str) : input word; L-part
             word_features (list of str or None) : R parts
-            min_noun_score (float) : minimum noun score
-            min_num_of_features (int) : minimum number of features
-            min_eojeol_is_noun_frequency (int) : minimum eojeol frequency
-            debug (Boolean) : If True, shows classification details
+                When the value is `None`, it uses trained L-R graph.
+            min_noun_score (float) :
+                If the predicted score is less than `min_noun_score`,
+                LRNounExtractor consider `word` is not Noun.
+            min_num_of_features (int) :
+                The number of active features used in prediction.
+                When the number of features is too small, LRNounExtractor
+                consider `word` is not Noun.
+            min_eojeol_is_noun_frequency (int) :
+                Sometimes, especially in news domain, proper nouns appear alone in eojeol.
+            debug (Boolean) :
+                If True, it shows classification details
 
         Returns:
-            noun_score (NounScore)
+            noun_score (NounScore) : NounScore(frequency, score)
+
+        Examples::
+            >>> noun_extractor.predict('아이오아이')
+            $ NounScore(frequency=127, score=1.0)
+
+            >>> noun_extractor.predict('아이오아이', debug=True)
+            $ OrderedDict([('word', '아이오아이'),
+               ('pos', 87),
+               ('common', 40),
+               ('neg', 0),
+               ('unk', 0),
+               ('end', 0),
+               ('num_features', 12),
+               ('score', 1.0),
+               ('support', 127)])
+              NounScore(frequency=127, score=1.0)
+
+            >>> word_features = [('의', 100), ('는', 50), ('니까', 15), ('가', 10), ('끼리', 5)]
+            >>> noun_extractor.predict('아이오아이', word_features, debug=True)
+            $ OrderedDict([('word', '아이오아이'),
+               ('pos', 100),
+               ('common', 50),
+               ('neg', 0),
+               ('unk', 5),
+               ('end', 0),
+               ('num_features', 1),
+               ('score', 1.0),
+               ('support', 150)])
+              NounScore(frequency=150, score=0.967741935483871)
         """
         if word_features is None:
             if self.lrgraph is None:
@@ -174,7 +317,26 @@ class LRNounExtractor:
         return NounScore(support, score)
 
     def get_noun_tokenizer(self):
-        """Get soynlp.tokenizer.NounMatchTokenizer using extracted nouns"""
+        """Get soynlp.tokenizer.NounMatchTokenizer using extracted nouns
+
+        Examples::
+            Train noun extractor model
+
+                >>> from soynlp.noun import LRNounExtractor
+                >>> train_data = '../data/2016-10-20.txt'
+                >>> noun_extractor = LRNounExtractor()
+                >>> _ = noun_extractor.extract(train_data)
+
+            Get noun tokenizer and use it
+
+                >>> noun_tokenizer = noun_extractor.get_noun_tokenizer()
+                >>> sentence = '네이버의 뉴스기사를 이용하여 학습한 모델예시입니다'
+                >>> noun_tokenizer.tokenize(sentence)
+                $ ['네이버', '뉴스기사', '이용', '학습', '모델예시']
+
+                >>> noun_tokenizer.tokenize(sentence, concat_compound=False)
+                $ ['네이버', '뉴스', '기사', '이용', '학습', '모델', '예시']
+        """
         if not self.is_trained or self.nouns is None:
             raise RuntimeError("Train LRNounExtractor first. LRNounExtractor().extract(train-data)")
         noun_scores = {noun: score.score for noun, score in self.nouns.items()}
@@ -183,11 +345,16 @@ class LRNounExtractor:
 
 def prepare_r_features(pos_features=None, neg_features=None):
     """Check `pos_features` and `neg_features`
+    If the argument is not defined, soynlp uses default R features
+
+    Args:
+        pos_features (collection of str)
+        neg_features (collection of str)
 
     Returns:
-        pos_features (set of str)
-        neg_features (set of str)
-        common_features (set of str)
+        pos_features (set of str) : positive feature set excluding common features
+        neg_features (set of str) : negative feature set excluding common features
+        common_features (set of str) : feature appeared in both `pos_features` and `neg_features`
     """
 
     def load_features(path):
@@ -237,7 +404,8 @@ def train_lrgraph(train_data, min_eojeol_frequency, max_l_length, max_r_length, 
         return lrgraph
 
     if isinstance(train_data, str) and os.path.exists(train_data):
-        train_data = DoublespaceLineCorpus(train_data, iter_sent=True)
+        fmt = "jsonl" if train_data.endswith(".jsonl") else "text"
+        train_data = CorpusLoader(train_data, format=fmt)
 
     eojeol_counter = EojeolCounter(
         sents=train_data,
