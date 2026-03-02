@@ -21,6 +21,10 @@
 | ExtractWordTask 신규       | **완료** | `WordExtractor` 래핑 pipeline task                                                          | `soynlp/pipeline/tasks/extract_words.py`                               |
 | TokenizeTask 신규          | **완료** | 4종 토크나이저(regex, max_score, noun_match, l_tokenizer) pipeline task                     | `soynlp/pipeline/tasks/tokenize.py`                                    |
 | Task 레지스트리 갱신       | **완료** | 4개 신규 task를 import 및 `__all__` 등록                                                    | `soynlp/pipeline/tasks/__init__.py`                                    |
+| hangle 모듈 포팅           | **완료** | Py2 호환 제거, type hints 추가, normalize 제거 (normalizer로 이동 완료)                     | `soynlp/hangle/`                                                       |
+| lemmatizer 모듈 포팅       | **완료** | Py2 호환 제거, type hints 추가, 활용(conjugation) 로직 유지                                 | `soynlp/lemmatizer/`                                                   |
+| postagger 모듈 포팅        | **완료** | namedtuple→dataclass(LR), Py2 제거, \_lrtagger/\_pos_extractor 제외                         | `soynlp/postagger/`                                                    |
+| vectorizer 모듈 포팅       | **완료** | Py2 호환 제거, type hints 추가, BaseVectorizer + word_context_matrix                        | `soynlp/vectorizer/`                                                   |
 
 ---
 
@@ -89,6 +93,51 @@ stub 함수 4개(`noun_candidates_from_lrgraph`, `select_nouns_from_candidates`,
 - **ExtractWordTask** (`soynlp/pipeline/tasks/extract_words.py`): `WordExtractor` 래핑. cohesion, accessor_variety, branching_entropy 추출.
 - **TokenizeTask** (`soynlp/pipeline/tasks/tokenize.py`): `regex`, `max_score`, `noun_match`, `l_tokenizer` 4종 지원. `score_field`로 NounScore 등의 속성 접근.
 - Task 레지스트리 (`soynlp/pipeline/tasks/__init__.py`) 갱신.
+
+### hangle 모듈 포팅
+
+`soynlp/hangle/` 모듈을 `refactoring` 브랜치에서 포팅:
+
+- Python 2 호환 코드 제거 (`sys.version_info`, `reload`, `unicode`)
+- `normalize()` 함수 제외 (deprecated, `soynlp/normalizer/`로 이동 완료)
+- type hints 추가 (`decompose() → tuple[str, str, str] | None` 등)
+- `_hangle.py` (decompose, compose, character*is*\*, ConvolutionHangleEncoder)
+- `_distance.py` (levenshtein, jamo_levenshtein, cosine_distance, jaccard_distance)
+- 테스트: `tests/unit/test_hangle.py` (32개)
+
+### lemmatizer 모듈 포팅
+
+`soynlp/lemmatizer/` 모듈을 `refactoring` 브랜치에서 포팅:
+
+- Python 2 호환 코드 제거
+- type hints 추가
+- `_conjugation.py` (conjugate, conjugate_chat, \_conjugate_stem)
+- `_lemmatizer.py` (Lemmatizer, lemma_candidate, lemma_candidate_chat)
+- 사전 데이터 (`dictionary/`, `tag/`) 그대로 복사
+- 테스트: `tests/unit/test_lemmatizer.py` (14개)
+
+### postagger 모듈 포팅
+
+`soynlp/postagger/` 모듈을 `refactoring` 브랜치에서 포팅:
+
+- `LR` namedtuple → `@dataclass(frozen=True, slots=True)` 변환
+- Python 2 호환 코드 전체 제거
+- `_lrtagger.py`, `_pos_extractor.py` 제외 (미포팅 의존성)
+- `_dictionary.py` (Dictionary: load/save/get_pos/add_words/remove_words)
+- `_template.py` (LR, EojeolTemplateMatcher, LRTemplateMatcher)
+- `_evaluator.py` (SimpleEojeolEvaluator, LREvaluator)
+- `_tagger.py` (SimpleTagger, UnknowLRPostprocessor)
+- 사전 데이터 (`dictionary/`, `tagset/`) 그대로 복사
+- 테스트: `tests/unit/test_postagger.py` (14개)
+
+### vectorizer 모듈 포팅
+
+`soynlp/vectorizer/` 모듈을 `refactoring` 브랜치에서 포팅:
+
+- type hints 추가
+- `_vectorizer.py` (BaseVectorizer: fit, transform, save, load)
+- `_word_context.py` (sent_to_word_contexts_matrix)
+- 테스트: `tests/unit/test_vectorizer.py` (10개)
 
 ---
 
