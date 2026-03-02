@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import math
 import os
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 from tqdm import tqdm
@@ -11,39 +15,47 @@ from soynlp.utils import CorpusLoader, get_process_memory
 
 
 class WordExtractor:
-    def __init__(self, max_l_length=10, max_r_length=6, verbose=True, R_suffix="▁"):
+    def __init__(
+        self,
+        max_l_length: int = 10,
+        max_r_length: int = 6,
+        verbose: bool = True,
+        R_suffix: str = "▁",
+    ) -> None:
         self.max_l_length = max_l_length
         self.max_r_length = max_r_length
         self.verbose = verbose
         self.R_suffix = R_suffix
 
-        self.L = {}
-        self.R = {}
-        self.prev_sub = {}
-        self.sub_next = {}
+        self.L: dict[str, int] = {}
+        self.R: dict[str, int] = {}
+        self.prev_sub: dict[str, int] = {}
+        self.sub_next: dict[str, int] = {}
 
     @property
-    def is_trained(self):
-        return self.L and self.R
+    def is_trained(self) -> bool:
+        return bool(self.L and self.R)
 
     def extract(
         self,
-        train_data=None,
-        cumulate=True,
-        extract_cohesion_only=False,
-        min_frequency=5,
-        min_cohesion_leftside=0.05,
-        min_cohesion_rightside=0.0,
-        min_brancingentropy_leftside=0.1,
-        min_brancingentropy_rightside=0.1,
-        min_accessorvariety_leftside=2,
-        min_accessorvariety_rightside=2,
-        prune_per_lines=-1,
-        remove_subwords=False,
-    ):
+        train_data: str | list[str] | CorpusLoader | None = None,
+        cumulate: bool = True,
+        extract_cohesion_only: bool = False,
+        min_frequency: int = 5,
+        min_cohesion_leftside: float = 0.05,
+        min_cohesion_rightside: float = 0.0,
+        min_brancingentropy_leftside: float = 0.1,
+        min_brancingentropy_rightside: float = 0.1,
+        min_accessorvariety_leftside: int = 2,
+        min_accessorvariety_rightside: int = 2,
+        prune_per_lines: int = -1,
+        remove_subwords: bool = False,
+    ) -> dict[str, dict[str, CohesionScore] | dict[str, AccessorVariety] | dict[str, BranchingEntropy]]:
         if isinstance(train_data, str) and os.path.exists(train_data):
             fmt = "jsonl" if train_data.endswith(".jsonl") else "text"
             train_data = CorpusLoader(train_data, format=fmt)
+        if train_data is None:
+            raise ValueError("`train_data` must not be None")
         L, R, prev_sub, sub_next = initialize_counters(self.L, self.R, self.prev_sub, self.sub_next, cumulate)
         self.L, self.R, self.prev_sub, self.sub_next = count_substrings(
             train_data=train_data,
@@ -83,41 +95,44 @@ class WordExtractor:
         return {"cohesion": cohesions, "accessor_variety": av, "branching_entropy": be}
 
 
-def print_message(message):
+def print_message(message: str) -> None:
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[WordExtractor] {now}, mem={get_process_memory():.4} GB : {message}")
 
 
-def initialize_counters(L, R, prev_sub, sub_next, cumulate: bool):
+def initialize_counters(
+    L: dict[str, int],
+    R: dict[str, int],
+    prev_sub: dict[Any, int],
+    sub_next: dict[Any, int],
+    cumulate: bool,
+) -> tuple[defaultdict[Any, int], defaultdict[Any, int], defaultdict[Any, int], defaultdict[Any, int]]:
     if cumulate:
-        return tuple(defaultdict(int, d) for d in [L, R, prev_sub, sub_next])
-    return tuple(defaultdict(int) for _ in range(4))
+        return (defaultdict(int, L), defaultdict(int, R), defaultdict(int, prev_sub), defaultdict(int, sub_next))
+    return (defaultdict(int), defaultdict(int), defaultdict(int), defaultdict(int))
 
 
-def prune_counter(counter, min_count):
+def prune_counter(counter: defaultdict[Any, int] | dict[Any, int], min_count: int) -> defaultdict[Any, int]:
     return defaultdict(int, {key: count for key, count in counter.items() if count >= min_count})
 
 
 def count_substrings(
-    train_data,
-    L,
-    R,
-    prev_sub,
-    sub_next,
-    max_left_length,
-    max_right_length,
-    min_frequency,
-    prune_per_lines,
-    cohesion_only,
-    verbose,
-):
+    train_data: Iterable[Any],
+    L: dict[Any, int],
+    R: dict[Any, int],
+    prev_sub: dict[Any, int],
+    sub_next: dict[Any, int],
+    max_left_length: int,
+    max_right_length: int,
+    min_frequency: int,
+    prune_per_lines: int,
+    cohesion_only: bool,
+    verbose: bool,
+) -> tuple[dict[str, int], dict[str, int], dict[Any, int], dict[Any, int]]:
     if not verbose:
-        train_iterator = train_data
+        train_iterator: Iterable[Any] = train_data
     else:
-        if hasattr(train_data, "__len__"):
-            total = len(train_data)
-        else:
-            total = None
+        total: int | None = len(train_data) if hasattr(train_data, "__len__") else None  # type: ignore[arg-type]
         desc = "[WordExtractor] counting subwords"
         train_iterator = tqdm(train_data, desc=desc, total=total)
 
@@ -164,7 +179,7 @@ def count_substrings(
     return L, R, prev_sub, sub_next
 
 
-def calculate_cohesion(word: str, L: dict, R: dict):
+def calculate_cohesion(word: str, L: dict[str, int], R: dict[str, int]) -> tuple[float, float]:
     n = len(word)
     if n <= 1:
         return (0, 0)
@@ -180,19 +195,19 @@ def calculate_cohesion(word: str, L: dict, R: dict):
 
 
 def calculate_cohesion_batch(
-    L: dict,
-    R: dict,
+    L: dict[str, int],
+    R: dict[str, int],
     min_cohesion_leftside: float,
     min_cohesion_rightside: float,
     verbose: bool = True,
-):
+) -> dict[str, CohesionScore]:
     words = set(L).union(set(R))
     if verbose:
         desc = "[WordExtractor] calculating cohesions"
         word_iterator = tqdm(words, desc=desc, total=len(words))
     else:
         word_iterator = words
-    extracteds = {}
+    extracteds: dict[str, CohesionScore] = {}
     for word in word_iterator:
         l_score, r_score = calculate_cohesion(word, L, R)
         if (l_score < min_cohesion_leftside) or (r_score < min_cohesion_rightside):
@@ -201,7 +216,7 @@ def calculate_cohesion_batch(
     return extracteds
 
 
-def get_entropy(collection_of_numbers):
+def get_entropy(collection_of_numbers: list[int] | list[float]) -> float:
     if not collection_of_numbers:
         return 0.0
     total = sum(collection_of_numbers)
@@ -213,36 +228,41 @@ def get_entropy(collection_of_numbers):
 
 
 def calculate_branching_entropy_accessor_variety_batch(
-    L: dict,
-    R: dict,
-    prev_sub: dict,
-    sub_next: dict,
+    L: dict[str, int],
+    R: dict[str, int],
+    prev_sub: dict[str, int],
+    sub_next: dict[str, int],
     min_brancingentropy_leftside: float,
     min_brancingentropy_rightside: float,
     min_accessorvariety_leftside: int,
     min_accessorvariety_rightside: int,
     verbose: bool = True,
-    R_suffix="▁",
-):
-    l_groupby_len, r_groupby_len = defaultdict(lambda: {}), defaultdict(lambda: {})
+    R_suffix: str = "▁",
+) -> tuple[dict[str, AccessorVariety], dict[str, BranchingEntropy]]:
+    l_groupby_len: defaultdict[int, dict[str, int]] = defaultdict(lambda: {})
+    r_groupby_len: defaultdict[int, dict[str, int]] = defaultdict(lambda: {})
     for l, count in L.items():  # noqa: E741
         l_groupby_len[len(l)][l] = count
     for r, count in R.items():
         r_groupby_len[len(r)][r] = count
 
     total_l, total_r = len(L), len(R)
-    be_l, be_r, av_l, av_r = {}, {}, {}, {}
+    be_l: dict[str, float] = {}
+    be_r: dict[str, float] = {}
+    av_l: dict[str, int] = {}
+    av_r: dict[str, int] = {}
 
     offset = 0
     max_l_length = max(l_groupby_len)
     for l_len, l_count in sorted(l_groupby_len.items()):
         if l_len == 1:
             continue
-        prev_dict = defaultdict(lambda: {})
+        prev_dict: defaultdict[str, dict[str, int]] = defaultdict(lambda: {})
         for (prev, sub), count in prev_sub.items():
             if len(sub) == l_len:
                 prev_dict[sub][prev] = count
-        extensions_left, extensions_right = defaultdict(lambda: []), defaultdict(lambda: [])
+        extensions_left: defaultdict[str, list[int]] = defaultdict(lambda: [])
+        extensions_right: defaultdict[str, list[int]] = defaultdict(lambda: [])
         if verbose:
             l_count_iterator = tqdm(
                 l_count.items(),
@@ -270,11 +290,12 @@ def calculate_branching_entropy_accessor_variety_batch(
     for r_len, r_count in sorted(r_groupby_len.items()):
         if r_len == 1:
             continue
-        prev_dict = defaultdict(lambda: {})
+        prev_dict: defaultdict[str, dict[str, int]] = defaultdict(lambda: {})
         for (sub, next_char), count in sub_next.items():
             if len(sub) == r_len:
                 prev_dict[sub][next_char] = count
-        extensions_left, extensions_right = defaultdict(lambda: []), defaultdict(lambda: [])
+        extensions_left: defaultdict[str, list[int]] = defaultdict(lambda: [])
+        extensions_right: defaultdict[str, list[int]] = defaultdict(lambda: [])
         if verbose:
             r_count_iterator = tqdm(
                 r_count.items(),
@@ -297,7 +318,8 @@ def calculate_branching_entropy_accessor_variety_batch(
             av_r[f"{r}{R_suffix}"] = len(counts)
         offset += len(r_count)
 
-    av, be = {}, {}
+    av: dict[str, AccessorVariety] = {}
+    be: dict[str, BranchingEntropy] = {}
     for term in be_l:
         if (av_l.get(term, 0) >= min_accessorvariety_leftside) and (av_r.get(term, 0) >= min_accessorvariety_rightside):
             av[term] = AccessorVariety(term, av_l.get(term, 0), av_r.get(term, 0))

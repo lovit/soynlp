@@ -1,7 +1,9 @@
 import inspect
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from math import log
+from typing import Any
 
 from tqdm import tqdm
 
@@ -10,7 +12,7 @@ from soynlp.utils import CorpusLoader
 
 @dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
 class NgramScore:
-    ngram: str
+    ngram: str | tuple[str, str]
     frequency: int
     score: float
 
@@ -24,25 +26,26 @@ class BigramExtractor:
 
     def __init__(
         self,
-        min_frequency=5,
-        verbose=True,
-        score="frequency",
-        filtering_checkpoint=100000,
-        tokenizer=None,
-    ):
+        min_frequency: int = 5,
+        verbose: bool = True,
+        score: str | Callable[..., dict[str, NgramScore]] = "frequency",
+        filtering_checkpoint: int = 100000,
+        tokenizer: Callable[[str], list[str]] | None = None,
+    ) -> None:
         if tokenizer is None:
 
-            def _default_tokenizer(line):
+            def _default_tokenizer(line: str) -> list[str]:
                 return line.split()
 
             tokenizer = _default_tokenizer
 
+        resolved_score: Scorer | Callable[..., dict[str, NgramScore]]
         if score == "frequency":
-            score = FrequencyScorer()
+            resolved_score = FrequencyScorer()
         elif score == "pmi":
-            score = PMIScorer()
+            resolved_score = PMIScorer()
         elif score == "mikolov":
-            score = MikolovWord2VecScorer(min_frequency)
+            resolved_score = MikolovWord2VecScorer(min_frequency)
         elif callable(score):
             parameters = inspect.signature(score).parameters
             if (
@@ -52,24 +55,30 @@ class BigramExtractor:
                 or ("topk" not in parameters)
             ):
                 raise ValueError("Callable `score` must have `unigram`, `bigram`, and `threshold` as its arguments")
+            resolved_score = score
         else:
             raise ValueError("`score` must be one of ['frequency', 'pmi', 'mikolov', callable]")
 
         self.min_frequency = min_frequency
         self.verbose = verbose
-        self.score = score
+        self.score: Scorer | Callable[..., dict[str, NgramScore]] = resolved_score
         self.filtering_checkpoint = filtering_checkpoint
         self.tokenizer = tokenizer
 
-        self.unigrams = None
-        self.bigrams = None
+        self.unigrams: dict[str, int] | None = None
+        self.bigrams: dict[tuple[str, str], int] | None = None
 
     @property
-    def is_trained(self):
+    def is_trained(self) -> bool:
         return (self.bigrams is not None) and (len(self.bigrams) > 0)
 
-    def extract(self, train_data, threshold=0, topk=-1):
-        def to_bigram(words):
+    def extract(
+        self,
+        train_data: str | list[str] | CorpusLoader,
+        threshold: float = 0,
+        topk: int = -1,
+    ) -> dict[str, NgramScore]:
+        def to_bigram(words: list[str]) -> list[tuple[str, str]]:
             bigrams = [(w0, w1) for w0, w1 in zip(words, words[1:])]
             return bigrams
 
@@ -77,18 +86,15 @@ class BigramExtractor:
             fmt = "jsonl" if train_data.endswith(".jsonl") else "text"
             train_data = CorpusLoader(train_data, format=fmt)
 
-        total = len(train_data)
         if not self.verbose:
-            train_iterator = train_data
+            train_iterator: Any = train_data
         else:
-            if hasattr(train_data, "__len__"):
-                total = len(train_data)
-            else:
-                total = None
+            total: int | None = len(train_data) if hasattr(train_data, "__len__") else None  # type: ignore[arg-type]
             desc = "[BigramExtractor] counting bigrams"
             train_iterator = tqdm(train_data, desc=desc, total=total)
 
-        unigrams, bigrams = {}, {}
+        unigrams: dict[str, int] = {}
+        bigrams: dict[tuple[str, str], int] = {}
         for i_sent, sent in enumerate(train_iterator):
             if self.filtering_checkpoint > 0 and (i_sent % self.filtering_checkpoint == 0):
                 bigrams = {bigram: freq for bigram, freq in bigrams.items() if freq >= self.min_frequency}
@@ -106,46 +112,75 @@ class BigramExtractor:
         bigrams = {bigram: freq for bigram, freq in bigrams.items() if freq >= self.min_frequency}
         self.unigrams = unigrams
         self.bigrams = bigrams
-        scored = self.score(unigrams=unigrams, bigrams=bigrams, threshold=threshold, topk=topk)
+        scored: dict[str, NgramScore] = self.score(unigrams=unigrams, bigrams=bigrams, threshold=threshold, topk=topk)
         return scored
 
 
 class Scorer:
-    def __call__(self, unigrams, bigrams, threshold, topk=-1):
-        scored = self.score(unigrams=unigrams, bigrams=bigrams, threshold=threshold, topk=topk)
-        scored = self.filter(scored, threshold=threshold, topk=topk)
+    def __call__(
+        self,
+        unigrams: dict[str, int],
+        bigrams: dict[tuple[str, str], int],
+        threshold: float,
+        topk: int = -1,
+    ) -> dict[str, NgramScore]:
+        raw_scored = self.score(unigrams=unigrams, bigrams=bigrams, threshold=threshold, topk=topk)
+        filtered = self.filter(raw_scored, threshold=threshold, topk=topk)
 
-        def strf(ngram):
+        def strf(ngram: str | tuple[str, str]) -> str:
             return " - ".join(ngram)
 
-        scored = {strf(ngram): NgramScore(strf(ngram), score.frequency, score.score) for ngram, score in scored.items()}
-        return scored
+        result = {strf(ngram): NgramScore(strf(ngram), s.frequency, s.score) for ngram, s in filtered.items()}
+        return result
 
-    def score(self, unigrams, bigrams, threshold, topk=-1):
+    def score(
+        self,
+        unigrams: dict[str, int],
+        bigrams: dict[tuple[str, str], int],
+        threshold: float,
+        topk: int = -1,
+    ) -> dict[tuple[str, str], NgramScore]:
         raise NotImplementedError("Implement score function")
 
-    def filter(self, scored, threshold, topk=-1):
-        scored = {ngram: score for ngram, score in scored.items() if score.score >= threshold}
+    def filter(
+        self,
+        scored: dict[tuple[str, str], NgramScore],
+        threshold: float,
+        topk: int = -1,
+    ) -> dict[tuple[str, str], NgramScore]:
+        filtered = {ngram: s for ngram, s in scored.items() if s.score >= threshold}
         if topk > 0:
-            scored = sorted(scored.items(), key=lambda x: -x[1].frequency)[:topk]
-            scored = dict(scored)
-        return scored
+            top_items = sorted(filtered.items(), key=lambda x: -x[1].frequency)[:topk]
+            filtered = dict(top_items)
+        return filtered
 
 
 class FrequencyScorer(Scorer):
-    def score(self, unigrams, bigrams, threshold=10, topk=-1):
+    def score(
+        self,
+        unigrams: dict[str, int],
+        bigrams: dict[tuple[str, str], int],
+        threshold: float = 10,
+        topk: int = -1,
+    ) -> dict[tuple[str, str], NgramScore]:
         scored = {ngram: NgramScore(ngram, freq, freq) for ngram, freq in bigrams.items()}
         return scored
 
 
 class PMIScorer(Scorer):
-    def score(self, unigrams, bigrams, threshold=0, topk=-1):
-        def get_pmi(bigram, freq, N):
+    def score(
+        self,
+        unigrams: dict[str, int],
+        bigrams: dict[tuple[str, str], int],
+        threshold: float = 0,
+        topk: int = -1,
+    ) -> dict[tuple[str, str], NgramScore]:
+        def get_pmi(bigram: tuple[str, str], freq: int, N: int) -> float:
             base = unigrams.get(bigram[0], 0) * unigrams.get(bigram[1], 0)
             return -9999 if base == 0 else log(N * freq / base)
 
         N = sum(unigrams.values())
-        scored = {}
+        scored: dict[tuple[str, str], NgramScore] = {}
         for bigram, freq in bigrams.items():
             pmi = get_pmi(bigram, freq, N)
             if pmi >= threshold:
@@ -154,16 +189,22 @@ class PMIScorer(Scorer):
 
 
 class MikolovWord2VecScorer(Scorer):
-    def __init__(self, min_frequency):
+    def __init__(self, min_frequency: int) -> None:
         self.min_frequency = min_frequency
 
-    def score(self, unigrams, bigrams, threshold=0, topk=-1):
-        def get_pmi_like(bigram, freq, N):
+    def score(
+        self,
+        unigrams: dict[str, int],
+        bigrams: dict[tuple[str, str], int],
+        threshold: float = 0,
+        topk: int = -1,
+    ) -> dict[tuple[str, str], NgramScore]:
+        def get_pmi_like(bigram: tuple[str, str], freq: int, N: int) -> float:
             base = unigrams.get(bigram[0], 0) * unigrams.get(bigram[1], 0)
             return 0 if base == 0 else (freq - self.min_frequency) / base
 
         N = sum(unigrams.values())
-        scored = {}
+        scored: dict[tuple[str, str], NgramScore] = {}
         for bigram, freq in bigrams.items():
             s = get_pmi_like(bigram, freq, N)
             if s >= threshold:

@@ -1,6 +1,8 @@
 import json
 import os
 from collections import defaultdict
+from collections.abc import Callable, ItemsView, Iterator
+from typing import Any
 
 import psutil
 from sklearn.metrics import pairwise_distances
@@ -11,26 +13,28 @@ from soynlp.core.lrgraph import LRGraph
 installpath = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(os.path.sep)[:-1])
 
 
-def get_available_memory():
+def get_available_memory() -> float:
     """It returns remained memory as percentage"""
     mem = psutil.virtual_memory()
     return 100 * mem.available / (mem.total)
 
 
-def get_process_memory():
+def get_process_memory() -> float:
     """It returns the memory usage of current process"""
     process = psutil.Process(os.getpid())
     return process.memory_info().rss / (1024**3)
 
 
-def check_dirs(filepath):
+def check_dirs(filepath: str) -> None:
     dirname = os.path.dirname(os.path.abspath(filepath))
     if not os.path.exists(dirname):
         os.makedirs(dirname)
         print(f"created {dirname}")
 
 
-def most_similar(query, vector, item_to_idx, idx_to_item, topk=10):
+def most_similar(
+    query: str, vector: Any, item_to_idx: dict[str, int], idx_to_item: list[str], topk: int = 10
+) -> list[tuple[str, float]]:
     """Find most closest rows
 
     Args:
@@ -58,7 +62,7 @@ def most_similar(query, vector, item_to_idx, idx_to_item, topk=10):
     return similars
 
 
-def check_corpus(corpus):
+def check_corpus(corpus: Any) -> bool:
     """
     Args:
         corpus (list of str like)
@@ -98,7 +102,7 @@ class CorpusLoader:
         ...     print(item["text"])
     """
 
-    def __init__(self, corpus_path, format="jsonl", text_key="text", verbose=False):
+    def __init__(self, corpus_path: str, format: str = "jsonl", text_key: str = "text", verbose: bool = False) -> None:
         if format not in ("jsonl", "text"):
             raise ValueError(f"format must be 'jsonl' or 'text', got '{format}'")
         if not os.path.exists(corpus_path):
@@ -107,9 +111,9 @@ class CorpusLoader:
         self.format = format
         self.text_key = text_key
         self.verbose = verbose
-        self._num_lines = None
+        self._num_lines: int | None = None
 
-    def _count_lines(self):
+    def _count_lines(self) -> int:
         count = 0
         with open(self.corpus_path, encoding="utf-8") as f:
             for line in f:
@@ -117,12 +121,12 @@ class CorpusLoader:
                     count += 1
         return count
 
-    def __len__(self):
+    def __len__(self) -> int:
         if self._num_lines is None:
             self._num_lines = self._count_lines()
         return self._num_lines
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[dict[str, str]]:
         with open(self.corpus_path, encoding="utf-8") as f:
             if self.verbose:
                 line_iterator = tqdm(f, desc=f"[CorpusLoader] reading {self.format}", total=len(self))
@@ -161,8 +165,15 @@ class EojeolCounter:
     """
 
     def __init__(
-        self, sents=None, min_count=1, max_length=15, filtering_checkpoint=0, verbose=False, preprocess=None, text_key="text"
-    ):
+        self,
+        sents: Any | None = None,
+        min_count: int = 1,
+        max_length: int = 15,
+        filtering_checkpoint: int = 0,
+        verbose: bool = False,
+        preprocess: Callable[[str], str] | None = None,
+        text_key: str = "text",
+    ) -> None:
         self.min_count = min_count
         self.max_length = max_length
         self.filtering_checkpoint = filtering_checkpoint
@@ -171,7 +182,7 @@ class EojeolCounter:
 
         if preprocess is None:
 
-            def base_preprocessing(x):
+            def base_preprocessing(x: str) -> str:
                 return x
 
             preprocess = base_preprocessing
@@ -183,19 +194,19 @@ class EojeolCounter:
             self._counter = {}
 
     @property
-    def count_sum(self):
+    def count_sum(self) -> int:
         return sum(self._counter.values())
 
-    def _set_count_sum(self):
+    def _set_count_sum(self) -> None:
         self._count_sum = sum(self._counter.values())
 
-    def __getitem__(self, eojeol):
+    def __getitem__(self, eojeol: str) -> int:
         return self._counter.get(eojeol, 0)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._counter)
 
-    def _counting_from_sents(self, sents):
+    def _counting_from_sents(self, sents: Any) -> dict[str, int]:
         check_corpus(sents)
         if self.verbose:
             sent_iterator = tqdm(sents, desc="[EojeolCounter] counting eojeols ", total=len(sents))
@@ -217,7 +228,7 @@ class EojeolCounter:
         counter = {eojeol: count for eojeol, count in counter.items() if count >= self.min_count}
         return counter
 
-    def remove_eojeols(self, eojeols):
+    def remove_eojeols(self, eojeols: set[str] | str) -> "EojeolCounter":
         """Remove eojeols
 
         Args:
@@ -231,7 +242,7 @@ class EojeolCounter:
         self._counter = {k: v for k, v in self._counter.items() if k not in eojeols}
         return self
 
-    def get_eojeol_count(self, eojeol):
+    def get_eojeol_count(self, eojeol: str) -> int:
         """Return eojeol count
 
         Args:
@@ -242,11 +253,11 @@ class EojeolCounter:
         """
         return self._counter.get(eojeol, 0)
 
-    def items(self):
+    def items(self) -> ItemsView[str, int]:
         """Return {key: value} items"""
         return self._counter.items()
 
-    def to_lrgraph(self, max_l_length=10, max_r_length=9, ignore_one_syllable=False):
+    def to_lrgraph(self, max_l_length: int = 10, max_r_length: int = 9, ignore_one_syllable: bool = False) -> LRGraph:
         """Transform EojeolCounter to LRGraph
 
         Args:
@@ -265,7 +276,9 @@ class EojeolCounter:
         """
         return self._to_lrgraph(self._counter, max_l_length, max_r_length, ignore_one_syllable)
 
-    def _to_lrgraph(self, counter, max_l_length=10, max_r_length=9, ignore_one_syllable=False):
+    def _to_lrgraph(
+        self, counter: dict[str, int], max_l_length: int = 10, max_r_length: int = 9, ignore_one_syllable: bool = False
+    ) -> LRGraph:
         l2r = defaultdict(lambda: defaultdict(int))
         for eojeol, count in counter.items():
             if ignore_one_syllable and len(eojeol) == 1:
@@ -278,7 +291,7 @@ class EojeolCounter:
         l2r = {l: dict(rdict) for l, rdict in l2r.items()}  # noqa: E741
         return LRGraph(l2r, max_l_length=max_l_length, max_r_length=max_r_length)
 
-    def save(self, path):
+    def save(self, path: str) -> None:
         """Save EojeolCounter to text file
 
         Args:
@@ -289,7 +302,7 @@ class EojeolCounter:
             for eojeol, count in sorted(self._counter.items(), key=lambda x: (-x[1], x[0])):
                 f.write(f"{eojeol} {count}\n")
 
-    def load(self, path):
+    def load(self, path: str) -> None:
         """Load EojeolCounter from text file
 
         Args:

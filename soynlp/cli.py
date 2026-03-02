@@ -4,7 +4,7 @@ from importlib.metadata import metadata
 from soynlp.pipeline.pipeline import Pipeline
 
 
-def main():
+def main() -> None:
     meta = metadata("soynlp")
     parser = argparse.ArgumentParser(description=meta["Summary"])
     parser.add_argument(

@@ -1,8 +1,13 @@
+import numpy as np
+from numpy.random import RandomState
+from scipy.sparse import spmatrix
 from sklearn.utils import check_random_state
 from sklearn.utils.extmath import randomized_svd
 
 
-def svd(X, n_components, n_iter=5, random_state=None):
+def svd(
+    X: spmatrix, n_components: int, n_iter: int = 5, random_state: int | RandomState | None = None
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Train Singular Vector Decomposition with given matrix `X`
 
     Args:

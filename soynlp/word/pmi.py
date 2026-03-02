@@ -1,14 +1,16 @@
+from typing import Any
+
 import numpy as np
-from scipy.sparse import csr_matrix, diags
+from scipy.sparse import csr_matrix, dia_matrix, diags
 
 
-def _as_diag(px, alpha):
-    px_diag = diags(px.tolist()[0])
+def _as_diag(px: np.ndarray, alpha: float) -> dia_matrix:
+    px_diag: dia_matrix = diags(px.tolist()[0])
     px_diag.data[0] = np.asarray([0 if v == 0 else 1 / (v + alpha) for v in px_diag.data[0]])
     return px_diag
 
 
-def _logarithm_and_ppmi(exp_pmi, min_exp_pmi):
+def _logarithm_and_ppmi(exp_pmi: Any, min_exp_pmi: float) -> csr_matrix:
     n, m = exp_pmi.shape
 
     rows, cols = exp_pmi.nonzero()
@@ -24,7 +26,13 @@ def _logarithm_and_ppmi(exp_pmi, min_exp_pmi):
     return exp_pmi_
 
 
-def pmi(X, py=None, min_pmi=0, alpha=0.0, beta=1):
+def pmi(
+    X: csr_matrix,
+    py: np.ndarray | None = None,
+    min_pmi: float = 0,
+    alpha: float = 0.0,
+    beta: float = 1,
+) -> tuple[csr_matrix, np.ndarray, np.ndarray]:
     """Transform `X` to Positive-PMI matrix (CSR sparse matrix)
 
     Args:
@@ -52,16 +60,17 @@ def pmi(X, py=None, min_pmi=0, alpha=0.0, beta=1):
     pxy = X / X.sum()
     if py is None:
         py = np.asarray((X.sum(axis=0) / X.sum()).reshape(-1))
+    py_arr: np.ndarray = py
     if beta < 1:
-        py = py**beta
-        py /= py.sum()
-    assert py.shape[1] == pxy.shape[1]
+        py_arr = py_arr**beta
+        py_arr /= py_arr.sum()
+    assert py_arr.shape[1] == pxy.shape[1]  # type: ignore[index]
 
     px_diag = _as_diag(px, 0)
-    py_diag = _as_diag(py, alpha)
+    py_diag = _as_diag(py_arr, alpha)
     exp_pmi = px_diag.dot(pxy).dot(py_diag)
 
     min_exp_pmi = 1 if min_pmi == 0 else np.exp(min_pmi)
     pmi_mat = _logarithm_and_ppmi(exp_pmi, min_exp_pmi)
 
-    return pmi_mat, px, py
+    return pmi_mat, px, py_arr

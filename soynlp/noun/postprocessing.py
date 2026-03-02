@@ -1,11 +1,13 @@
 import os
 
+from soynlp.core.lrgraph import LRGraph
+
 filepath = os.path.dirname(os.path.realpath(__file__))
 josapath = filepath + "/frequent_enrolled_josa.txt"
 suffixpath = filepath + "/frequent_noun_suffix.txt"
 
 
-def load_lines_as_set(path):
+def load_lines_as_set(path: str) -> set[str]:
     with open(path, encoding="utf-8") as f:
         return {word.strip() for word in f if word.strip()}
 
@@ -14,12 +16,14 @@ josaset = load_lines_as_set(josapath)
 suffixset = load_lines_as_set(suffixpath)
 
 
-def subtract(base, removals):
+def subtract(base: dict[str, tuple[int, float]], removals: set[str]) -> dict[str, tuple[int, float]]:
     return {word: score for word, score in base.items() if (word not in removals)}
 
 
-def detaching_features(nouns, features):
-    removals = set()
+def detaching_features(
+    nouns: dict[str, tuple[int, float]], features: set[str]
+) -> tuple[dict[str, tuple[int, float]], set[str]]:
+    removals: set[str] = set()
     for word in nouns:
         if len(word) <= 2:
             continue
@@ -35,8 +39,8 @@ def detaching_features(nouns, features):
     return nouns, removals
 
 
-def ignore_features(nouns, features):
-    removals = set()
+def ignore_features(nouns: dict[str, tuple[int, float]], features: set[str]) -> tuple[dict[str, tuple[int, float]], set[str]]:
+    removals: set[str] = set()
     for word in nouns:
         if word in features:
             removals.add(word)
@@ -44,8 +48,10 @@ def ignore_features(nouns, features):
     return nouns, removals
 
 
-def check_N_is_NJ(nouns, lrgraph, min_num_of_josa=5):
-    removals = set()
+def check_N_is_NJ(
+    nouns: dict[str, tuple[int, float]], lrgraph: LRGraph, min_num_of_josa: int = 5
+) -> tuple[dict[str, tuple[int, float]], set[str]]:
+    removals: set[str] = set()
     for word, score in nouns.items():
         n = len(word)
         if n <= 2:

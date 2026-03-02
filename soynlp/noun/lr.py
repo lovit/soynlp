@@ -1,6 +1,7 @@
 import os
 import re
 from collections import OrderedDict, namedtuple
+from collections.abc import Callable, Iterable
 from datetime import datetime
 from pprint import pprint
 
@@ -67,12 +68,12 @@ class LRNounExtractor:
 
     def __init__(
         self,
-        max_l_length=10,
-        max_r_length=9,
-        pos_features=None,
-        neg_features=None,
-        verbose=True,
-    ):
+        max_l_length: int = 10,
+        max_r_length: int = 9,
+        pos_features: set[str] | Iterable[str] | str | None = None,
+        neg_features: set[str] | Iterable[str] | str | None = None,
+        verbose: bool = True,
+    ) -> None:
         self.max_l_length = max_l_length
         self.max_r_length = max_r_length
         self.verbose = verbose
@@ -86,22 +87,22 @@ class LRNounExtractor:
         self.nouns: dict[str, NounScore] | None = None
 
     @property
-    def is_trained(self):
+    def is_trained(self) -> bool:
         return self.lrgraph is not None
 
     def extract(
         self,
-        train_data=None,
-        min_noun_score=0.3,
-        min_noun_frequency=1,
-        min_num_of_features=1,
-        min_eojeol_frequency=1,
-        min_eojeol_is_noun_frequency=30,
-        extract_compounds=True,
-        exclude_syllables=False,
-        exclude_numbers=True,
-        custom_exclude_function=None,
-    ):
+        train_data: str | list[str] | CorpusLoader | EojeolCounter | LRGraph | None = None,
+        min_noun_score: float = 0.3,
+        min_noun_frequency: int = 1,
+        min_num_of_features: int = 1,
+        min_eojeol_frequency: int = 1,
+        min_eojeol_is_noun_frequency: int = 30,
+        extract_compounds: bool = True,
+        exclude_syllables: bool = False,
+        exclude_numbers: bool = True,
+        custom_exclude_function: Callable[[str], bool] | None = None,
+    ) -> dict[str, NounScore]:
         """Extract nouns from `train_data` or trained L-R graph
 
         Args:
@@ -215,7 +216,7 @@ class LRNounExtractor:
         self.nouns = {noun: NounScore(frequency, score) for noun, (frequency, score) in nouns.items()}
         return self.nouns
 
-    def decompose_compound(self, compound):
+    def decompose_compound(self, compound: str) -> list[str] | None:
         """Decompose input `compound` into nouns if `compound` is true compound
 
         Args:
@@ -241,13 +242,13 @@ class LRNounExtractor:
 
     def predict(
         self,
-        word,
-        word_features=None,
-        min_noun_score=0.3,
-        min_num_of_features=1,
-        min_eojeol_is_noun_frequency=30,
-        debug=False,
-    ):
+        word: str,
+        word_features: list[tuple[str, int]] | None = None,
+        min_noun_score: float = 0.3,
+        min_num_of_features: int = 1,
+        min_eojeol_is_noun_frequency: int = 30,
+        debug: bool = False,
+    ) -> NounScore:
         """Predict noun scores
 
         Args:
@@ -316,7 +317,7 @@ class LRNounExtractor:
         )
         return NounScore(support, score)
 
-    def get_noun_tokenizer(self):
+    def get_noun_tokenizer(self) -> NounMatchTokenizer:
         """Get soynlp.tokenizer.NounMatchTokenizer using extracted nouns
 
         Examples::
@@ -343,7 +344,10 @@ class LRNounExtractor:
         return NounMatchTokenizer(noun_scores)
 
 
-def prepare_r_features(pos_features=None, neg_features=None):
+def prepare_r_features(
+    pos_features: set[str] | Iterable[str] | str | None = None,
+    neg_features: set[str] | Iterable[str] | str | None = None,
+) -> tuple[set[str], set[str], set[str]]:
     """Check `pos_features` and `neg_features`
     If the argument is not defined, soynlp uses default R features
 
@@ -357,7 +361,7 @@ def prepare_r_features(pos_features=None, neg_features=None):
         common_features (set of str) : feature appeared in both `pos_features` and `neg_features`
     """
 
-    def load_features(path):
+    def load_features(path: str) -> set[str]:
         with open(path, encoding="utf-8") as f:
             features = [line.strip() for line in f]
         features = {feature for feature in features if feature}
@@ -386,12 +390,18 @@ def prepare_r_features(pos_features=None, neg_features=None):
     return pos_features, neg_features, common_features
 
 
-def print_message(message):
+def print_message(message: str) -> None:
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[LRNounExtractor] {now}, mem={get_process_memory():.4} GB : {message}")
 
 
-def train_lrgraph(train_data, min_eojeol_frequency, max_l_length, max_r_length, verbose):
+def train_lrgraph(
+    train_data: str | list[str] | CorpusLoader | EojeolCounter | LRGraph,
+    min_eojeol_frequency: int,
+    max_l_length: int,
+    max_r_length: int,
+    verbose: bool,
+) -> LRGraph:
     if isinstance(train_data, LRGraph):
         if verbose:
             print_message("input is LRGraph")
@@ -423,14 +433,19 @@ number_pattern = re.compile("[0-9]+")
 
 
 def prepare_noun_candidates(
-    lrgraph, pos_features, min_noun_frequency, exclude_syllables=False, exclude_numbers=True, custom_exclude_function=None
-):
-    def is_number(word):
+    lrgraph: LRGraph,
+    pos_features: set[str],
+    min_noun_frequency: int,
+    exclude_syllables: bool = False,
+    exclude_numbers: bool = True,
+    custom_exclude_function: Callable[[str], bool] | None = None,
+) -> set[str]:
+    def is_number(word: str) -> bool:
         return number_pattern.sub("", word) == ""
 
     if custom_exclude_function is None:
 
-        def func(x):
+        def func(x: str) -> bool:
             return False
 
         custom_exclude_function = func
@@ -450,16 +465,16 @@ def prepare_noun_candidates(
 
 
 def longer_first_prediction(
-    candidates,
-    lrgraph,
-    pos_features,
-    neg_features,
-    common_features,
-    min_noun_score,
-    min_num_of_features,
-    min_eojeol_is_noun_frequency,
-    verbose,
-):
+    candidates: set[str],
+    lrgraph: LRGraph,
+    pos_features: set[str],
+    neg_features: set[str],
+    common_features: set[str],
+    min_noun_score: float,
+    min_num_of_features: int,
+    min_eojeol_is_noun_frequency: int,
+    verbose: bool,
+) -> dict[str, tuple[int, float]]:
     sorted_candidates = sorted(candidates, key=lambda x: -len(x))
     if verbose:
         iterator = tqdm(sorted_candidates, desc="[LRNounExtractor] base prediction", total=len(candidates))
@@ -488,16 +503,16 @@ def longer_first_prediction(
 
 
 def predict_single_noun(
-    word,
-    word_features,
-    pos_features,
-    neg_features,
-    common_features,
-    min_noun_score=0.3,
-    min_num_of_features=1,
-    min_eojeol_is_noun_frequency=30,
-    debug=False,
-):
+    word: str,
+    word_features: list[tuple[str, int]],
+    pos_features: set[str],
+    neg_features: set[str],
+    common_features: set[str],
+    min_noun_score: float = 0.3,
+    min_num_of_features: int = 1,
+    min_eojeol_is_noun_frequency: int = 30,
+    debug: bool = False,
+) -> tuple[int, float]:
     refined_features, ambiguous_set = remove_ambiguous_features(
         word, word_features, pos_features, neg_features, common_features
     )
@@ -555,15 +570,21 @@ def predict_single_noun(
     return support, 0
 
 
-def remove_ambiguous_features(word, word_features, pos_features, neg_features, common_features):
-    def exist_longer_feature(word, r):
+def remove_ambiguous_features(
+    word: str,
+    word_features: list[tuple[str, int]],
+    pos_features: set[str],
+    neg_features: set[str],
+    common_features: set[str],
+) -> tuple[list[tuple[str, int]], set[str]]:
+    def exist_longer_feature(word: str, r: str) -> bool:
         for e in range(len(word) - 1, -1, -1):
             longer = word[e:] + r
             if (longer in pos_features) or (longer in neg_features) or (longer in common_features):
                 return True
         return False
 
-    def satisfy(word, r):
+    def satisfy(word: str, r: str) -> bool:
         if exist_longer_feature(word, r):
             return False
         return True
@@ -573,7 +594,13 @@ def remove_ambiguous_features(word, word_features, pos_features, neg_features, c
     return refined, ambiguous
 
 
-def check_r_features(word, word_features, pos_features, neg_features, common_features):
+def check_r_features(
+    word: str,
+    word_features: list[tuple[str, int]],
+    pos_features: set[str],
+    neg_features: set[str],
+    common_features: set[str],
+) -> tuple[int, int, int, int, int]:
     pos, common, neg, unk, end = 0, 0, 0, 0, 0
     for r, freq in word_features:
         if not r:
@@ -590,7 +617,14 @@ def check_r_features(word, word_features, pos_features, neg_features, common_fea
     return pos, common, neg, unk, end
 
 
-def extract_compounds_func(lrgraph, noun_scores, min_noun_frequency, min_noun_score, pos_features, verbose):
+def extract_compounds_func(
+    lrgraph: LRGraph,
+    noun_scores: dict[str, tuple[int, float]],
+    min_noun_frequency: int,
+    min_noun_score: float,
+    pos_features: set[str],
+    verbose: bool,
+) -> tuple[dict[str, tuple[int, float]], dict[str, tuple[str, ...]], MaxScoreTokenizer]:
     candidates = {
         l: rdict.get("", 0)
         for l, rdict in lrgraph._lr_origin.items()  # noqa: E741
@@ -638,7 +672,7 @@ def extract_compounds_func(lrgraph, noun_scores, min_noun_frequency, min_noun_sc
     return compounds, compounds_components, compound_decomposer
 
 
-def parse_compound(tokens, pos_features):
+def parse_compound(tokens: list[tuple[str, int, int, float]], pos_features: set[str]) -> tuple[str, ...] | None:
     """Check Noun* or Noun*Josa"""
     for token in tokens[:-1]:
         if token[3] <= 0:
@@ -653,7 +687,13 @@ def parse_compound(tokens, pos_features):
     return None
 
 
-def postprocessing(nouns, lrgraph, features_to_be_detached, min_noun_score, verbose):
+def postprocessing(
+    nouns: dict[str, tuple[int, float]],
+    lrgraph: LRGraph,
+    features_to_be_detached: set[str],
+    min_noun_score: float,
+    verbose: bool,
+) -> dict[str, tuple[int, float]]:
     num_before = len(nouns)
     nouns, removals = detaching_features(nouns, features_to_be_detached)
     if verbose:
