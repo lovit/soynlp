@@ -12,6 +12,7 @@ from soynlp.pipeline.tasks.write_text import WriteTextTask  # noqa F401
 
 __all__ = (
     "Task",
+    "TASK_REGISTRY",
     "DummyTask",
     "ExtractNounTask",
     "ExtractWordTask",
@@ -22,3 +23,15 @@ __all__ = (
     "WriteJsonTask",
     "WriteTextTask",
 )
+
+TASK_REGISTRY: dict[str, type[Task]] = {
+    "Dummy": DummyTask,
+    "ExtractNoun": ExtractNounTask,
+    "ExtractWord": ExtractWordTask,
+    "Normalize": NormalizeTask,
+    "ReadJson": ReadJsonTask,
+    "ReadText": ReadTextTask,
+    "Tokenize": TokenizeTask,
+    "WriteJson": WriteJsonTask,
+    "WriteText": WriteTextTask,
+}

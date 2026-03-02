@@ -10,12 +10,12 @@
 | 4. `LRGraph` 클래스 개선   | **완료** | `setdefault` 패턴, `save→_lr`, `load→@classmethod`, `+= e` → `+= 1` 수정, `from_sents` 추가 | `soynlp/core/lrgraph.py`                                               |
 | 5. `assert` → `if...raise` | **완료** | write_json, write_text에 `FileExistsError`, lrgraph에 `ValueError`                          | `soynlp/pipeline/tasks/write_{json,text}.py`, `soynlp/core/lrgraph.py` |
 | 6. `data/loader.py` 위치   | 미착수   | 패키지 외부 데이터 로더 이동 필요                                                           | `data/loader.py`                                                       |
-| 7. Pipeline 동적 로딩      | 미착수   | registry 패턴 도입 검토                                                                     | `soynlp/pipeline/pipeline.py`                                          |
+| 7. Pipeline 동적 로딩      | **완료** | `TASK_REGISTRY` dict 도입, `importlib` 제거                                                 | `soynlp/pipeline/{pipeline.py,tasks/__init__.py}`                      |
 | 8. `yaml.safe_load()` 교체 | **완료** | `yaml.full_load()` → `yaml.safe_load()`                                                     | `soynlp/configs/config.py`                                             |
 | 9. 테스트 커버리지 확충    | **완료** | 3개 → 76개 (LRGraph, Task, Config, Pipeline 통합 등)                                        | `tests/unit/` 전체                                                     |
-| 10. `cli.py` 개선          | 미착수   | `inspect.signature` 방식 교체 검토                                                          | `soynlp/cli.py`                                                        |
+| 10. `cli.py` 개선          | **완료** | `inspect.signature` 제거, 직접 디스패치                                                     | `soynlp/cli.py`                                                        |
 | 11. `.gitignore` 업데이트  | **완료** | `.python-version`, `uv.lock`, `.idea/`, `.vscode/`, `.DS_Store` 추가                        | `.gitignore`                                                           |
-| 12. `__main__.py` 구조     | 미착수   | 구조 정리 검토                                                                              | `soynlp/__main__.py`                                                   |
+| 12. `__main__.py` 구조     | **완료** | 변경 불필요, 이미 표준 패턴                                                                 | `soynlp/__main__.py`                                                   |
 | LRGraph 통합               | **완료** | `utils/utils.py`의 LRGraph 제거, `core/lrgraph.py`로 일원화                                 | `soynlp/core/lrgraph.py`, `soynlp/utils/{__init__,utils}.py`           |
 | NormalizeTask 신규         | **완료** | `TextNormalizer.build_normalizer()` 래핑 pipeline task                                      | `soynlp/pipeline/tasks/normalize.py`                                   |
 | ExtractWordTask 신규       | **완료** | `WordExtractor` 래핑 pipeline task                                                          | `soynlp/pipeline/tasks/extract_words.py`                               |
@@ -58,6 +58,13 @@ stub 함수 4개(`noun_candidates_from_lrgraph`, `select_nouns_from_candidates`,
 - `WriteJsonTask`, `WriteTextTask`: `assert` → `if os.path.exists: raise FileExistsError`
 - `corpus_to_lrgraph()`: `assert` → `if...raise ValueError`
 
+### 7. Pipeline의 동적 task 로딩 방식
+
+- `importlib.import_module` + `getattr(f"{name}Task")` 패턴을 `TASK_REGISTRY` dict로 교체
+- `soynlp/pipeline/tasks/__init__.py`에 `TASK_REGISTRY: dict[str, type[Task]]` 추가
+- `pipeline.py`에서 `TASK_REGISTRY.get()`으로 조회, 없으면 `ValueError` (사용 가능한 task 목록 포함)
+- YAML `name` 값 변경 없음 (PascalCase, `Task` 접미사 없음)
+
 ### 8. `yaml.safe_load()` 교체
 
 `soynlp/configs/config.py`에서 `yaml.full_load()` → `yaml.safe_load()`.
@@ -77,6 +84,12 @@ stub 함수 4개(`noun_candidates_from_lrgraph`, `select_nouns_from_candidates`,
 - `tests/unit/pipeline/tasks/test_tokenize.py` — 4종 토크나이저, namedtuple score, 에러 케이스
 - `tests/unit/pipeline/test_pipeline.py` — Dummy, ReadText→WriteText, ReadText→Normalize→WriteText
 
+### 10. `cli.py` 개선
+
+- `inspect.signature` 기반 동적 파라미터 추출 제거
+- `run()` 헬퍼 함수 제거, `set_defaults(func=...)` 패턴 제거
+- `subparsers(dest="command")` + `if args.command == "pipeline"` 직접 디스패치로 교체
+
 ### 11. `.gitignore` 업데이트
 
 `.python-version`, `uv.lock`, `.idea/`, `.vscode/`, `.DS_Store` 추가.
@@ -93,6 +106,10 @@ stub 함수 4개(`noun_candidates_from_lrgraph`, `select_nouns_from_candidates`,
 - **ExtractWordTask** (`soynlp/pipeline/tasks/extract_words.py`): `WordExtractor` 래핑. cohesion, accessor_variety, branching_entropy 추출.
 - **TokenizeTask** (`soynlp/pipeline/tasks/tokenize.py`): `regex`, `max_score`, `noun_match`, `l_tokenizer` 4종 지원. `score_field`로 NounScore 등의 속성 접근.
 - Task 레지스트리 (`soynlp/pipeline/tasks/__init__.py`) 갱신.
+
+### 12. `__main__.py` 구조
+
+- 변경 불필요. 이미 `from soynlp.cli import main; main()` 표준 패턴.
 
 ### hangle 모듈 포팅
 
@@ -148,19 +165,3 @@ stub 함수 4개(`noun_candidates_from_lrgraph`, `select_nouns_from_candidates`,
 - `data/` 디렉토리는 패키지 외부에 있어 `soynlp` 패키지에서 접근이 어려움
 - 데이터 로딩 유틸리티를 `soynlp` 패키지 내로 이동하거나, `package_data`로 등록 필요
 - `zip` 파일 (`2016-10-20.zip`) 처리 로직이 없음
-
-### 7. Pipeline의 동적 task 로딩 방식
-
-- `Pipeline._load_tasks()`에서 `importlib.import_module("soynlp.pipeline.tasks")`로 하드코딩된 모듈 경로 사용
-- task 이름으로 `f"{task_config.name}Task"` 패턴을 강제하고 있음 — 확장성이 제한적
-- entry point 기반 플러그인 시스템이나 registry 패턴 도입 검토
-
-### 10. `cli.py`의 `_run()` 함수
-
-- `inspect.signature`로 파라미터를 동적으로 추출하는 방식은 취약함
-- argparse의 `Namespace`에서 직접 필요한 인자를 추출하는 것이 더 명확
-
-### 12. `__main__.py` 구조
-
-- 현재 `soynlp/__main__.py`가 `cli.main`을 호출하는 단순 래퍼
-- `if __name__ == "__main__":` 가드가 있으나 `from soynlp.cli import main` 줄이 모듈 로드 시 항상 실행됨 — 이는 문제는 아니지만 구조 정리 검토
