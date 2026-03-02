@@ -17,7 +17,8 @@ class WriteTextTask(Task[WriteTextTaskArgs]):
             raise ValueError(f"Not found `{self._args.in_key}` in `parameters`")
         examples = parameters[self._args.in_key]
 
-        assert not os.path.exists(self._args.path), f"Already exist `{self._args.path}`"
+        if os.path.exists(self._args.path):
+            raise FileExistsError(f"Already exist `{self._args.path}`")
         os.makedirs(os.path.dirname(os.path.abspath(self._args.path)), exist_ok=True)
 
         with open(self._args.path, "w", encoding="utf-8") as file:
