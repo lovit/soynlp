@@ -9,7 +9,12 @@ repos:
         additional_dependencies:
           - pytest==8.3.0
           - dacite==1.9.1
+          - numpy==2.2.3
+          - psutil==6.1.1
           - pyyaml==6.0.2
+          - scikit-learn==1.6.1
+          - scipy==1.15.2
+          - tqdm==4.67.1
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.9.4
     hooks:

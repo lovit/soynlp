@@ -6,7 +6,12 @@ authors = [{ name = "lovit", email = "soy.lovit@gmail.com" }]
 requires-python = ">=3.12"
 dependencies = [
     "dacite>=1.9.1",
+    "numpy>=1.26",
+    "psutil>=5.9",
     "pyyaml>=6.0",
+    "scikit-learn>=1.4",
+    "scipy>=1.12",
+    "tqdm>=4.66",
 ]
 
 [project.scripts]

@@ -17,7 +17,7 @@ class Config:
 
 def from_yaml(path: str) -> Config:
     with open(path) as file:
-        data = yaml.full_load(file)
+        data = yaml.safe_load(file)
     return from_dict(data)  # type: ignore
 
 
