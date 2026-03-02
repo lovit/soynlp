@@ -38,6 +38,7 @@ extend-select = ["I"]
 [tool.ruff.lint.per-file-ignores]
 # `l` is a domain convention for "left part" in Korean L-R decomposition
 "soynlp/lemmatizer/*.py" = ["E741"]
+"soynlp/postagger/*.py" = ["E741"]
 
 [tool.pyright]
 typeCheckingMode = "basic"
