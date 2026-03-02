@@ -36,66 +36,66 @@ class TestRuleClassify:
     """Test rule_classify from _adjective_vs_verb.py"""
 
     def test_adjective_suffix_답(self):
-        from soynlp.predicator._adjective_vs_verb import rule_classify
+        from soynlp.predicator import rule_classify
 
         assert rule_classify("아름답") == "Adjective"
 
     def test_adjective_suffix_롭(self):
-        from soynlp.predicator._adjective_vs_verb import rule_classify
+        from soynlp.predicator import rule_classify
 
         assert rule_classify("자유롭") == "Adjective"
 
     def test_adjective_suffix_스럽(self):
-        from soynlp.predicator._adjective_vs_verb import rule_classify
+        from soynlp.predicator import rule_classify
 
         assert rule_classify("사랑스럽") == "Adjective"
 
     def test_adjective_suffix_같(self):
-        from soynlp.predicator._adjective_vs_verb import rule_classify
+        from soynlp.predicator import rule_classify
 
         assert rule_classify("똑같") == "Adjective"
 
     def test_adjective_suffix_만하(self):
-        from soynlp.predicator._adjective_vs_verb import rule_classify
+        from soynlp.predicator import rule_classify
 
         assert rule_classify("볼만하") == "Adjective"
 
     def test_verb_suffix_거리(self):
-        from soynlp.predicator._adjective_vs_verb import rule_classify
+        from soynlp.predicator import rule_classify
 
         assert rule_classify("반짝거리") == "Verb"
 
     def test_verb_suffix_당하(self):
-        from soynlp.predicator._adjective_vs_verb import rule_classify
+        from soynlp.predicator import rule_classify
 
         assert rule_classify("해고당하") == "Verb"
 
     def test_verb_suffix_시키(self):
-        from soynlp.predicator._adjective_vs_verb import rule_classify
+        from soynlp.predicator import rule_classify
 
         assert rule_classify("공부시키") == "Verb"
 
     def test_ambiguous_returns_none(self):
-        from soynlp.predicator._adjective_vs_verb import rule_classify
+        from soynlp.predicator import rule_classify
 
         assert rule_classify("하") is None
 
     def test_unknown_stem_returns_none(self):
-        from soynlp.predicator._adjective_vs_verb import rule_classify
+        from soynlp.predicator import rule_classify
 
         assert rule_classify("먹") is None
 
 
 class TestConjugateAsPresent:
     def test_present_open_syllable(self):
-        from soynlp.predicator._adjective_vs_verb import conjugate_as_present
+        from soynlp.predicator import conjugate_as_present
 
         surfaces = conjugate_as_present("가")
         assert isinstance(surfaces, set)
         assert len(surfaces) > 0
 
     def test_present_closed_syllable(self):
-        from soynlp.predicator._adjective_vs_verb import conjugate_as_present
+        from soynlp.predicator import conjugate_as_present
 
         surfaces = conjugate_as_present("먹")
         assert isinstance(surfaces, set)
@@ -104,7 +104,7 @@ class TestConjugateAsPresent:
 
 class TestConjugateAsImperative:
     def test_imperative(self):
-        from soynlp.predicator._adjective_vs_verb import conjugate_as_imperative
+        from soynlp.predicator import conjugate_as_imperative
 
         surfaces = conjugate_as_imperative("먹")
         assert isinstance(surfaces, set)
@@ -113,7 +113,7 @@ class TestConjugateAsImperative:
 
 class TestConjugateAsPleasure:
     def test_pleasure(self):
-        from soynlp.predicator._adjective_vs_verb import conjugate_as_pleasure
+        from soynlp.predicator import conjugate_as_pleasure
 
         surfaces = conjugate_as_pleasure("먹")
         assert isinstance(surfaces, set)

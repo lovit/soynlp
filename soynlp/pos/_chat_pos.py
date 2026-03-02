@@ -2,8 +2,7 @@
 
 from collections import defaultdict
 
-from soynlp.hangle import decompose
-from soynlp.hangle._hangle import jaum_list
+from soynlp.hangle import decompose, jaum_list
 from soynlp.predicator import Predicator
 from soynlp.utils.utils import installpath
 

@@ -8,9 +8,10 @@ extract_compound, etc.) may not be available.
 from soynlp.hangle import decompose
 from soynlp.lemmatizer import lemma_candidate
 from soynlp.noun import LRNounExtractor
-from soynlp.pos._adverb import load_default_adverbs, stem_to_adverb
 from soynlp.predicator import Predicator, PredicatorExtractor
 from soynlp.tokenizer import MaxScoreTokenizer
+
+from ._adverb import load_default_adverbs, stem_to_adverb
 
 
 class NewsPOSExtractor:
