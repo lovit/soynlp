@@ -1,0 +1,27 @@
+pipeline:
+  - name: ReadJson
+    args:
+      path: tests/integration/data/news-text/2016-10-20.jsonl
+      out_key: corpus
+
+  - name: Normalize
+    args:
+      alphabet: true
+      hangle: true
+      number: true
+      symbol: true
+      remove_repeatchar: 2
+      remove_longspace: true
+      in_key: corpus
+      text_key: text
+      out_key: corpus
+
+  - name: ExtractNoun
+    args:
+      min_noun_frequency: 10
+      min_noun_score: 0.3
+      extract_compounds: true
+      verbose: true
+      in_key: corpus
+      text_key: text
+      out_key: nouns
