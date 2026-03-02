@@ -2,6 +2,7 @@ import os
 import zipfile
 
 import pytest
+
 from soynlp.noun import LRNounExtractor
 from soynlp.noun.lr import (
     check_r_features,

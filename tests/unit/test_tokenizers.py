@@ -3,9 +3,10 @@ import zipfile
 from pprint import pprint
 
 import pytest
+from tqdm import tqdm
+
 from soynlp.tokenizer import LTokenizer, MaxScoreTokenizer, RegexTokenizer
 from soynlp.word import WordExtractor
-from tqdm import tqdm
 
 
 def test_regex_tokenizer():

@@ -4,6 +4,7 @@ from collections import defaultdict
 from pprint import pprint
 
 import pytest
+
 from soynlp.word.word import (
     AccessorVariety,
     BranchingEntropy,
