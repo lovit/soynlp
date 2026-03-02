@@ -39,6 +39,9 @@ extend-select = ["I"]
 # `l` is a domain convention for "left part" in Korean L-R decomposition
 "soynlp/lemmatizer/*.py" = ["E741"]
 "soynlp/postagger/*.py" = ["E741"]
+"soynlp/pos/*.py" = ["E741"]
+"soynlp/predicator/*.py" = ["E741"]
+"soynlp/tokenizer/*.py" = ["E741"]
 
 [tool.pyright]
 typeCheckingMode = "basic"
