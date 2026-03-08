@@ -48,7 +48,7 @@ class PassCharacterNormalizer(Normalizer):
             pattern += r"\(\)\.,?!-/\[\]"
         if isinstance(custom, str):
             pattern += custom
-        self.pattern = re.compile(f"[^{pattern} ]")
+        self.pattern = re.compile(rf"[^{pattern} ]")
 
     def normalize(self, s: str) -> str:
         return self.pattern.sub(" ", s).strip()
@@ -58,8 +58,8 @@ class HangleEmojiNormalizer(Normalizer):
     """Decompose hangle emoji patterns like 'ㅋㅋㅋ쿠ㅜㅜ' into 'ㅋㅋㅋㅋㅜㅜㅜ'"""
 
     def __init__(self):
-        self.pattern = re.compile("[ㄱ-ㅎ]+[가-힣]{1}[ㅏ-ㅣ]+")
-        self._hangle = re.compile("[가-힣]")
+        self.pattern = re.compile(r"[ㄱ-ㅎ]+[가-힣]{1}[ㅏ-ㅣ]+")
+        self._hangle = re.compile(r"[가-힣]")
 
     def normalize(self, s: str) -> str:
         def decompose(target):
@@ -101,7 +101,7 @@ class RepeatCharacterNormalizer(Normalizer):
 
 class RemoveLongspaceNormalizer(Normalizer):
     def __init__(self):
-        self.pattern = re.compile("[ ]{2,}")
+        self.pattern = re.compile(r"[ ]{2,}")
 
     def normalize(self, s: str) -> str:
         return self.pattern.sub("  ", s)
@@ -112,7 +112,7 @@ class PaddingSpacetoWordsNormalizer(Normalizer):
         pattern = "a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ0-9"
         if isinstance(custom_character, str):
             pattern += custom_character
-        self.pattern = re.compile(f"[{pattern}]+")
+        self.pattern = re.compile(rf"[{pattern}]+")
 
     def normalize(self, s: str) -> str:
         s_ = []

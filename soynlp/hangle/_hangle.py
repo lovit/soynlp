@@ -329,7 +329,7 @@ class ConvolutionHangleEncoder:
         return "".join(chars)
 
     def _normalize(self, sent: str) -> str:
-        regex = re.compile("[^ㄱ-ㅎㅏ-ㅣ가-힣 0-9]")
+        regex = re.compile(r"[^ㄱ-ㅎㅏ-ㅣ가-힣 0-9]")
         sent = regex.sub(" ", sent)
         sent = doublespace_pattern.sub(" ", sent).strip()
         return sent

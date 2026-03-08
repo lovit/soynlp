@@ -422,7 +422,7 @@ def train_lrgraph(
     return lrgraph
 
 
-number_pattern = re.compile("[0-9]+")
+number_pattern = re.compile(r"[0-9]+")
 
 
 def prepare_noun_candidates(
