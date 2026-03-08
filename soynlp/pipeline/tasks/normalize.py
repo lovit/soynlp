@@ -4,7 +4,7 @@ from soynlp.normalizer import TextNormalizer
 from soynlp.pipeline.tasks.task import Task, TaskArgs
 
 
-@dataclass
+@dataclass(slots=True)
 class NormalizeTaskArgs(TaskArgs):
     alphabet: bool = True
     hangle: bool = True

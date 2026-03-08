@@ -4,7 +4,7 @@ from soynlp.pipeline.tasks.task import Task, TaskArgs
 from soynlp.word import WordExtractor
 
 
-@dataclass
+@dataclass(slots=True)
 class ExtractWordTaskArgs(TaskArgs):
     max_l_length: int = 10
     max_r_length: int = 6

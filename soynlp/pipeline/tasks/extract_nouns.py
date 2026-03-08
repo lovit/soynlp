@@ -4,7 +4,7 @@ from soynlp.noun import LRNounExtractor
 from soynlp.pipeline.tasks.task import Task, TaskArgs
 
 
-@dataclass
+@dataclass(slots=True)
 class ExtractNounTaskArgs(TaskArgs):
     max_l_length: int = 10
     max_r_length: int = 9

@@ -10,7 +10,7 @@ from tqdm import tqdm
 from soynlp.utils import CorpusLoader
 
 
-@dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
+@dataclass(slots=True)
 class NgramScore:
     ngram: str | tuple[str, str]
     frequency: int

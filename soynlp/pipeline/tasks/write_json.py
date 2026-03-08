@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from soynlp.pipeline.tasks.task import Task, TaskArgs
 
 
-@dataclass
+@dataclass(slots=True)
 class WriteJsonTaskArgs(TaskArgs):
     path: str
     in_key: str = "corpus"

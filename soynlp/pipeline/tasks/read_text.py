@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from soynlp.pipeline.tasks.task import Task, TaskArgs
 
 
-@dataclass
+@dataclass(slots=True)
 class ReadTextTaskArgs(TaskArgs):
     path: str
     text_key: str = "text"

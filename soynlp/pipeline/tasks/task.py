@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Generic, TypeVar, get_args
 
 
-@dataclass
+@dataclass(slots=True)
 class TaskArgs:
     pass
 

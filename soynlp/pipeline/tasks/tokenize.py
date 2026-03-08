@@ -4,7 +4,7 @@ from soynlp.pipeline.tasks.task import Task, TaskArgs
 from soynlp.tokenizer import LTokenizer, MaxScoreTokenizer, NounMatchTokenizer, RegexTokenizer
 
 
-@dataclass
+@dataclass(slots=True)
 class TokenizeTaskArgs(TaskArgs):
     tokenizer_type: str = "max_score"
     scores_key: str = "nouns"

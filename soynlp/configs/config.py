@@ -4,13 +4,13 @@ import dacite
 import yaml
 
 
-@dataclass
+@dataclass(slots=True)
 class TaskConfig:
     name: str
     args: dict
 
 
-@dataclass
+@dataclass(slots=True)
 class Config:
     pipeline: list[TaskConfig]
 

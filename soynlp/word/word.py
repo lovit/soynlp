@@ -11,21 +11,21 @@ from tqdm import tqdm
 from soynlp.utils import CorpusLoader
 
 
-@dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
+@dataclass(slots=True)
 class CohesionScore:
     subword: str
     leftside: float
     rightside: float
 
 
-@dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
+@dataclass(slots=True)
 class BranchingEntropy:
     subword: str
     leftside: float
     rightside: float
 
 
-@dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
+@dataclass(slots=True)
 class AccessorVariety:
     subword: str
     leftside: float

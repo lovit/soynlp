@@ -6,7 +6,7 @@ from soynlp.pipeline.tasks.task import Task, TaskArgs
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(slots=True)
 class DummyTaskArgs(TaskArgs):
     name: str = "Dummy Task"
 

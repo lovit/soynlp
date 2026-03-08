@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from soynlp.pipeline.tasks.task import Task, TaskArgs
 
 
-@dataclass
+@dataclass(slots=True)
 class ReadJsonTaskArgs(TaskArgs):
     path: str
     out_key: str = "corpus"
