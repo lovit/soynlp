@@ -1,5 +1,7 @@
+import dataclasses
 import logging
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
+from dataclasses import dataclass
 from math import log
 
 from soynlp.tokenizer import MaxScoreTokenizer
@@ -21,8 +23,31 @@ default_profile = OrderedDict(
     ]
 )
 
-ScoreTable = namedtuple("ScoreTable", list(default_profile))
-Table = namedtuple("Table", "L R begin end length lr_prop lr_count cohesion_l droprate_l lcount")
+
+@dataclass(slots=True)
+class ScoreTable:
+    cohesion_l: float
+    droprate_l: float
+    log_count_l: float
+    prob_l2r: float
+    log_count_l2r: float
+    known_LR: float
+    R_is_syllable: float
+    log_length: float
+
+
+@dataclass(slots=True)
+class Table:
+    L: tuple
+    R: tuple
+    begin: int
+    end: int
+    length: int
+    lr_prop: float
+    lr_count: int
+    cohesion_l: float
+    droprate_l: float
+    lcount: int
 
 
 class LREvaluator:
@@ -70,7 +95,7 @@ class LREvaluator:
         )
 
     def _evaluate(self, scoretable: ScoreTable) -> float:
-        return sum(score * self.profile.get(field, 0) for field, score in scoretable._asdict().items())  # type: ignore[arg-type]
+        return sum(score * self.profile.get(field, 0) for field, score in dataclasses.asdict(scoretable).items())  # type: ignore[arg-type]
 
 
 class LRMaxScoreTagger:
@@ -153,7 +178,7 @@ class LRMaxScoreTagger:
             post = self._base_tokenizing_subword(eojeol, 0)
 
         if not debug:
-            post = [w for lr in post for w in lr[:2] if w[0]]
+            post = [w for lr in post for w in ([lr.L, lr.R] if isinstance(lr, Table) else lr[:2]) if w[0]]
         return post
 
     def _initialize(self, t: str) -> list:
@@ -251,22 +276,22 @@ class LRMaxScoreTagger:
         sorted_ = sorted(scores, key=lambda x: -x[-1])
         while sorted_:
             best.append(sorted_.pop(0)[0])
-            b, e = best[-1][2], best[-1][3]
-            removals = [i for i, (c, _) in enumerate(sorted_) if b < c[3] and e > c[2]]
+            b, e = best[-1].begin, best[-1].end
+            removals = [i for i, (c, _) in enumerate(sorted_) if b < c.end and e > c.begin]
             for idx in reversed(removals):
                 del sorted_[idx]
-        return sorted(best, key=lambda x: x[2])
+        return sorted(best, key=lambda x: x.begin)
 
     def _postprocessing(self, t: str, words: list) -> list:
         n = len(t)
         adds = []
-        if words and words[0][2] > 0:
+        if words and words[0].begin > 0:
             adds += self._add_first_subword(t, words)
-        if words and words[-1][3] < n:
+        if words and words[-1].end < n:
             adds += self._add_last_subword(t, words, n)
         adds += self._add_inter_subwords(t, words)
         post = list(words) + [self._to_table(a) for a in adds]
-        return sorted(post, key=lambda x: x[2])
+        return sorted(post, key=lambda x: x.begin)
 
     def _infer_subword_information(self, subword: str) -> tuple:
         pos = self.dictionary.pos_L(subword)  # type: ignore[attr-defined]
@@ -279,21 +304,21 @@ class LRMaxScoreTagger:
     def _add_inter_subwords(self, t: str, words: list) -> list:
         adds = []
         for i, base in enumerate(words[:-1]):
-            if base[3] == words[i + 1][2]:
+            if base.end == words[i + 1].begin:
                 continue
-            b = base[3]
-            e = words[i + 1][2]
+            b = base.end
+            e = words[i + 1].begin
             subword = t[b:e]
             adds += self._base_tokenizing_subword(subword, b)
         return adds
 
     def _add_last_subword(self, t: str, words: list, n: int) -> list:
-        b = words[-1][3]
+        b = words[-1].end
         subword = t[b:]
         return self._base_tokenizing_subword(subword, b)
 
     def _add_first_subword(self, t: str, words: list) -> list:
-        e = words[0][2]
+        e = words[0].begin
         subword = t[0:e]
         return self._base_tokenizing_subword(subword, 0)
 

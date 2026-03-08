@@ -14,7 +14,8 @@ TERM DEFINITION:
 """
 
 import logging
-from collections import defaultdict, namedtuple
+from collections import defaultdict
+from dataclasses import dataclass
 
 from soynlp.hangle import character_is_complete_korean
 from soynlp.lemmatizer import _conjugate_stem, conjugate, lemma_candidate
@@ -28,7 +29,11 @@ from .stem import StemExtractor
 
 logger = logging.getLogger(__name__)
 
-Predicator = namedtuple("Predicator", "frequency lemma")
+
+@dataclass(slots=True)
+class Predicator:
+    frequency: int
+    lemma: list[tuple[str, str]] | set[tuple[str, str]]
 
 
 class PredicatorExtractor:

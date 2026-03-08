@@ -207,6 +207,8 @@ class NewsPOSExtractor:
                 lemma = lemma_dict[word].lemma
             else:
                 lemma = self._lemmatize(word, stems, eomis)
+            if lemma is None:
+                continue
             predicators[word] = Predicator(count, lemma)
         return predicators
 
@@ -411,12 +413,12 @@ class NewsPOSExtractor:
     def _extract_compound_nouns(self, eojeols: dict, nouns: dict, suffix: set):
         def parse_compound(tokens):
             for token in tokens[:-1]:
-                if token[3] <= 0:
+                if token.score <= 0:
                     return None
-            if len(tokens) >= 3 and (tokens[-1][0] in suffix):
-                return "".join(t[0] for t in tokens[:-1])
-            if tokens[-1][3] > 0:
-                return "".join(t[0] for t in tokens)
+            if len(tokens) >= 3 and (tokens[-1].word in suffix):
+                return "".join(t.word for t in tokens[:-1])
+            if tokens[-1].score > 0:
+                return "".join(t.word for t in tokens)
             return None
 
         tokenizer = MaxScoreTokenizer(scores={noun: 1 for noun in nouns if len(noun) > 1})

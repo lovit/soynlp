@@ -1,9 +1,10 @@
 import re
-from collections import namedtuple
+from dataclasses import dataclass
 
 
-class Token(namedtuple("Token", "word begin end score length eojeol_id")):
-    """collections.namedtuple class
+@dataclass(slots=True)
+class Token:
+    """dataclass representing a token
 
     Args:
         word (str) : surfacial form of word
@@ -13,6 +14,13 @@ class Token(namedtuple("Token", "word begin end score length eojeol_id")):
         length (int) : word length. It must be equal with `end` - `begin`
         eojeol_id (int) : index of eojeol in a sentence
     """
+
+    word: str
+    begin: int
+    end: int
+    score: float
+    length: int
+    eojeol_id: int
 
     def __repr__(self):
         return f"Token({self.word}, score={self.score}, position=({self.begin}, {self.end}), eojeol_id={self.eojeol_id})"

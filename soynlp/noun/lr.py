@@ -1,13 +1,14 @@
 import logging
 import os
 import re
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from pprint import pformat
 
 from tqdm import tqdm
 
-from soynlp.tokenizer import MaxScoreTokenizer, NounMatchTokenizer
+from soynlp.tokenizer import MaxScoreTokenizer, NounMatchTokenizer, Token
 from soynlp.utils import CorpusLoader, EojeolCounter, LRGraph
 
 from .postprocessing import check_N_is_NJ, detaching_features, ignore_features
@@ -15,7 +16,12 @@ from .postprocessing import check_N_is_NJ, detaching_features, ignore_features
 logger = logging.getLogger(__name__)
 
 installpath = os.path.abspath(os.path.dirname(__file__))
-NounScore = namedtuple("NounScore", "frequency score")
+
+
+@dataclass(slots=True)
+class NounScore:
+    frequency: int
+    score: float
 
 
 class LRNounExtractor:
@@ -666,17 +672,17 @@ def extract_compounds_func(
     return compounds, compounds_components, compound_decomposer
 
 
-def parse_compound(tokens: list[tuple[str, int, int, float]], pos_features: set[str]) -> tuple[str, ...] | None:
+def parse_compound(tokens: list[Token], pos_features: set[str]) -> tuple[str, ...] | None:
     """Check Noun* or Noun*Josa"""
     for token in tokens[:-1]:
-        if token[3] <= 0:
+        if token.score <= 0:
             return None
 
-    if (len(tokens) >= 3) and (tokens[-1][0] in pos_features) and (tokens[-2][3] > 0):
-        return tuple(t[0] for t in tokens[:-1])
+    if (len(tokens) >= 3) and (tokens[-1].word in pos_features) and (tokens[-2].score > 0):
+        return tuple(t.word for t in tokens[:-1])
 
-    if tokens[-1][3] > 0:
-        return tuple(t[0] for t in tokens)
+    if tokens[-1].score > 0:
+        return tuple(t.word for t in tokens)
 
     return None
 
