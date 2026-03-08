@@ -109,6 +109,7 @@ class LRNounExtractor:
         exclude_syllables: bool = False,
         exclude_numbers: bool = True,
         custom_exclude_function: Callable[[str], bool] | None = None,
+        n_workers: int = 1,
     ) -> dict[str, NounScore]:
         """Extract nouns from `train_data` or trained L-R graph
 
@@ -187,7 +188,9 @@ class LRNounExtractor:
             raise ValueError("`train_data` must not be `None` if noun extractor has no LRGraph")
 
         if train_data is not None:
-            self.lrgraph = train_lrgraph(train_data, min_eojeol_frequency, self.max_l_length, self.max_r_length, self.verbose)
+            self.lrgraph = train_lrgraph(
+                train_data, min_eojeol_frequency, self.max_l_length, self.max_r_length, self.verbose, n_workers
+            )
         else:
             if self.lrgraph is None:
                 raise ValueError("`train_data` must not be `None` if noun extractor has no LRGraph")
@@ -404,7 +407,10 @@ def train_lrgraph(
     max_l_length: int,
     max_r_length: int,
     verbose: bool,
+    n_workers: int = 1,
 ) -> LRGraph:
+    from soynlp.core import corpus_to_lrgraph
+
     if isinstance(train_data, LRGraph):
         logger.info("input is LRGraph")
         return train_data
@@ -417,6 +423,24 @@ def train_lrgraph(
     if isinstance(train_data, str) and os.path.exists(train_data):
         fmt = "jsonl" if train_data.endswith(".jsonl") else "text"
         train_data = CorpusLoader(train_data, format=fmt)
+
+    if n_workers != 1:
+        # Use corpus_to_lrgraph with multiprocessing support
+        texts_list: list[str] = train_data if isinstance(train_data, list) else [str(s) for s in train_data]
+        # Apply min_eojeol_frequency filter via EojeolCounter first if needed
+        if min_eojeol_frequency > 1:
+            eojeol_counter = EojeolCounter(
+                sents=texts_list,
+                min_count=min_eojeol_frequency,
+                max_length=(max_l_length + max_r_length),
+                verbose=verbose,
+            )
+            lrgraph = eojeol_counter.to_lrgraph(max_l_length, max_r_length)
+            logger.info(f"finished building LRGraph from {len(eojeol_counter)} eojeols (n_workers={n_workers})")
+            return lrgraph
+        lrgraph = corpus_to_lrgraph(texts_list, l_max_length=max_l_length, r_max_length=max_r_length, n_workers=n_workers)
+        logger.info(f"finished building LRGraph with n_workers={n_workers}")
+        return lrgraph
 
     eojeol_counter = EojeolCounter(
         sents=train_data,
