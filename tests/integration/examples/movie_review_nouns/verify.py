@@ -64,3 +64,16 @@ def verify(answers_dir: str) -> None:
     actual_comparison = "\n".join(lines) + "\n"
     expected_comparison = _read_answer(f"{answers_dir}/domain_comparison.txt")
     assert actual_comparison == expected_comparison
+
+    # 멀티프로세싱 결과 검증 (n_workers=4 결과가 단일 프로세스와 동일한지 확인)
+    news_extractor_multi = LRNounExtractor(verbose=False)
+    news_nouns_multi = news_extractor_multi.extract(news_sents, min_noun_frequency=10, n_workers=4)
+    assert set(news_nouns.keys()) == set(news_nouns_multi.keys()), (
+        f"뉴스 멀티프로세싱 결과 불일치: single={len(news_nouns)}, multi={len(news_nouns_multi)}"
+    )
+
+    review_extractor_multi = LRNounExtractor(verbose=False)
+    review_nouns_multi = review_extractor_multi.extract(review_sents, min_noun_frequency=10, n_workers=4)
+    assert set(review_nouns.keys()) == set(review_nouns_multi.keys()), (
+        f"리뷰 멀티프로세싱 결과 불일치: single={len(review_nouns)}, multi={len(review_nouns_multi)}"
+    )
