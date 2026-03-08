@@ -199,6 +199,7 @@ class EojeolCounter:
         self.verbose = verbose
         self.text_key = text_key
 
+        self._has_custom_preprocess = preprocess is not None
         if preprocess is None:
 
             def base_preprocessing(x: str) -> str:
