@@ -6,6 +6,49 @@ from soynlp.utils import get_process_memory
 logger = logging.getLogger(__name__)
 
 
+def _scan_vocabulary_chunk(args: tuple) -> tuple[dict[str, int], dict[str, int]]:
+    """Worker: count L/R subtoken frequencies for a chunk of sentences."""
+    chunk, max_left_length, max_right_length = args
+    wordset_l: dict[str, int] = {}
+    wordset_r: dict[str, int] = {}
+    for sent in chunk:
+        for token in sent.split(" "):
+            if not token:
+                continue
+            token_len = len(token)
+            for j in range(1, min(max_left_length, token_len) + 1):
+                key = token[:j]
+                wordset_l[key] = wordset_l.get(key, 0) + 1
+            for j in range(1, min(max_right_length, token_len)):
+                key = token[-j:]
+                wordset_r[key] = wordset_r.get(key, 0) + 1
+    return wordset_l, wordset_r
+
+
+def _build_graph_chunk(args: tuple) -> tuple[dict[str, dict[str, int]], dict[str, dict[str, int]]]:
+    """Worker: build partial lrgraph/rlgraph for a chunk of sentences."""
+    chunk, wordset_l, wordset_r, max_left_length = args
+    lrgraph: dict[str, dict[str, int]] = {}
+    rlgraph: dict[str, dict[str, int]] = {}
+    for sent in chunk:
+        for token in sent.split():
+            if not token:
+                continue
+            token_len = len(token)
+            for j in range(1, min(max_left_length, token_len) + 1):
+                l = token[:j]  # noqa: E741
+                r = token[j:]
+                if (l not in wordset_l) or (r not in wordset_r):
+                    continue
+                if l not in lrgraph:
+                    lrgraph[l] = {}
+                lrgraph[l][r] = lrgraph[l].get(r, 0) + 1
+                if r not in rlgraph:
+                    rlgraph[r] = {}
+                rlgraph[r][l] = rlgraph[r].get(l, 0) + 1
+    return lrgraph, rlgraph
+
+
 class EojeolPatternTrainer:
     """Corpus-based custom tokenizer trainer using LR-graph construction and HITS ranking."""
 
@@ -25,13 +68,22 @@ class EojeolPatternTrainer:
         self.wordset_l: set[str] | None = None
         self.wordset_r: set[str] | None = None
 
-    def train(self, sents: list[str], wordset_l: set[str] | None = None, wordset_r: set[str] | None = None):
+    def train(
+        self,
+        sents: list[str],
+        wordset_l: set[str] | None = None,
+        wordset_r: set[str] | None = None,
+        n_workers: int = 1,
+    ):
         if (not wordset_l) or (not wordset_r):
-            wordset_l, wordset_r = self._scan_vocabulary(sents)
-        self.lrgraph, self.rlgraph = self._build_graph(sents, wordset_l, wordset_r)
+            wordset_l, wordset_r = self._scan_vocabulary(sents, n_workers=n_workers)
+        self.lrgraph, self.rlgraph = self._build_graph(sents, wordset_l, wordset_r, n_workers=n_workers)
 
-    def _scan_vocabulary(self, sents: list[str]) -> tuple[set[str], set[str]]:
+    def _scan_vocabulary(self, sents: list[str], n_workers: int = 1) -> tuple[set[str], set[str]]:
         """Scan subtoken frequencies and filter by min_frequency."""
+        if n_workers != 1:
+            return self._scan_vocabulary_parallel(sents, n_workers)
+
         n_sents = len(sents)
         ckpt = max(1, n_sents // 40)
 
@@ -53,19 +105,43 @@ class EojeolPatternTrainer:
 
         result_l = {w for w, f in wordset_l.items() if f >= self.min_frequency}
         result_r = {w for w, f in wordset_r.items() if f >= self.min_frequency}
-        logger.info(
-            "scanning completed. (L,R) has (%d, %d) tokens. memory = %.3f Gb",
-            len(result_l),
-            len(result_r),
-            get_process_memory(),
-        )
-
+        logger.info("scanning completed. (L,R) has (%d, %d) tokens.", len(result_l), len(result_r))
         return result_l, result_r
 
-    def _build_graph(self, sents: list[str], wordset_l: set[str], wordset_r: set[str]) -> tuple[dict, dict]:
+    def _scan_vocabulary_parallel(self, sents: list[str], n_workers: int) -> tuple[set[str], set[str]]:
+        from multiprocessing import Pool, cpu_count
+
+        n = cpu_count() if n_workers == -1 else n_workers
+        chunk_size = max(1, len(sents) // n)
+        chunks = [sents[i : i + chunk_size] for i in range(0, len(sents), chunk_size)]
+        worker_args = [(chunk, self.max_left_length, self.max_right_length) for chunk in chunks]
+
+        with Pool(processes=n) as pool:
+            results = pool.map(_scan_vocabulary_chunk, worker_args)
+
+        merged_l: dict[str, int] = {}
+        merged_r: dict[str, int] = {}
+        for pL, pR in results:
+            for k, v in pL.items():
+                merged_l[k] = merged_l.get(k, 0) + v
+            for k, v in pR.items():
+                merged_r[k] = merged_r.get(k, 0) + v
+
+        result_l = {w for w, f in merged_l.items() if f >= self.min_frequency}
+        result_r = {w for w, f in merged_r.items() if f >= self.min_frequency}
+        logger.info("scanning completed. (L,R) has (%d, %d) tokens.", len(result_l), len(result_r))
+        return result_l, result_r
+
+    def _build_graph(
+        self, sents: list[str], wordset_l: set[str], wordset_r: set[str], n_workers: int = 1
+    ) -> tuple[dict, dict]:
         self.wordset_l = wordset_l
         self.wordset_r = wordset_r
         self.wordset_r.add("")
+
+        if n_workers != 1:
+            return self._build_graph_parallel(sents, wordset_l, wordset_r, n_workers)
+
         n_sents = len(sents)
         ckpt = max(1, n_sents // 40)
 
@@ -78,7 +154,7 @@ class EojeolPatternTrainer:
                     continue
                 token_len = len(token)
                 for j in range(1, min(self.max_left_length, token_len) + 1):
-                    l = token[:j]
+                    l = token[:j]  # noqa: E741
                     r = token[j:]
                     if (l not in wordset_l) or (r not in wordset_r):
                         continue
@@ -89,11 +165,41 @@ class EojeolPatternTrainer:
                 pct = 100.0 * i / n_sents
                 logger.info("building lr-graph: %.1f%% (%.3f Gb)", pct, get_process_memory())
 
-        logger.info("building lr-graph completed. memory = %.3f Gb", get_process_memory())
+        logger.info("building lr-graph completed.")
 
-        lrgraph_dict = {l: dict(rdict) for l, rdict in lrgraph.items()}
+        lrgraph_dict = {l: dict(rdict) for l, rdict in lrgraph.items()}  # noqa: E741
         rlgraph_dict = {r: dict(ldict) for r, ldict in rlgraph.items()}
         return lrgraph_dict, rlgraph_dict
+
+    def _build_graph_parallel(
+        self, sents: list[str], wordset_l: set[str], wordset_r: set[str], n_workers: int
+    ) -> tuple[dict, dict]:
+        from multiprocessing import Pool, cpu_count
+
+        n = cpu_count() if n_workers == -1 else n_workers
+        chunk_size = max(1, len(sents) // n)
+        chunks = [sents[i : i + chunk_size] for i in range(0, len(sents), chunk_size)]
+        worker_args = [(chunk, wordset_l, wordset_r, self.max_left_length) for chunk in chunks]
+
+        with Pool(processes=n) as pool:
+            results = pool.map(_build_graph_chunk, worker_args)
+
+        lrgraph: dict[str, dict[str, int]] = {}
+        rlgraph: dict[str, dict[str, int]] = {}
+        for pLR, pRL in results:
+            for l, rdict in pLR.items():  # noqa: E741
+                if l not in lrgraph:
+                    lrgraph[l] = {}
+                for r, cnt in rdict.items():
+                    lrgraph[l][r] = lrgraph[l].get(r, 0) + cnt
+            for r, ldict in pRL.items():
+                if r not in rlgraph:
+                    rlgraph[r] = {}
+                for l, cnt in ldict.items():  # noqa: E741
+                    rlgraph[r][l] = rlgraph[r].get(l, 0) + cnt
+
+        logger.info("building lr-graph completed.")
+        return lrgraph, rlgraph
 
     def save(self, fname: str):
         with open(fname, "w", encoding="utf-8") as f:

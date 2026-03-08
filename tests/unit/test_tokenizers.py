@@ -1,6 +1,7 @@
 import pytest
 
 from soynlp.tokenizer import LTokenizer, MaxScoreTokenizer, RegexTokenizer
+from soynlp.tokenizer.tokenizer_builder import EojeolPatternTrainer
 
 
 def test_regex_tokenizer():
@@ -70,3 +71,35 @@ def test_maxscore_tokenizer():
 
     assert words == expected_words
     assert begin == expected_begin
+
+
+_TRAINER_SENTS = [
+    "나는 학생 입니다",
+    "나는 사과를 먹었다",
+    "학생이 사과를 먹었다",
+    "나는 나는 학생 학생",
+] * 200
+
+
+class TestEojeolPatternTrainerMultiprocessing:
+    def test_train_multi_equals_single(self):
+        """n_workers=4로 train한 lrgraph가 단일 프로세스와 동일하다."""
+        trainer_single = EojeolPatternTrainer(min_frequency=1, verbose=False)
+        trainer_single.train(_TRAINER_SENTS, n_workers=1)
+
+        trainer_multi = EojeolPatternTrainer(min_frequency=1, verbose=False)
+        trainer_multi.train(_TRAINER_SENTS, n_workers=4)
+
+        assert trainer_single.wordset_l == trainer_multi.wordset_l
+        assert trainer_single.wordset_r == trainer_multi.wordset_r
+        assert trainer_single.lrgraph == trainer_multi.lrgraph
+        assert trainer_single.rlgraph == trainer_multi.rlgraph
+
+    def test_train_multi_completes(self):
+        """n_workers=4 train이 에러 없이 완료되고 lrgraph가 비어있지 않다."""
+        trainer = EojeolPatternTrainer(min_frequency=1, verbose=False)
+        trainer.train(_TRAINER_SENTS, n_workers=4)
+
+        assert trainer.lrgraph is not None
+        assert len(trainer.lrgraph) > 0
+        assert trainer.rlgraph is not None
