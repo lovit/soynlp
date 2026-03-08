@@ -197,6 +197,7 @@ class EojeolCounter:
         self.verbose = verbose
         self.text_key = text_key
 
+        self._has_custom_preprocess = preprocess is not None
         if preprocess is None:
 
             def base_preprocessing(x: str) -> str:
@@ -225,10 +226,9 @@ class EojeolCounter:
 
     def _counting_from_sents(self, sents: Any, n_workers: int = 1) -> dict[str, int]:
         check_corpus(sents)
-        use_custom_preprocess = self.preprocess.__name__ != "base_preprocessing"
-        if n_workers != 1 and not use_custom_preprocess:
+        if n_workers != 1 and not self._has_custom_preprocess:
             return self._counting_from_sents_parallel(sents, n_workers)
-        if n_workers != 1 and use_custom_preprocess:
+        if n_workers != 1 and self._has_custom_preprocess:
             logger.info("EojeolCounter: custom preprocess는 멀티프로세싱 미지원 — 단일 프로세스로 집계")
         if self.verbose:
             sent_iterator = tqdm(sents, desc="[EojeolCounter] counting eojeols ", total=len(sents))
