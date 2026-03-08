@@ -101,15 +101,15 @@ class LREvaluator:
 class LRMaxScoreTagger:
     def __init__(
         self,
-        domain_dictionary_folders=None,
+        domain_dictionary_folders: list[str] | str | None = None,
         use_base_dictionary: bool = True,
         dictionary_word_mincount: int = 3,
         evaluator: LREvaluator | None = None,
-        sents=None,
+        sents: list[str] | None = None,
         lrgraph: dict | None = None,
         lrgraph_lmax: int = 12,
         lrgraph_rmax: int = 8,
-        base_tokenizer=None,
+        base_tokenizer: object = None,
         preference: dict | None = None,
         verbose: bool = False,
     ):
@@ -332,20 +332,20 @@ class LRMaxScoreTagger:
             subwords.append([(w[0], pos), ("", None), b + w[1], b + w[2], w[2] - w[1], prop, count, 0.0])
         return subwords
 
-    def add_words_into_dictionary(self, words, tag: str):
+    def add_words_into_dictionary(self, words: set[str] | list[str] | str, tag: str) -> None:
         if tag not in self.dictionary._pos:  # type: ignore[attr-defined]
             raise ValueError(f"{tag} does not exist in base dictionary")
-        self.dictionary.add_words(words, tag)
+        self.dictionary.add_words(words, tag)  # type: ignore[arg-type]
 
-    def remove_words_from_dictionary(self, words, tag: str):
+    def remove_words_from_dictionary(self, words: set[str] | list[str] | str, tag: str) -> None:
         if tag not in self.dictionary._pos:  # type: ignore[attr-defined]
             raise ValueError(f"{tag} does not exist in base dictionary")
-        self.dictionary.remove_words(words, tag)
+        self.dictionary.remove_words(words, tag)  # type: ignore[arg-type]
 
-    def save_domain_dictionary(self, folder: str, head=None):
+    def save_domain_dictionary(self, folder: str, head: str | None = None) -> None:
         self.dictionary.save_domain_dictionary(folder, head)  # type: ignore[attr-defined]
 
-    def set_word_preference(self, words, tag: str, preference: int = 10):
+    def set_word_preference(self, words: set[str] | list[str] | str, tag: str, preference: int = 10) -> None:
         if isinstance(words, str):
             words = {words}
         preference_table = self.preference.get(tag, {})

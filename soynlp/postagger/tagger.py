@@ -1,14 +1,17 @@
-from .template import LR
+from .evaluator import BaseEvaluator
+from .template import LR, BaseTemplateMatcher
 
 
 class BaseTagger:
-    def __init__(self, generator, evaluator, postprocessor=None) -> None:
+    def __init__(
+        self, generator: BaseTemplateMatcher, evaluator: BaseEvaluator, postprocessor: "BasePostprocessor | None" = None
+    ) -> None:
         self.evaluator = evaluator
         self.generator = generator
         self.dictionary = generator.dictionary
         self.postprocessor = postprocessor
 
-    def tag(self, sentence: str, flatten: bool = True, debug: bool = False):
+    def tag(self, sentence: str, flatten: bool = True, debug: bool = False) -> list | tuple[list, list]:
         raise NotImplementedError
 
 
@@ -20,7 +23,7 @@ class SimpleTagger(BaseTagger):
 
         for eojeol in eojeols:
             candidates = self.generator.generate(eojeol)
-            best = self.evaluator.select_best(candidates)
+            best = self.evaluator.select_best(candidates) or []
 
             if self.postprocessor:
                 postprocessed = self.postprocessor.postprocess(eojeol, best)
@@ -38,7 +41,7 @@ class SimpleTagger(BaseTagger):
 
             if debug:
                 scored_candidates = [(c, self.evaluator.evaluate(c)) for c in candidates]
-                scored_candidates = sorted(scored_candidates, key=lambda x: (x[0].b, x[1]))
+                scored_candidates = sorted(scored_candidates, key=lambda x: (x[0][0].b if x[0] else 0, x[1]))
                 debug_.append(scored_candidates)
 
         if flatten:

@@ -12,6 +12,7 @@ from soynlp.lemmatizer import lemma_candidate
 from soynlp.noun import LRNounExtractor
 from soynlp.predicator import Predicator, PredicatorExtractor
 from soynlp.tokenizer import MaxScoreTokenizer
+from soynlp.utils import CorpusLoader, EojeolCounter, LRGraph
 
 from .adverb import load_default_adverbs, stem_to_adverb
 
@@ -26,7 +27,7 @@ class NewsPOSExtractor:
 
     def train_extract(
         self,
-        sents,
+        sents: str | list[str] | CorpusLoader | EojeolCounter | LRGraph,
         min_num_of_noun_features: int = 1,
         max_frequency_when_noun_is_eojeol: int = 30,
         min_noun_score: float = 0.3,
@@ -37,7 +38,7 @@ class NewsPOSExtractor:
         min_eomi_score: float = 0.3,
         min_eomi_frequency: int = 1,
         debug: bool = False,
-    ):
+    ) -> dict:
         self.train(
             sents,
             min_num_of_noun_features,
@@ -54,7 +55,7 @@ class NewsPOSExtractor:
 
     def train(
         self,
-        sents,
+        sents: str | list[str] | CorpusLoader | EojeolCounter | LRGraph,
         min_num_of_noun_features: int = 1,
         max_frequency_when_noun_is_eojeol: int = 30,
         min_noun_score: float = 0.3,
@@ -65,7 +66,7 @@ class NewsPOSExtractor:
         min_eomi_score: float = 0.3,
         min_eomi_frequency: int = 1,
         debug: bool = False,
-    ):
+    ) -> None:
         self.nouns = self._train_noun_extractor(
             sents,
             min_num_of_noun_features,
@@ -116,13 +117,13 @@ class NewsPOSExtractor:
 
     def _train_noun_extractor(
         self,
-        sents,
+        sents: str | list[str] | CorpusLoader | EojeolCounter | LRGraph,
         min_num_of_features: int = 1,
         max_frequency_when_noun_is_eojeol: int = 30,
         min_noun_score: float = 0.3,
         min_noun_frequency: int = 1,
         min_eojeol_frequency: int = 1,
-    ):
+    ) -> dict:
         self.noun_extractor = LRNounExtractor(
             verbose=self._verbose,
         )
@@ -136,13 +137,13 @@ class NewsPOSExtractor:
 
     def _train_predicator_extractor(
         self,
-        sents,
+        sents: str | list[str] | CorpusLoader | EojeolCounter | LRGraph,
         min_predicator_frequency: int = 1,
         min_eojeol_frequency: int = 2,
         min_num_of_eomi_features: int = 5,
         min_eomi_score: float = 0.3,
         min_eomi_frequency: int = 1,
-    ):
+    ) -> tuple[dict, dict]:
         self.predicator_extractor = PredicatorExtractor(
             self.nouns,
             extract_eomi=self._extract_eomi,
@@ -163,7 +164,7 @@ class NewsPOSExtractor:
         )
         return adjectives, verbs
 
-    def _count_matched_patterns(self):
+    def _count_matched_patterns(self) -> tuple[dict, dict, dict, dict, dict, dict, dict]:
         eojeols = self.eojeols
         total_frequency = sum(eojeols.values())
 
@@ -212,7 +213,7 @@ class NewsPOSExtractor:
             predicators[word] = Predicator(count, lemma)
         return predicators
 
-    def _separate_lr(self, word: str, lset, rset, begin: int = 2):
+    def _separate_lr(self, word: str, lset: set | dict, rset: set | dict, begin: int = 2) -> tuple[str, str] | None:
         for i in range(begin, len(word)):
             l, r = word[:i], word[i:]
             if (l in lset) and (r in rset):
@@ -227,7 +228,7 @@ class NewsPOSExtractor:
     def _remove_recognized(self, eojeols: dict, removals) -> dict:
         return {word: count for word, count in eojeols.items() if word not in removals}
 
-    def _lemmatize(self, word: str, stems: set, eomis: set):
+    def _lemmatize(self, word: str, stems: set, eomis: set) -> list[tuple[str, str]] | None:
         def only_knowns(lemmas):
             return [lemma for lemma in lemmas if (lemma[0] in stems) and (lemma[1] in eomis)]
 
@@ -241,7 +242,9 @@ class NewsPOSExtractor:
                 return lemmas
         return None
 
-    def _parse_predicator_compounds(self, eojeols: dict, predicators: set, base: dict):
+    def _parse_predicator_compounds(
+        self, eojeols: dict, predicators: set, base: dict
+    ) -> tuple[dict, set[str], dict[str, int]]:
         def check_suffix_prefix(stem: str, eomi: str) -> bool:
             l = decompose(stem[-1])  # type: ignore[assignment]
             r = decompose(eomi[0])  # type: ignore[assignment]
@@ -273,7 +276,7 @@ class NewsPOSExtractor:
             counter[word] = count
         return predicator_compounds, stems, counter
 
-    def _match_word(self, eojeols: dict):
+    def _match_word(self, eojeols: dict) -> tuple[dict, dict, dict, dict, dict]:
         logger.info('[POS Extractor] matching "Noun, Adjective, Verb, and Adverb" from %d eojeols', len(eojeols))
 
         nouns = {word: count for word, count in eojeols.items() if word in self.nouns}
@@ -286,7 +289,9 @@ class NewsPOSExtractor:
 
         return eojeols, nouns, adjectives, verbs, adverbs
 
-    def _match_noun_and_word(self, eojeols: dict, nouns: dict, adjectives: dict, verbs: dict, josas: set):
+    def _match_noun_and_word(
+        self, eojeols: dict, nouns: dict, adjectives: dict, verbs: dict, josas: set
+    ) -> tuple[dict, dict, dict, dict, dict]:
         logger.info('[POS Extractor] matching "Noun + Josa/Adjective/Verb" from %d eojeols', len(eojeols))
 
         def match_process(eojeols, nouns, rset, rcounter, removals):
@@ -304,7 +309,7 @@ class NewsPOSExtractor:
 
         return eojeols, nouns, adjectives, verbs, josas_counter
 
-    def _match_predicator_compounds(self, eojeols: dict, adjectives: dict, verbs: dict):
+    def _match_predicator_compounds(self, eojeols: dict, adjectives: dict, verbs: dict) -> tuple[dict, dict, dict]:
         logger.info('[POS Extractor] matching "Predicator + Adjective/Verb" from %d eojeols', len(eojeols))
 
         predicators = set(self.adjectives.keys()) | set(self.verbs.keys())
@@ -327,7 +332,7 @@ class NewsPOSExtractor:
         logger.info("    adjective: %d -> %d, verb: %d -> %d", before_adj, after_adj, before_verb, after_verb)
         return eojeols, adjectives, verbs
 
-    def _lemmatizing_predicators(self, eojeols: dict, adjectives: dict, verbs: dict):
+    def _lemmatizing_predicators(self, eojeols: dict, adjectives: dict, verbs: dict) -> tuple[dict, dict, dict]:
         def lemmatize(eojeols, stems, eomis):
             predicator = {}
             n = len(eojeols)
@@ -357,7 +362,9 @@ class NewsPOSExtractor:
 
         return eojeols, adjectives, verbs
 
-    def _match_syllable_noun_and_r(self, eojeols, nouns, adjectives, verbs, josas):
+    def _match_syllable_noun_and_r(
+        self, eojeols: dict, nouns: dict, adjectives: dict, verbs: dict, josas: dict
+    ) -> tuple[dict, dict, dict, dict, dict]:
         logger.info("[POS Extractor] parse 1 syllable Noun + Adj/Verb/Josa from %d eojeols", len(eojeols))
 
         def syllable_noun_and_r(rset, rcounter, removals):
@@ -382,7 +389,9 @@ class NewsPOSExtractor:
 
         return {word: count for word, count in eojeols.items() if not remove(word)}
 
-    def _match_compound_nouns(self, eojeols: dict, nouns: dict, adjectives: dict, verbs: dict, josas):
+    def _match_compound_nouns(
+        self, eojeols: dict, nouns: dict, adjectives: dict, verbs: dict, josas: dict | set
+    ) -> tuple[dict, dict]:
         logger.info("[POS Extractor] extract compound nouns from %d eojeols", len(eojeols))
 
         suffix = set(nouns) | set(adjectives) | set(verbs) | set(josas)
@@ -393,7 +402,9 @@ class NewsPOSExtractor:
 
         return eojeols, nouns
 
-    def _print_stats(self, total_frequency, nouns, adjectives, verbs, adverbs, josas, eojeols):
+    def _print_stats(
+        self, total_frequency: int, nouns: dict, adjectives: dict, verbs: dict, adverbs: dict, josas: dict, eojeols: dict
+    ) -> None:
         logger.info("[POS Extractor] ## statistics")
 
         def as_percent(dic):

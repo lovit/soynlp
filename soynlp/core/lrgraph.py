@@ -12,7 +12,11 @@ class LRGraph:
         max_r_length: maximum length of R parts
     """
 
-    def __init__(self, lrgraph: dict, max_l_length: int = 10, max_r_length: int = 9):
+    _lr: dict[str, dict[str, int]]
+    _rl: dict[str, dict[str, int]]
+    _lr_origin: dict[str, dict[str, int]]
+
+    def __init__(self, lrgraph: dict[str, dict[str, int]], max_l_length: int = 10, max_r_length: int = 9):
         if not (isinstance(max_l_length, int) and max_l_length > 1):
             raise ValueError(f"`max_l_length` must be an integer greater than 1, got {max_l_length}")
         if not (isinstance(max_r_length, int) and max_r_length > 0):
@@ -22,8 +26,10 @@ class LRGraph:
         self._lr, self._rl = self._to_bidirectional_graph(lrgraph)
         self._lr_origin = {L: {R: freq for R, freq in R_freq.items()} for L, R_freq in self._lr.items()}
 
-    def _to_bidirectional_graph(self, lrgraph):
-        rlgraph = defaultdict(lambda: defaultdict(int))
+    def _to_bidirectional_graph(
+        self, lrgraph: dict[str, dict[str, int]]
+    ) -> tuple[dict[str, dict[str, int]], dict[str, dict[str, int]]]:
+        rlgraph: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
         for L, R_freq in lrgraph.items():
             for R, frequency in R_freq.items():
                 if not R:
@@ -54,26 +60,26 @@ class LRGraph:
         lrgraph_dict = {L: dict(R_freq) for L, R_freq in lrgraph.items()}
         return cls(lrgraph_dict, max_l_length, max_r_length)
 
-    def reset_lrgraph(self):
+    def reset_lrgraph(self) -> None:
         if not self._lr_origin:
             return
         self._lr, self._rl = self._to_bidirectional_graph(
             {L: {R: freq for R, freq in R_freq.items()} for L, R_freq in self._lr_origin.items()}
         )
 
-    def add_lr_pair(self, L: str, R: str, frequency: int = 1):
+    def add_lr_pair(self, L: str, R: str, frequency: int = 1) -> None:
         if (len(L) > self.max_l_length) or (len(R) > self.max_r_length):
             return
         self._lr.setdefault(L, {})[R] = self._lr.get(L, {}).get(R, 0) + frequency
         if R:
             self._rl.setdefault(R, {})[L] = self._rl.get(R, {}).get(L, 0) + frequency
 
-    def add_eojeol(self, eojeol: str, frequency: int = 1):
+    def add_eojeol(self, eojeol: str, frequency: int = 1) -> None:
         for i in range(1, len(eojeol) + 1):
             L, R = eojeol[:i], eojeol[i:]
             self.add_lr_pair(L, R, frequency)
 
-    def remove_lr_pair(self, L: str, R: str, frequency: int = 1):
+    def remove_lr_pair(self, L: str, R: str, frequency: int = 1) -> None:
         if L in self._lr:
             R_freq = self._lr[L]
             if R in R_freq:
@@ -91,28 +97,28 @@ class LRGraph:
                     if len(L_freq) <= 0:
                         self._rl.pop(R)
 
-    def remove_eojeol(self, eojeol: str, frequency: int = 1):
+    def remove_eojeol(self, eojeol: str, frequency: int = 1) -> None:
         for i in range(1, len(eojeol) + 1):
             L, R = eojeol[:i], eojeol[i:]
             self.remove_lr_pair(L, R, frequency)
 
-    def get_r(self, L: str, topk: int = 10):
+    def get_r(self, L: str, topk: int = 10) -> list[tuple[str, int]]:
         sorted_R_freq = sorted(self._lr.get(L, {}).items(), key=lambda R_freq: -R_freq[1])
         if topk > 0:
             sorted_R_freq = sorted_R_freq[:topk]
         return sorted_R_freq
 
-    def get_l(self, R: str, topk: int = 10):
+    def get_l(self, R: str, topk: int = 10) -> list[tuple[str, int]]:
         sorted_L_freq = sorted(self._rl.get(R, {}).items(), key=lambda L_freq: -L_freq[1])
         if topk > 0:
             sorted_L_freq = sorted_L_freq[:topk]
         return sorted_L_freq
 
-    def freeze(self):
+    def freeze(self) -> None:
         """Freeze current L-R graph state into _lr_origin via deepcopy."""
         self._lr_origin = copy.deepcopy(self._lr)
 
-    def save(self, path: str):
+    def save(self, path: str) -> None:
         dirname = os.path.dirname(path)
         if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)

@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from .dictionary import Dictionary
+
 
 @dataclass(frozen=True, slots=True)
 class LR:
@@ -15,6 +17,8 @@ class LR:
 
 
 class BaseTemplateMatcher:
+    dictionary: Dictionary
+
     def generate(self, token: str) -> list[list[LR]]:
         raise NotImplementedError
 

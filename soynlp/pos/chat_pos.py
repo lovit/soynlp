@@ -20,7 +20,7 @@ class ChatPOSExtractor(NewsPOSExtractor):
     def __init__(self, verbose: bool = True, ensure_normalized: bool = True, extract_eomi: bool = True):
         super().__init__(verbose, ensure_normalized, extract_eomi)
 
-    def _count_matched_patterns(self):
+    def _count_matched_patterns(self) -> tuple[dict, dict, dict, dict, dict, dict, dict]:
         eojeols = self.eojeols
         total_frequency = sum(eojeols.values())
 
@@ -62,7 +62,7 @@ class ChatPOSExtractor(NewsPOSExtractor):
 
         return nouns, adjectives, verbs, adverbs, josas, eojeols, confused_nouns
 
-    def _match_predicator_compounds(self, eojeols: dict, adjectives: dict, verbs: dict):
+    def _match_predicator_compounds(self, eojeols: dict, adjectives: dict, verbs: dict) -> tuple[dict, dict, dict]:
         logger.info('[POS Extractor] matching "Predicator + Adjective/Verb" from %d eojeols', len(eojeols))
 
         predicators = set(self.adjectives.keys()) | set(self.verbs.keys())
@@ -89,7 +89,9 @@ class ChatPOSExtractor(NewsPOSExtractor):
         logger.info("[POS Extractor] adjective: %d -> %d, verb: %d -> %d", before_adj, after_adj, before_verb, after_verb)
         return eojeols, adjectives, verbs
 
-    def _parse_predicator_compounds_chat(self, eojeols: dict, predicators: set, base: dict):
+    def _parse_predicator_compounds_chat(
+        self, eojeols: dict, predicators: set, base: dict
+    ) -> tuple[dict, set[str], dict[str, int]]:
         def check_suffix_prefix(stem: str, eomi: str) -> bool:
             # "업", "닿", "땋": 어간 끝 음절이 이 경우 어미 결합이 불규칙하여 제외
             if stem[-1] in _IRREGULAR_STEM_ENDINGS:
@@ -134,7 +136,7 @@ class ChatPOSExtractor(NewsPOSExtractor):
         return predicator_compounds, stems, counter
 
 
-def _find_wrong_stem(compounds: dict) -> set[str]:
+def _find_wrong_stem(compounds: dict[str, Predicator]) -> set[str]:
     def jaum_begin_prop(stem: str) -> float:
         jaum_counter: dict[str, int] = defaultdict(int)
         for r, count in lrgraph.get(stem, {}).items():
@@ -152,7 +154,7 @@ def _find_wrong_stem(compounds: dict) -> set[str]:
     return {stem for stem in lrgraph if jaum_begin_prop(stem) >= 0.9}
 
 
-def _find_wrong_eomi(predicators: dict, compounds: dict) -> set[str]:
+def _find_wrong_eomi(predicators: dict[str, Predicator], compounds: dict[str, Predicator]) -> set[str]:
     candidates: dict[str, int] = defaultdict(int)
     for word, predicator in predicators.items():
         if word not in compounds:
@@ -164,7 +166,7 @@ def _find_wrong_eomi(predicators: dict, compounds: dict) -> set[str]:
     return {eomi for eomi, count in candidates.items() if count > 0}
 
 
-def _delete_predicators_having_wrong_stem(predicators: dict, wrong_stems: set) -> dict:
+def _delete_predicators_having_wrong_stem(predicators: dict[str, Predicator], wrong_stems: set[str]) -> dict[str, Predicator]:
     predicators_ = {}
     for word, predicator in predicators.items():
         lemmas = {(stem, eomi) for stem, eomi in predicator.lemma if stem not in wrong_stems}
@@ -173,7 +175,9 @@ def _delete_predicators_having_wrong_stem(predicators: dict, wrong_stems: set) -
     return predicators_
 
 
-def _find_noun_phrase(nouns: dict, josas, adjectives: dict, verbs: dict) -> dict:
+def _find_noun_phrase(
+    nouns: dict[str, int], josas: set[str] | dict[str, int], adjectives: dict[str, int], verbs: dict[str, int]
+) -> dict[str, int]:
     compounds: dict[str, int] = {}
     for noun, count in nouns.items():
         if len(noun) <= 2:
