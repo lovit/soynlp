@@ -48,3 +48,7 @@
 | 41 | `.format()`/`%` → f-string 변환 | **완료** | 구형 포매팅 문법을 f-string으로 일괄 변환 | `soynlp/` 전체 |
 | 42 | regex raw string 적용 | **완료** | 정규식 패턴에 `r""` raw string 적용 | `soynlp/` 전체 |
 | 43 | dataclass `slots=True` 추가 | **완료** | 모든 dataclass에 `slots=True` 추가 | `soynlp/` 전체 |
+| 44 | 구현 파일 `_` prefix 제거 | **완료** | 23개 파일 rename, import 일괄 업데이트, Python 3.12 가독성 향상 | `soynlp/` 전체 |
+| 45 | namedtuple → dataclass 전환 | **완료** | NounScore, Token, ScoreTable, Table, Predicator → @dataclass(slots=True) | `soynlp/noun/`, `soynlp/tokenizer/`, `soynlp/postagger/`, `soynlp/predicator/` |
+| 46 | 코드 품질 개선 (Medium) | **완료** | 오타 수정, 상수화, private 규칙 통일, jamo_to_idx 동적 생성, make_scoretable 리팩토링 | `soynlp/postagger/`, `soynlp/noun/`, `soynlp/pos/`, `soynlp/hangle/`, `soynlp/vectorizer/` |
+| 47 | 타입 어노테이션 확충 | **완료** | pos, postagger, core, noun, vectorizer 전반 타입 어노테이션 추가 | `soynlp/pos/`, `soynlp/postagger/`, `soynlp/core/`, `soynlp/noun/`, `soynlp/vectorizer/` |
