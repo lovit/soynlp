@@ -6,6 +6,7 @@ repos:
     hooks:
       - id: pyright
         entry: pyright
+        language_version: python3.12
         additional_dependencies:
           - pytest==8.3.0
           - dacite==1.9.1
