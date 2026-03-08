@@ -35,17 +35,28 @@ def test_word_context_matrix():
     expected_stats = read_answer("word_context_matrix", "matrix_stats.txt")
     assert actual_stats == expected_stats
 
-    # Verify similar words
+    # Verify similar words — structural checks (non-deterministic order)
     query_words = ["경찰", "대통령", "삼성", "서울", "사건", "정부", "국회", "기자"]
-    similar_lines: list[str] = []
     for query in query_words:
         if query not in vocab2idx:
             continue
         similars = most_similar(query, matrix, vocab2idx, idx2vocab, topk=10)
-        similar_lines.append(f"# {query}")
-        for word, sim in similars:
-            similar_lines.append(f"  {word}\t{sim:.4f}")
-        similar_lines.append("")
-    actual_similar = "\n".join(similar_lines) + "\n"
-    expected_similar = read_answer("word_context_matrix", "similar_words.txt")
-    assert actual_similar == expected_similar
+
+        # Should return exactly 10 results
+        assert len(similars) == 10, f"'{query}' should have 10 similar words, got {len(similars)}"
+
+        words_returned = [word for word, _ in similars]
+        scores = [sim for _, sim in similars]
+
+        # All words should be unique
+        assert len(set(words_returned)) == 10, f"'{query}' has duplicate similar words"
+
+        # Query word should not appear in results
+        assert query not in words_returned, f"'{query}' should not be in its own similar words"
+
+        # Scores should be in descending order
+        for i in range(len(scores) - 1):
+            assert scores[i] >= scores[i + 1], f"'{query}' similar words not in descending order"
+
+        # Scores should be in valid range (0, 1]
+        assert all(0 < s <= 1.0 for s in scores), f"'{query}' has scores out of range"

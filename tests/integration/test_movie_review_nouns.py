@@ -3,22 +3,22 @@
 from soynlp.noun import LRNounExtractor
 from soynlp.utils import CorpusLoader
 
-from .conftest import NEWS_DATA, REVIEW_DATA, read_answer, read_answer_lines
+from .conftest import REVIEW_DATA, read_answer, read_answer_lines
 
 
-def _extract_nouns(data_path: str) -> dict:
-    loader = CorpusLoader(data_path, format="jsonl", verbose=False)
-    sents = [item["text"] for item in loader]
-    extractor = LRNounExtractor(verbose=False)
-    return extractor.extract(sents, min_noun_frequency=10)
+def test_movie_review_nouns(news_nouns):
+    loader = CorpusLoader(REVIEW_DATA, format="jsonl", verbose=False)
+    review_sents = [item["text"] for item in loader]
+    review_extractor = LRNounExtractor(verbose=False)
+    review_nouns = review_extractor.extract(review_sents, min_noun_frequency=10)
 
-
-def _build_review_top_nouns(review_nouns: dict) -> list[str]:
+    # Test review top nouns
     top_review = sorted(review_nouns.items(), key=lambda x: (-x[1].frequency, x[0]))[:100]
-    return [f"{noun}\t{score.frequency}\t{score.score:.4f}" for noun, score in top_review]
+    actual_top = [f"{noun}\t{score.frequency}\t{score.score:.4f}" for noun, score in top_review]
+    expected_top = read_answer_lines("movie_review_nouns", "review_top_nouns.txt")
+    assert actual_top == expected_top
 
-
-def _build_domain_comparison(review_nouns: dict, news_nouns: dict) -> str:
+    # Test domain comparison
     review_set = set(review_nouns.keys())
     news_set = set(news_nouns.keys())
     common = review_set & news_set
@@ -40,19 +40,6 @@ def _build_domain_comparison(review_nouns: dict, news_nouns: dict) -> str:
     )[:30]
     for noun, score in review_only_sorted:
         lines.append(f"  {noun}\t{score.frequency}")
-    return "\n".join(lines) + "\n"
-
-
-def test_movie_review_nouns():
-    review_nouns = _extract_nouns(REVIEW_DATA)
-    news_nouns = _extract_nouns(NEWS_DATA)
-
-    # Test review top nouns
-    actual_top = _build_review_top_nouns(review_nouns)
-    expected_top = read_answer_lines("movie_review_nouns", "review_top_nouns.txt")
-    assert actual_top == expected_top
-
-    # Test domain comparison
-    actual_comparison = _build_domain_comparison(review_nouns, news_nouns)
+    actual_comparison = "\n".join(lines) + "\n"
     expected_comparison = read_answer("movie_review_nouns", "domain_comparison.txt")
     assert actual_comparison == expected_comparison

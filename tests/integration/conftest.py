@@ -4,6 +4,10 @@ import os
 
 import pytest
 
+from soynlp.noun import LRNounExtractor
+from soynlp.utils import CorpusLoader
+from soynlp.word import WordExtractor
+
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 EXAMPLES_DIR = os.path.join(os.path.dirname(__file__), "examples")
 NEWS_DATA = os.path.join(ROOT_DIR, "tests/integration/data/news-text/2016-10-20.jsonl")
@@ -23,6 +27,30 @@ def review_data_path():
 @pytest.fixture
 def root_dir():
     return ROOT_DIR
+
+
+@pytest.fixture(scope="session")
+def news_sents():
+    loader = CorpusLoader(NEWS_DATA, format="jsonl", verbose=False)
+    return [item["text"] for item in loader]
+
+
+@pytest.fixture(scope="session")
+def news_nouns(news_sents):
+    extractor = LRNounExtractor(verbose=False)
+    return extractor.extract(news_sents, min_noun_frequency=10)
+
+
+@pytest.fixture(scope="session")
+def review_sents():
+    loader = CorpusLoader(REVIEW_DATA, format="jsonl", verbose=False)
+    return [item["text"] for item in loader]
+
+
+@pytest.fixture(scope="session")
+def news_word_scores(news_sents):
+    extractor = WordExtractor(verbose=False)
+    return extractor.extract(news_sents, min_frequency=5)
 
 
 def answer_path(example_name: str, filename: str) -> str:
