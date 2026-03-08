@@ -1,5 +1,5 @@
-from ._distance import cosine_distance, jaccard_distance, jamo_levenshtein, levenshtein
-from ._hangle import (
+from .distance import cosine_distance, jaccard_distance, jamo_levenshtein, levenshtein
+from .hangle import (
     ConvolutionHangleEncoder,
     character_is_complete_korean,
     character_is_english,

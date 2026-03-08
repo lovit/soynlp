@@ -1,11 +1,11 @@
 from . import tagset
-from ._dictionary import Dictionary
-from ._evaluator import BaseEvaluator, LREvaluator, SimpleEojeolEvaluator
-from ._lrtagger import LRMaxScoreTagger
-from ._maxscore import MaxScoreTagger
-from ._pos_extractor import POSExtractor
-from ._tagger import BasePostprocessor, BaseTagger, SimpleTagger, UnknowLRPostprocessor
-from ._template import LR, BaseTemplateMatcher, EojeolTemplateMatcher, LRTemplateMatcher
+from .dictionary import Dictionary
+from .evaluator import BaseEvaluator, LREvaluator, SimpleEojeolEvaluator
+from .lrtagger import LRMaxScoreTagger
+from .maxscore import MaxScoreTagger
+from .pos_extractor import POSExtractor
+from .tagger import BasePostprocessor, BaseTagger, SimpleTagger, UnknowLRPostprocessor
+from .template import LR, BaseTemplateMatcher, EojeolTemplateMatcher, LRTemplateMatcher
 
 __all__ = [
     "Dictionary",

@@ -4,7 +4,7 @@ from typing import Any
 
 import numpy as np
 
-from ._hangle import decompose
+from .hangle import decompose
 
 
 def levenshtein(s1: Sequence[str], s2: Sequence[str], cost: dict[tuple[str, str], float] | None = None) -> float:

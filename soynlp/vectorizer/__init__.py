@@ -1,5 +1,5 @@
-from ._vectorizer import BaseVectorizer
-from ._word_context import sent_to_word_contexts_matrix
+from .vectorizer import BaseVectorizer
+from .word_context import sent_to_word_contexts_matrix
 
 __all__ = [
     "BaseVectorizer",

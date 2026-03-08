@@ -13,7 +13,7 @@ from soynlp.noun import LRNounExtractor
 from soynlp.predicator import Predicator, PredicatorExtractor
 from soynlp.tokenizer import MaxScoreTokenizer
 
-from ._adverb import load_default_adverbs, stem_to_adverb
+from .adverb import load_default_adverbs, stem_to_adverb
 
 logger = logging.getLogger(__name__)
 

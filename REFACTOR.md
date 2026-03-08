@@ -43,3 +43,8 @@
 | 36 | 중복 테스트 파일 삭제 | **완료** | `tests/pipeline/`, `tests/test_sanity.py` 삭제 | `tests/` |
 | 37 | `typing.Optional`/`Union` → pipe 문법 | **완료** | 3개 파일에서 `X \| None` 문법으로 통일, `Callable` → `collections.abc` | `soynlp/pipeline/tasks/{extract_nouns,normalize}.py`, `soynlp/normalizer/normalizer.py` |
 | 38 | `print()` → `logging` 마이그레이션 | **완료** | 109개 print → logging 전환 (17개 파일) | `soynlp/` 전체 (predicator, lemmatizer, vectorizer, pos, postagger, tokenizer 등) |
+| 39 | integration test 구조 개편 | **완료** | 자기 완결적 예시 디렉토리 + 자동 탐색 구조로 개편 | `tests/integration/` |
+| 40 | `from __future__ import annotations` 제거 | **완료** | Python 3.12에서 불필요한 future import 제거 | `soynlp/word/` |
+| 41 | `.format()`/`%` → f-string 변환 | **완료** | 구형 포매팅 문법을 f-string으로 일괄 변환 | `soynlp/` 전체 |
+| 42 | regex raw string 적용 | **완료** | 정규식 패턴에 `r""` raw string 적용 | `soynlp/` 전체 |
+| 43 | dataclass `slots=True` 추가 | **완료** | 모든 dataclass에 `slots=True` 추가 | `soynlp/` 전체 |

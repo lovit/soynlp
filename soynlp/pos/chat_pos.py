@@ -7,7 +7,7 @@ from soynlp.hangle import decompose, jaum_list
 from soynlp.predicator import Predicator
 from soynlp.utils.utils import installpath
 
-from ._news_pos import NewsPOSExtractor
+from .news_pos import NewsPOSExtractor
 
 logger = logging.getLogger(__name__)
 

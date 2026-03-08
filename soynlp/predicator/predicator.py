@@ -22,9 +22,9 @@ from soynlp.normalizer import normalize_sent_for_lrgraph
 from soynlp.utils import EojeolCounter, LRGraph, get_process_memory
 from soynlp.utils.utils import installpath
 
-from ._adjective_vs_verb import conjugate_as_imperative, conjugate_as_pleasure, conjugate_as_present, rule_classify
-from ._eomi import EomiExtractor
-from ._stem import StemExtractor
+from .adjective_vs_verb import conjugate_as_imperative, conjugate_as_pleasure, conjugate_as_present, rule_classify
+from .eomi import EomiExtractor
+from .stem import StemExtractor
 
 logger = logging.getLogger(__name__)
 

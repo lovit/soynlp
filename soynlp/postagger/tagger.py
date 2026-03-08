@@ -1,4 +1,4 @@
-from ._template import LR
+from .template import LR
 
 
 class BaseTagger:

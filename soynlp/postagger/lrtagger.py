@@ -4,7 +4,7 @@ from math import log
 
 from soynlp.tokenizer import MaxScoreTokenizer
 
-from ._dictionary import Dictionary
+from .dictionary import Dictionary
 
 logger = logging.getLogger(__name__)
 

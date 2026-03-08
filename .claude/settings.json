@@ -1,0 +1,39 @@
+{
+  "env": {
+    "CLAUDE_TASK": "soynlp"
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "permission_prompt|elicitation_dialog",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/ntfy-input-needed.sh \"$CLAUDE_TASK\" \"$CLAUDE_TASK: 입력/승인이 필요해요\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/ntfy-done.sh \"$CLAUDE_TASK\" \"$CLAUDE_TASK: 응답/작업이 종료되었어요\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.local/bin/ntfy-push.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -2,7 +2,7 @@ import logging
 
 from soynlp.hangle import compose
 
-from ._conjugation import conjugate, decompose
+from .conjugation import conjugate, decompose
 
 logger = logging.getLogger(__name__)
 

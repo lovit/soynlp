@@ -1,4 +1,10 @@
-from ._normalizer import (
+from .normalizer import (
+    HangleEmojiNormalizer,
+    PaddingSpacetoWordsNormalizer,
+    PassCharacterNormalizer,
+    RemoveLongspaceNormalizer,
+    RepeatCharacterNormalizer,
+    TextNormalizer,
     emoticon_normalize,
     normalize,
     normalize_sent_for_lrgraph,
@@ -8,14 +14,6 @@ from ._normalizer import (
     remain_hangle_on_last,
     remove_doublespace,
     repeat_normalize,
-)
-from .normalizer import (
-    HangleEmojiNormalizer,
-    PaddingSpacetoWordsNormalizer,
-    PassCharacterNormalizer,
-    RemoveLongspaceNormalizer,
-    RepeatCharacterNormalizer,
-    TextNormalizer,
     text_normalizer,
 )
 
