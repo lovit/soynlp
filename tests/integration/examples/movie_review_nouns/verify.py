@@ -1,21 +1,42 @@
-"""Integration test: Movie review noun extraction and domain comparison."""
+"""Verify movie review noun extraction and domain comparison."""
+
+import os
 
 from soynlp.noun import LRNounExtractor
 from soynlp.utils import CorpusLoader
 
-from .conftest import REVIEW_DATA, read_answer, read_answer_lines
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
+NEWS_DATA = os.path.join(ROOT_DIR, "tests/integration/data/news-text/2016-10-20.jsonl")
+REVIEW_DATA = os.path.join(ROOT_DIR, "tests/integration/data/movie-review-score/91031.jsonl")
 
 
-def test_movie_review_nouns(news_nouns):
-    loader = CorpusLoader(REVIEW_DATA, format="jsonl", verbose=False)
-    review_sents = [item["text"] for item in loader]
+def _read_lines(path: str) -> list[str]:
+    with open(path, encoding="utf-8") as f:
+        return [line for line in f.read().splitlines() if line.strip()]
+
+
+def _read_answer(path: str) -> str:
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def verify(answers_dir: str) -> None:
+    # Extract news nouns
+    news_loader = CorpusLoader(NEWS_DATA, format="jsonl", verbose=False)
+    news_sents = [item["text"] for item in news_loader]
+    news_extractor = LRNounExtractor(verbose=False)
+    news_nouns = news_extractor.extract(news_sents, min_noun_frequency=10)
+
+    # Extract review nouns
+    review_loader = CorpusLoader(REVIEW_DATA, format="jsonl", verbose=False)
+    review_sents = [item["text"] for item in review_loader]
     review_extractor = LRNounExtractor(verbose=False)
     review_nouns = review_extractor.extract(review_sents, min_noun_frequency=10)
 
     # Test review top nouns
     top_review = sorted(review_nouns.items(), key=lambda x: (-x[1].frequency, x[0]))[:100]
     actual_top = [f"{noun}\t{score.frequency}\t{score.score:.4f}" for noun, score in top_review]
-    expected_top = read_answer_lines("movie_review_nouns", "review_top_nouns.txt")
+    expected_top = _read_lines(f"{answers_dir}/review_top_nouns.txt")
     assert actual_top == expected_top
 
     # Test domain comparison
@@ -41,5 +62,5 @@ def test_movie_review_nouns(news_nouns):
     for noun, score in review_only_sorted:
         lines.append(f"  {noun}\t{score.frequency}")
     actual_comparison = "\n".join(lines) + "\n"
-    expected_comparison = read_answer("movie_review_nouns", "domain_comparison.txt")
+    expected_comparison = _read_answer(f"{answers_dir}/domain_comparison.txt")
     assert actual_comparison == expected_comparison

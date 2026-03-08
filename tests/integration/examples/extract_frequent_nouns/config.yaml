@@ -1,0 +1,13 @@
+pipeline:
+  - name: ReadJson
+    args:
+      path: tests/integration/data/news-text/2016-10-20.jsonl
+      out_key: corpus
+
+  - name: ExtractNoun
+    args:
+      min_noun_frequency: 10
+      verbose: false
+      in_key: corpus
+      text_key: text
+      out_key: nouns

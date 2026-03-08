@@ -1,11 +1,19 @@
-"""Integration test: Corpus normalization."""
+"""Verify corpus normalization results."""
 
 import json
+import os
 
 from soynlp.normalizer import TextNormalizer, only_hangle, repeat_normalize
 from soynlp.utils import CorpusLoader
 
-from .conftest import NEWS_DATA, REVIEW_DATA, read_answer_lines
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
+NEWS_DATA = os.path.join(ROOT_DIR, "tests/integration/data/news-text/2016-10-20.jsonl")
+REVIEW_DATA = os.path.join(ROOT_DIR, "tests/integration/data/movie-review-score/91031.jsonl")
+
+
+def _read_lines(path: str) -> list[str]:
+    with open(path, encoding="utf-8") as f:
+        return [line for line in f.read().splitlines() if line.strip()]
 
 
 def _normalize_news() -> list[dict[str, str]]:
@@ -46,19 +54,19 @@ def _normalize_reviews() -> list[dict[str, str]]:
     return results
 
 
-def test_news_normalization():
-    expected_lines = read_answer_lines("normalize_corpus", "news_normalized.jsonl")
-    actual = _normalize_news()
-    assert len(actual) == len(expected_lines)
-    for result, expected_line in zip(actual, expected_lines):
+def verify(answers_dir: str) -> None:
+    # News normalization
+    expected_news = _read_lines(f"{answers_dir}/news_normalized.jsonl")
+    actual_news = _normalize_news()
+    assert len(actual_news) == len(expected_news)
+    for result, expected_line in zip(actual_news, expected_news):
         expected_obj = json.loads(expected_line)
         assert result == expected_obj
 
-
-def test_review_normalization():
-    expected_lines = read_answer_lines("normalize_corpus", "reviews_normalized.jsonl")
-    actual = _normalize_reviews()
-    assert len(actual) == len(expected_lines)
-    for result, expected_line in zip(actual, expected_lines):
+    # Review normalization
+    expected_reviews = _read_lines(f"{answers_dir}/reviews_normalized.jsonl")
+    actual_reviews = _normalize_reviews()
+    assert len(actual_reviews) == len(expected_reviews)
+    for result, expected_line in zip(actual_reviews, expected_reviews):
         expected_obj = json.loads(expected_line)
         assert result == expected_obj

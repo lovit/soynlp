@@ -10,7 +10,7 @@ from soynlp.configs.config import from_yaml
 from soynlp.pipeline import Pipeline
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "pipeline.yaml")
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "outputs")
 
 

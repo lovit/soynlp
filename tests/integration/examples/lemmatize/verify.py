@@ -1,13 +1,17 @@
-"""Integration test: Lemmatization and conjugation."""
+"""Verify lemmatization and conjugation results."""
 
 import os
 
 from soynlp.lemmatizer import Lemmatizer, conjugate, lemma_candidate
 
-from .conftest import ROOT_DIR, read_answer
-
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
 STEM_DIR = os.path.join(ROOT_DIR, "soynlp/lemmatizer/dictionary/default/Stem")
 EOMI_PATH = os.path.join(ROOT_DIR, "soynlp/lemmatizer/dictionary/default/Eomi/Eomi.txt")
+
+
+def _read_answer(path: str) -> str:
+    with open(path, encoding="utf-8") as f:
+        return f.read()
 
 
 def _load_stems() -> set[str]:
@@ -29,7 +33,6 @@ def _load_endings() -> set[str]:
 
 
 def _build_results() -> str:
-    # Conjugation
     conjugation_cases = [
         ("하", "ㄴ다"),
         ("하", "았다"),
@@ -48,7 +51,6 @@ def _build_results() -> str:
         forms_str = ", ".join(sorted(forms))
         lines.append(f"{stem} + {ending}\t{forms_str}")
 
-    # Lemmatization
     stems = _load_stems()
     endings = _load_endings()
     lemmatizer = Lemmatizer(stems=stems, endings=endings)
@@ -83,7 +85,6 @@ def _build_results() -> str:
             lemma_str = "(no match)"
         lines.append(f"{word}\t{lemma_str}")
 
-    # Lemma Candidates
     candidate_cases = [("했", "다"), ("먹었", "다"), ("좋", "은"), ("예쁜", ""), ("갔", "다")]
     lines.append("")
     lines.append("# Lemma Candidates")
@@ -95,7 +96,7 @@ def _build_results() -> str:
     return "\n".join(lines) + "\n"
 
 
-def test_lemmatization_results():
-    expected = read_answer("lemmatize", "lemmatization_results.txt")
+def verify(answers_dir: str) -> None:
+    expected = _read_answer(f"{answers_dir}/lemmatization_results.txt")
     actual = _build_results()
     assert actual == expected

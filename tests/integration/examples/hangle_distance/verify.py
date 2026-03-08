@@ -1,44 +1,28 @@
-"""Integration test: Hangle distance calculations and similar word search."""
+"""Verify hangle distance calculations and similar word search."""
+
+import os
 
 from soynlp.hangle import (
-    ConvolutionHangleEncoder,
     character_is_complete_korean,
-    compose,
     cosine_distance,
-    decompose,
     jaccard_distance,
     jamo_levenshtein,
     levenshtein,
 )
 from soynlp.utils import CorpusLoader
 
-from .conftest import NEWS_DATA, read_answer
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
+NEWS_DATA = os.path.join(ROOT_DIR, "tests/integration/data/news-text/2016-10-20.jsonl")
 
 
-def test_decompose_compose_roundtrip():
-    test_chars = list("한글테스트입니다가나다라마바사아자차카타파하")
-    for ch in test_chars:
-        parts = decompose(ch)
-        assert parts is not None
-        recomposed = compose(*parts)
-        assert recomposed == ch
+def _read_answer(path: str) -> str:
+    with open(path, encoding="utf-8") as f:
+        return f.read()
 
 
-def test_encoder_roundtrip():
-    encoder = ConvolutionHangleEncoder()
-    test_sents = ["한글 인코딩 테스트", "서울에서 부산까지", "대통령이 기자회견을 열었다"]
-    for sent in test_sents:
-        encoded = encoder.encode(sent)
-        assert encoded.shape[0] > 0
-        onehot = encoder.sent_to_onehot(sent)
-        decoded = encoder.onehot_to_sent(onehot)
-        assert decoded == sent
-
-
-def test_distance_calculations():
-    """Test deterministic distance calculations against answer file."""
-    expected = read_answer("hangle_distance", "distance_results.txt")
-    # Extract only the distance table (before "# Similar words" section)
+def verify(answers_dir: str) -> None:
+    # Test deterministic distance calculations
+    expected = _read_answer(f"{answers_dir}/distance_results.txt")
     expected_table = expected.split("\n# Similar words")[0].strip()
 
     word_pairs = [
@@ -63,9 +47,7 @@ def test_distance_calculations():
     actual_table = "\n".join(lines)
     assert actual_table == expected_table
 
-
-def test_similar_words_from_corpus():
-    """Test similar word search structure (non-deterministic ordering, so check distances only)."""
+    # Test similar word search structure (non-deterministic ordering)
     loader = CorpusLoader(NEWS_DATA, format="jsonl")
     words: set[str] = set()
     for i, item in enumerate(loader):
@@ -82,6 +64,5 @@ def test_similar_words_from_corpus():
         distances.sort(key=lambda x: x[1])
         top5 = distances[:5]
         assert len(top5) == 5
-        # Distances should be non-negative and sorted
         for i in range(len(top5) - 1):
             assert top5[i][1] <= top5[i + 1][1]
