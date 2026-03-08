@@ -67,7 +67,6 @@ class EomiExtractor:
             min_eomi_score,
         )
 
-        self._check_covered_eojeols(lemmas)
         self._eomis = lemmas  # type: ignore[assignment]
 
         if reset_lrgraph:
@@ -180,7 +179,3 @@ class EomiExtractor:
                 except Exception:
                     continue
         return eomis_
-
-    def _check_covered_eojeols(self, eomis: dict) -> None:
-        # TODO
-        pass

@@ -123,7 +123,6 @@ class NewsPOSExtractor:
         min_noun_frequency: int = 1,
         min_eojeol_frequency: int = 1,
     ):
-        # TODO: Replace with LRNounExtractor_v2 when available
         self.noun_extractor = LRNounExtractor(
             verbose=self._verbose,
         )
