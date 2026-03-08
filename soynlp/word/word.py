@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import math
 import os
 from collections import defaultdict
@@ -11,6 +9,27 @@ import numpy as np
 from tqdm import tqdm
 
 from soynlp.utils import CorpusLoader
+
+
+@dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
+class CohesionScore:
+    subword: str
+    leftside: float
+    rightside: float
+
+
+@dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
+class BranchingEntropy:
+    subword: str
+    leftside: float
+    rightside: float
+
+
+@dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
+class AccessorVariety:
+    subword: str
+    leftside: float
+    rightside: float
 
 
 class WordExtractor:
@@ -320,24 +339,3 @@ def calculate_branching_entropy_accessor_variety_batch(
         if (be_l.get(term, 0) >= min_brancingentropy_leftside) and (be_r.get(term, 0) >= min_brancingentropy_rightside):
             be[term] = BranchingEntropy(term, be_l.get(term, 0.0), be_r.get(term, 0.0))
     return av, be
-
-
-@dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
-class CohesionScore:
-    subword: str
-    leftside: float
-    rightside: float
-
-
-@dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
-class BranchingEntropy:
-    subword: str
-    leftside: float
-    rightside: float
-
-
-@dataclass(init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
-class AccessorVariety:
-    subword: str
-    leftside: float
-    rightside: float
