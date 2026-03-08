@@ -1,7 +1,6 @@
 import copy
 import os
 from collections import defaultdict
-from multiprocessing import Pool
 
 
 class LRGraph:
@@ -213,6 +212,8 @@ def corpus_to_lrgraph(texts: list[str], l_max_length: int = 10, r_max_length: in
     chunks = [texts[i : i + chunk_size] for i in range(0, len(texts), chunk_size)]
 
     # Build partial counters in parallel
+    from multiprocessing import Pool
+
     worker_args = [(chunk, l_max_length, r_max_length) for chunk in chunks]
     with Pool(processes=n_workers) as pool:
         partial_counters = pool.map(_build_partial_counter, worker_args)

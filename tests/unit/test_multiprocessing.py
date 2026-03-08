@@ -50,3 +50,14 @@ def test_noun_extractor_auto_workers():
     extractor = LRNounExtractor(verbose=False)
     nouns = extractor.extract(SAMPLE_SENTS, n_workers=-1)
     assert len(nouns) > 0
+
+
+def test_noun_extractor_multi_with_min_eojeol_frequency():
+    """min_eojeol_frequency > 1이면 n_workers를 지정해도 단일 프로세스로 동작하며 결과는 동일하다."""
+    extractor_single = LRNounExtractor(verbose=False)
+    nouns_single = extractor_single.extract(SAMPLE_SENTS, min_eojeol_frequency=2, n_workers=1)
+
+    extractor_multi = LRNounExtractor(verbose=False)
+    nouns_multi = extractor_multi.extract(SAMPLE_SENTS, min_eojeol_frequency=2, n_workers=4)
+
+    assert set(nouns_single.keys()) == set(nouns_multi.keys())

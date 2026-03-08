@@ -429,6 +429,8 @@ def train_lrgraph(
         texts_list: list[str] = train_data if isinstance(train_data, list) else [str(s) for s in train_data]
         # Apply min_eojeol_frequency filter via EojeolCounter first if needed
         if min_eojeol_frequency > 1:
+            # min_eojeol_frequency > 1이면 빈도 필터링이 필요하므로 EojeolCounter 경로 사용 (단일 프로세스)
+            logger.info("min_eojeol_frequency > 1: n_workers 무시, 단일 프로세스로 LRGraph 구축")
             eojeol_counter = EojeolCounter(
                 sents=texts_list,
                 min_count=min_eojeol_frequency,
@@ -436,7 +438,7 @@ def train_lrgraph(
                 verbose=verbose,
             )
             lrgraph = eojeol_counter.to_lrgraph(max_l_length, max_r_length)
-            logger.info(f"finished building LRGraph from {len(eojeol_counter)} eojeols (n_workers={n_workers})")
+            logger.info(f"finished building LRGraph from {len(eojeol_counter)} eojeols")
             return lrgraph
         lrgraph = corpus_to_lrgraph(texts_list, l_max_length=max_l_length, r_max_length=max_r_length, n_workers=n_workers)
         logger.info(f"finished building LRGraph with n_workers={n_workers}")
