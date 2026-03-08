@@ -34,11 +34,13 @@ class BaseVectorizer:
         self.lowercase = lowercase
         self.verbose = verbose
 
-        self._check_points = 500
+        # 진행 상황 로그를 출력할 문서 처리 간격 (N 문서마다 1회 로그)
+        self._check_points: int = 500
 
-        self.vocabulary_: dict[str, int] = {}
-        self.idx2vocab: list[str] = []
-        self.n_vocabs: int = 0
+        # fit() 후 채워지는 학습 상태 변수
+        self.vocabulary_: dict[str, int] = {}  # 어휘 → 인덱스 매핑 (빈도 내림차순 정렬)
+        self.idx2vocab: list[str] = []  # 인덱스 → 어휘 역매핑
+        self.n_vocabs: int = 0  # 어휘 크기 (= len(idx2vocab))
 
     def fit_transform(self, docs: list[str]) -> csr_matrix:
         self.fit(docs)

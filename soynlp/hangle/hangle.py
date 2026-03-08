@@ -228,60 +228,17 @@ class ConvolutionHangleEncoder:
         unk = "<unk>"
         idx_to_char = chosung_list + jungsung_list + jongsung_list + num + [space] + [unk]
         self.idx_to_char = np.asarray(idx_to_char)
-        self.jamo_to_idx: dict[str, int] = {
-            "ㄱ": 0,
-            "ㄲ": 1,
-            "ㄴ": 2,
-            "ㄷ": 3,
-            "ㄸ": 4,
-            "ㄹ": 5,
-            "ㅁ": 6,
-            "ㅂ": 7,
-            "ㅃ": 8,
-            "ㅅ": 9,
-            "ㅆ": 10,
-            "ㅇ": 11,
-            "ㅈ": 12,
-            "ㅉ": 13,
-            "ㅊ": 14,
-            "ㅋ": 15,
-            "ㅌ": 16,
-            "ㅍ": 17,
-            "ㅎ": 18,
-            "ㅏ": 19,
-            "ㅐ": 20,
-            "ㅑ": 21,
-            "ㅒ": 22,
-            "ㅓ": 23,
-            "ㅔ": 24,
-            "ㅕ": 25,
-            "ㅖ": 26,
-            "ㅗ": 27,
-            "ㅘ": 28,
-            "ㅙ": 29,
-            "ㅚ": 30,
-            "ㅛ": 31,
-            "ㅜ": 32,
-            "ㅝ": 33,
-            "ㅞ": 34,
-            "ㅟ": 35,
-            "ㅠ": 36,
-            "ㅡ": 37,
-            "ㅢ": 38,
-            "ㅣ": 39,
-            " ": 40,
-            "ㄳ": 43,
-            "ㄵ": 45,
-            "ㄶ": 46,
-            "ㄺ": 49,
-            "ㄻ": 50,
-            "ㄼ": 51,
-            "ㄽ": 52,
-            "ㄾ": 53,
-            "ㄿ": 54,
-            "ㅀ": 55,
-            "ㅄ": 58,
-        }
+        # 초성(0~18) → 중성(19~39) → 종성(40~67) 순으로 인덱스를 할당한다.
+        # 초성·중성과 겹치는 자모는 초성·중성 인덱스를 우선하고,
+        # jongsung_list 중 겹자음(초성에 없는 것)만 종성 인덱스로 추가한다.
+        self.jamo_to_idx: dict[str, int] = {}
+        for i, c in enumerate(chosung_list):
+            self.jamo_to_idx[c] = i
+        for i, c in enumerate(jungsung_list):
+            self.jamo_to_idx[c] = self.jung_begin + i
+        for i, c in enumerate(jongsung_list):
+            if c not in self.jamo_to_idx:  # 초성·중성에 없는 겹자음·공백만 추가
+                self.jamo_to_idx[c] = self.jong_begin + i
 
     def encode(self, sent: str) -> np.ndarray:
         onehot = self.sent_to_onehot(sent)

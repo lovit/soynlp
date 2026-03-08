@@ -57,11 +57,7 @@ class LREvaluator:
     def evaluate(self, candidates: list, preference: dict | None = None) -> list[tuple]:
         scores = []
         for c in candidates:
-            score = self._evaluate(
-                self.make_scoretable(
-                    c.L[0], c.L[1], c.R[0], c.R[1], c.cohesion_l, c.droprate_l, c.lcount, c.lr_prop, c.lr_count, c.length
-                )
-            )
+            score = self._evaluate(self._make_scoretable(c))
             if preference:
                 if c.L[1] and c.L[1] in preference:
                     score += preference.get(c.L[1], {}).get(c.L[0], 0)
@@ -70,28 +66,17 @@ class LREvaluator:
             scores.append((c, score))
         return sorted(scores, key=lambda x: -x[-1])
 
-    def make_scoretable(
-        self,
-        l: str,
-        pos_l,
-        r: str,
-        pos_r,
-        cohesion: float,
-        droprate: float,
-        lcount: int,
-        lr_prop: float,
-        lr_count: int,
-        len_LR: int,
-    ) -> ScoreTable:
+    def _make_scoretable(self, c: Table) -> ScoreTable:
+        """Table 객체로부터 ScoreTable을 생성한다."""
         return ScoreTable(
-            cohesion,
-            droprate,
-            log(lcount + 1),
-            lr_prop,
-            log(lr_count + 1),
-            1 if (pos_l and pos_r) else 0,
-            1 if len(r) == 1 else 0,
-            log(len_LR),
+            cohesion_l=c.cohesion_l,
+            droprate_l=c.droprate_l,
+            log_count_l=log(c.lcount + 1),
+            prob_l2r=c.lr_prop,
+            log_count_l2r=log(c.lr_count + 1),
+            known_LR=1 if (c.L[1] and c.R[1]) else 0,
+            R_is_syllable=1 if len(c.R[0]) == 1 else 0,
+            log_length=log(c.length),
         )
 
     def _evaluate(self, scoretable: ScoreTable) -> float:
