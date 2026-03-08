@@ -1,5 +1,9 @@
+import logging
+
 from soynlp.noun import LRNounExtractor
 from soynlp.predicator import PredicatorExtractor
+
+logger = logging.getLogger(__name__)
 
 
 class POSExtractor:
@@ -21,13 +25,6 @@ class POSExtractor:
         self.verbose = verbose
         self.logpath = logpath
 
-    def _print(self, message: str, replace: bool = False, newline: bool = True):
-        header = "[POS Extractor]"
-        if replace:
-            print(f"\r{header} {message}", end="\n" if newline else "", flush=True)
-        else:
-            print(f"{header} {message}", end="\n" if newline else "", flush=True)
-
     def extract(self, sentences):
         self._num_of_eojeols = 0
         self._num_of_covered_eojeols = 0
@@ -37,12 +34,7 @@ class POSExtractor:
 
         del self._lrgraph
 
-        if self.verbose:
-            self._print(
-                f"{len(nouns)} nouns, {len(predicators)} predicators were extracted",
-                replace=True,
-                newline=True,
-            )
+        logger.info("%d nouns, %d predicators were extracted", len(nouns), len(predicators))
 
         return nouns, predicators
 
@@ -60,9 +52,9 @@ class POSExtractor:
         self._num_of_covered_eojeols = getattr(noun_extractor, "_num_of_covered_eojeols", 0)
         self.noun_extractor = noun_extractor
 
-        if self.verbose and self._num_of_eojeols > 0:
+        if self._num_of_eojeols > 0:
             pct = 100 * self._num_of_covered_eojeols / self._num_of_eojeols
-            self._print(f"noun extraction was done. {pct:.2f} % eojeols are covered", replace=True, newline=True)
+            logger.info("noun extraction was done. %.2f %% eojeols are covered", pct)
 
         return nouns
 
@@ -80,12 +72,8 @@ class POSExtractor:
         self._num_of_covered_eojeols += predicator_extractor._num_of_covered_eojeols
         self.predicator_extractor = predicator_extractor
 
-        if self.verbose and self._num_of_eojeols > 0:
+        if self._num_of_eojeols > 0:
             pct = 100 * self._num_of_covered_eojeols / self._num_of_eojeols
-            self._print(
-                f"predicator extraction was done. {pct:.2f} % eojeols are covered (cum)",
-                replace=True,
-                newline=True,
-            )
+            logger.info("predicator extraction was done. %.2f %% eojeols are covered (cum)", pct)
 
         return predicators

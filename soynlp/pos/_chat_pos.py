@@ -1,5 +1,6 @@
 """Chat domain POS extractor (extends NewsPOSExtractor)."""
 
+import logging
 from collections import defaultdict
 
 from soynlp.hangle import decompose, jaum_list
@@ -7,6 +8,8 @@ from soynlp.predicator import Predicator
 from soynlp.utils.utils import installpath
 
 from ._news_pos import NewsPOSExtractor
+
+logger = logging.getLogger(__name__)
 
 
 class ChatPOSExtractor(NewsPOSExtractor):
@@ -51,14 +54,12 @@ class ChatPOSExtractor(NewsPOSExtractor):
 
         nouns = {word: count for word, count in nouns.items() if word not in confused_nouns}
 
-        if self._verbose:
-            self._print_stats(total_frequency, nouns, adjectives, verbs, adverbs, josas, eojeols)
+        self._print_stats(total_frequency, nouns, adjectives, verbs, adverbs, josas, eojeols)
 
         return nouns, adjectives, verbs, adverbs, josas, eojeols, confused_nouns
 
     def _match_predicator_compounds(self, eojeols: dict, adjectives: dict, verbs: dict):
-        if self._verbose:
-            print(f'[POS Extractor] matching "Predicator + Adjective/Verb" from {len(eojeols)} eojeols')
+        logger.info('[POS Extractor] matching "Predicator + Adjective/Verb" from %d eojeols', len(eojeols))
 
         predicators = set(self.adjectives.keys()) | set(self.verbs.keys())
         before_adj, before_verb = len(self.adjectives), len(self.verbs)
@@ -80,9 +81,8 @@ class ChatPOSExtractor(NewsPOSExtractor):
 
         self.eomis = {eomi for eomi in self.eomis if eomi not in wrong_eomis}
 
-        if self._verbose:
-            after_adj, after_verb = len(self.adjectives), len(self.verbs)
-            print(f"[POS Extractor] adjective: {before_adj} -> {after_adj}, verb: {before_verb} -> {after_verb}")
+        after_adj, after_verb = len(self.adjectives), len(self.verbs)
+        logger.info("[POS Extractor] adjective: %d -> %d, verb: %d -> %d", before_adj, after_adj, before_verb, after_verb)
         return eojeols, adjectives, verbs
 
     def _parse_predicator_compounds_chat(self, eojeols: dict, predicators: set, base: dict):

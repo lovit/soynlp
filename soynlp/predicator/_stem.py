@@ -1,6 +1,9 @@
+import logging
 import math
 
 from soynlp.lemmatizer import conjugate, lemma_candidate
+
+logger = logging.getLogger(__name__)
 
 
 class StemExtractor:
@@ -25,13 +28,6 @@ class StemExtractor:
         self.L, self.R = self._conjugate_stem_and_eomi(lrgraph, stems, eomis)
         self._josa = {"거나", "게", "게는", "게도", "고", "고도", "고만", "는", "다", "다가", "서는", "아", "은"}
 
-    def _print(self, message: str, replace: bool = False, newline: bool = True):
-        header = "[Stem Extractor]"
-        if replace:
-            print(f"\r{header} {message}", end="\n" if newline else "", flush=True)
-        else:
-            print(f"{header} {message}", end="\n" if newline else "", flush=True)
-
     def _conjugate_stem_and_eomi(self, lrgraph, stems: set[str], eomis: set[str]) -> tuple[set[str], set[str]]:
         eojeol_counter = lrgraph.to_EojeolCounter()
 
@@ -41,12 +37,8 @@ class StemExtractor:
         n_stems = len(stems)
         n_eomis = len(eomis)
         for i, stem in enumerate(stems):
-            if self.verbose and i % 100 == 0:
-                self._print(
-                    f"Checking combination of {i} / {n_stems} stems + {n_eomis} eomis",
-                    replace=True,
-                    newline=False,
-                )
+            if i % 100 == 0:
+                logger.info("Checking combination of %d / %d stems + %d eomis", i, n_stems, n_eomis)
 
             stem_len = len(stem)
             for eomi in eomis:
@@ -60,12 +52,7 @@ class StemExtractor:
                 except Exception:
                     continue
 
-        if self.verbose:
-            self._print(
-                f"Initializing was done with {len(stems)} stems and {len(eomis)} eomis" + " " * 10,
-                replace=True,
-                newline=True,
-            )
+        logger.info("Initializing was done with %d stems and %d eomis", len(stems), len(eomis))
 
         del eojeol_counter
         return stem_surfaces, eomi_surfaces
@@ -88,15 +75,18 @@ class StemExtractor:
 
         candidates = {l: count for l, count in candidates.items() if count >= min_stem_frequency}
 
-        if self.verbose:
-            self._print(f"batch prediction for {len(candidates)} candidates")
+        logger.info("batch prediction for %d candidates", len(candidates))
 
         stem_surfaces = self._batch_prediction(candidates, min_stem_score, min_stem_frequency)
         self.stem_surfaces, self.removals = self._post_processing(stem_surfaces)
         self.stems = self._to_stem(self.stem_surfaces)
 
-        if self.verbose:
-            self._print(f"{len(self.stems)} stems, {len(self.stem_surfaces)} surfacial stems, {len(self.removals)} removals")
+        logger.info(
+            "%d stems, %d surfacial stems, %d removals",
+            len(self.stems),
+            len(self.stem_surfaces),
+            len(self.removals),
+        )
 
         return self.stems
 
@@ -132,11 +122,15 @@ class StemExtractor:
         score = (pos - neg) / (pos + neg) if (pos + neg) > 0 else 0
         freq = pos if score >= min_stem_score else neg + unk
 
-        if debug:
-            print(
-                f"pos={pos}, neg={neg}, unk={unk}, n_features_={len(features)}, "
-                f"n_char={unique_of_char}, entropy_r={entropy_of_char}"
-            )
+        logger.info(
+            "pos=%d, neg=%d, unk=%d, n_features_=%d, n_char=%d, entropy_r=%s",
+            pos,
+            neg,
+            unk,
+            len(features),
+            unique_of_char,
+            entropy_of_char,
+        )
 
         if (unique_of_char < self.min_num_of_unique_R_char) or (entropy_of_char < self.min_entropy_of_R_char):
             return (0, 0)

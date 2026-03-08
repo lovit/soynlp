@@ -1,9 +1,12 @@
+import logging
 from collections import OrderedDict, namedtuple
 from math import log
 
 from soynlp.tokenizer import MaxScoreTokenizer
 
 from ._dictionary import Dictionary
+
+logger = logging.getLogger(__name__)
 
 default_profile = OrderedDict(
     [
@@ -100,7 +103,7 @@ class LRMaxScoreTagger:
             try:
                 self.base_tokenizer = MaxScoreTokenizer(scores=self.cohesion_l)
             except Exception as e:
-                print(f"MaxScoreTokenizer(cohesion) exception: {e}")
+                logger.warning("MaxScoreTokenizer(cohesion) exception: %s", e)
 
     def _build_lrgraph(self, sents, lmax: int = 12, rmax: int = 8) -> dict:
         from collections import Counter, defaultdict

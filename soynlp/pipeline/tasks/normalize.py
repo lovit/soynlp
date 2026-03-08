@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from soynlp.normalizer import TextNormalizer
 from soynlp.pipeline.tasks.task import Task, TaskArgs
@@ -11,7 +10,7 @@ class NormalizeTaskArgs(TaskArgs):
     hangle: bool = True
     number: bool = True
     symbol: bool = True
-    custom: Optional[str] = None
+    custom: str | None = None
     decompose_hangle_emoji: bool = True
     remove_repeatchar: int = 2
     remove_longspace: bool = True

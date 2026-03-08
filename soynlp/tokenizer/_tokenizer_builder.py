@@ -1,6 +1,9 @@
+import logging
 from collections import defaultdict
 
 from soynlp.utils import get_process_memory
+
+logger = logging.getLogger(__name__)
 
 
 class EojeolPatternTrainer:
@@ -44,17 +47,18 @@ class EojeolPatternTrainer:
                     wordset_l[token[:j]] += 1
                 for j in range(1, min(self.max_right_length, token_len)):
                     wordset_r[token[-j:]] += 1
-            if self.verbose and (i % ckpt == 0):
+            if i % ckpt == 0:
                 pct = 100.0 * i / n_sents
-                print(f"\rscanning: {pct:.1f}% ({get_process_memory():.3f} Gb)", end="", flush=True)
+                logger.info("scanning: %.1f%% (%.3f Gb)", pct, get_process_memory())
 
         result_l = {w for w, f in wordset_l.items() if f >= self.min_frequency}
         result_r = {w for w, f in wordset_r.items() if f >= self.min_frequency}
-        if self.verbose:
-            print(
-                f"\rscanning completed. (L,R) has ({len(result_l)}, {len(result_r)}) tokens. "
-                f"memory = {get_process_memory():.3f} Gb"
-            )
+        logger.info(
+            "scanning completed. (L,R) has (%d, %d) tokens. memory = %.3f Gb",
+            len(result_l),
+            len(result_r),
+            get_process_memory(),
+        )
 
         return result_l, result_r
 
@@ -81,12 +85,11 @@ class EojeolPatternTrainer:
                     lrgraph[l][r] += 1
                     rlgraph[r][l] += 1
 
-            if self.verbose and (i % ckpt == 0):
+            if i % ckpt == 0:
                 pct = 100.0 * i / n_sents
-                print(f"\rbuilding lr-graph: {pct:.1f}% ({get_process_memory():.3f} Gb)", end="", flush=True)
+                logger.info("building lr-graph: %.1f%% (%.3f Gb)", pct, get_process_memory())
 
-        if self.verbose:
-            print(f"\rbuilding lr-graph completed. memory = {get_process_memory():.3f} Gb")
+        logger.info("building lr-graph completed. memory = %.3f Gb", get_process_memory())
 
         lrgraph_dict = {l: dict(rdict) for l, rdict in lrgraph.items()}
         rlgraph_dict = {r: dict(ldict) for r, ldict in rlgraph.items()}
@@ -200,19 +203,16 @@ class EojeolPatternTrainer:
                 next_rank_r[r] = sum_lrank
             next_rank_r = normalize(next_rank_r, sum_of_rank, decaying_factor)
 
-            if self.verbose:
-                print(f"\rtrain hits ... {n_iter + 1} in {max_iter}", end="", flush=True)
+            logger.info("train hits ... %d in %d", n_iter + 1, max_iter)
 
             diff = sum(abs(rank - next_rank_l.get(w, 0)) for w, rank in rank_l.items())
             diff += sum(abs(rank - next_rank_r.get(w, 0)) for w, rank in rank_r.items())
             rank_l = next_rank_l
             rank_r = next_rank_r
             if diff < (sum_of_rank * tolerance):
-                if self.verbose:
-                    print(f"\rgraph was converged at {n_iter + 1} iteration")
+                logger.info("graph was converged at %d iteration", n_iter + 1)
                 break
 
-        if self.verbose:
-            print(f"\rcomputation was done at {n_iter + 1} iteration")
+        logger.info("computation was done at %d iteration", n_iter + 1)
 
         return rank_l, rank_r

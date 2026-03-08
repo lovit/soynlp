@@ -1,6 +1,9 @@
+import logging
 from collections import namedtuple
 
 from soynlp.lemmatizer import _conjugate_stem, lemma_candidate
+
+logger = logging.getLogger(__name__)
 
 EomiScore = namedtuple("EomiScore", "frequency score")
 
@@ -27,13 +30,6 @@ class EomiExtractor:
     def is_trained(self) -> bool:
         return self._eomis is not None
 
-    def _print(self, message: str, replace: bool = False, newline: bool = True):
-        header = "[Eomi Extractor]"
-        if replace:
-            print(f"\r{header} {message}", end="\n" if newline else "", flush=True)
-        else:
-            print(f"{header} {message}", end="\n" if newline else "", flush=True)
-
     def extract(
         self,
         condition: str | None = None,
@@ -50,8 +46,7 @@ class EomiExtractor:
 
         eomi_surfaces = {eomi: score for eomi, score in prediction_scores.items() if score[1] >= min_eomi_score}
 
-        if self.verbose:
-            self._print(f"eomi lemmatization with {len(eomi_surfaces)} candidates")
+        logger.info("eomi lemmatization with %d candidates", len(eomi_surfaces))
 
         self.lrgraph.reset_lrgraph()
         lemmas = self._eomi_lemmatize(eomi_surfaces)
@@ -65,10 +60,12 @@ class EomiExtractor:
                 for word, score in sorted(prediction_scores.items(), key=lambda x: -x[1][1]):
                     f.write(f"{word} {score[0]} {score[1]}\n")
 
-        if self.verbose:
-            self._print(
-                f"{len(lemmas)} eomis extracted with min frequency = {min_eomi_frequency}, min score = {min_eomi_score}"
-            )
+        logger.info(
+            "%d eomis extracted with min frequency = %d, min score = %s",
+            len(lemmas),
+            min_eomi_frequency,
+            min_eomi_score,
+        )
 
         self._check_covered_eojeols(lemmas)
         self._eomis = lemmas  # type: ignore[assignment]
@@ -93,8 +90,7 @@ class EomiExtractor:
         features_ = self._refine_features(features, r)
         n_features_ = len(features_)
 
-        if debug:
-            print(f"pos={pos}, neg={neg}, unk={unk}, n_features_={n_features_}")
+        logger.debug("pos=%d, neg=%d, unk=%d, n_features_=%d", pos, neg, unk, n_features_)
 
         if n_features_ >= min_num_of_features:
             return support, score
@@ -151,9 +147,9 @@ class EomiExtractor:
         n = len(eomi_candidates)
 
         for i, r in enumerate(sorted(eomi_candidates, key=lambda x: -len(x))):
-            if self.verbose and i % 10000 == 9999:
+            if i % 10000 == 9999:
                 percentage = f"{100 * (i + 1) / n:.2f}"
-                self._print(f"  -- batch prediction {percentage} % of {n} words", replace=True, newline=False)
+                logger.info("  -- batch prediction %s %% of %d words", percentage, n)
 
             support, score = self.predict(r, min_eomi_score, min_num_of_features)
             prediction_scores[r] = (support, score)
@@ -165,8 +161,7 @@ class EomiExtractor:
 
         self.lrgraph.reset_lrgraph()
 
-        if self.verbose:
-            self._print(f"batch prediction was completed for {n} words", replace=True, newline=True)
+        logger.info("batch prediction was completed for %d words", n)
 
         return prediction_scores
 

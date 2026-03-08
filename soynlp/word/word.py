@@ -5,13 +5,12 @@ import os
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any
 
 import numpy as np
 from tqdm import tqdm
 
-from soynlp.utils import CorpusLoader, get_process_memory
+from soynlp.utils import CorpusLoader
 
 
 class WordExtractor:
@@ -93,11 +92,6 @@ class WordExtractor:
             R_suffix=self.R_suffix,
         )
         return {"cohesion": cohesions, "accessor_variety": av, "branching_entropy": be}
-
-
-def print_message(message: str) -> None:
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[WordExtractor] {now}, mem={get_process_memory():.4} GB : {message}")
 
 
 def initialize_counters(

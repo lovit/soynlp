@@ -1,10 +1,13 @@
+import logging
 import os
 import re
 import unicodedata
+from collections.abc import Callable
 from glob import glob
-from typing import Callable, Union
 
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 
 class Normalizer:
@@ -32,7 +35,7 @@ class PassCharacterNormalizer(Normalizer):
         hangle: bool = True,
         number: bool = True,
         symbol: bool = True,
-        custom: Union[None, str] = None,
+        custom: str | None = None,
     ):
         pattern = ""
         if alphabet:
@@ -105,7 +108,7 @@ class RemoveLongspaceNormalizer(Normalizer):
 
 
 class PaddingSpacetoWordsNormalizer(Normalizer):
-    def __init__(self, custom_character: Union[str, None] = None):
+    def __init__(self, custom_character: str | None = None):
         pattern = "a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ0-9"
         if isinstance(custom_character, str):
             pattern += custom_character
@@ -144,12 +147,12 @@ class TextNormalizer(Normalizer):
         hangle: bool = True,
         number: bool = True,
         symbol: bool = True,
-        custom: Union[None, str] = None,
+        custom: str | None = None,
         decompose_hangle_emoji: bool = True,
         remove_repeatchar: int = 2,
         remove_longspace: bool = True,
         padding_space: bool = False,
-        custom_normalizers: Union[None, Callable[[str], str], list[Callable[[str], str]]] = None,
+        custom_normalizers: Callable[[str], str] | list[Callable[[str], str]] | None = None,
     ) -> Callable[[str], str]:
         modules = []
         if alphabet or hangle or number or symbol or isinstance(custom, str):
@@ -186,8 +189,8 @@ class TextNormalizer(Normalizer):
 
 
 def task_normalize(
-    input: Union[str, list[str]],
-    output: Union[str, list[str]],
+    input: str | list[str],
+    output: str | list[str],
     verbose: bool = True,
     force: bool = False,
     debug: bool = False,
@@ -195,7 +198,7 @@ def task_normalize(
     hangle: bool = True,
     number: bool = True,
     symbol: bool = True,
-    custom: Union[None, str] = None,
+    custom: str | None = None,
     decompose_hangle_emoji: bool = True,
     remove_repeatchar: int = 2,
     remove_longspace: bool = True,
@@ -257,13 +260,11 @@ def task_normalize(
                         normed = task_normalizer(line.strip())
                         fo.write(f"{normed}\n")
                     except Exception as err:
-                        if debug:
-                            print(f"Exception {err}\n@{basename} LN{i}: {line}")
+                        logger.debug(f"Exception {err}\n@{basename} LN{i}: {line}")
                         fo.write(f"{line.strip()}\n")
                         n_exceptions += 1
                         continue
-    if verbose:
-        print(f"Found {n_exceptions} from {n_lines}")
+    logger.info(f"Found {n_exceptions} from {n_lines}")
 
 
 text_normalizer = TextNormalizer.build_normalizer()  # default normalizer

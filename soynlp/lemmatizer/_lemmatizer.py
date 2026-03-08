@@ -1,6 +1,10 @@
+import logging
+
 from soynlp.hangle import compose
 
 from ._conjugation import conjugate, decompose
+
+logger = logging.getLogger(__name__)
 
 
 class Lemmatizer:
@@ -57,8 +61,7 @@ def lemma_candidate_chat(
 
     if not r and character_is_emoticon(l_last[2]):
         l_ = l[:-1] + compose(l_last[0], l_last[1], " ")
-        if debug:
-            print("마지막 종성이 이모티콘으로 의심되는 경우: {} + ()".format(l_))
+        logger.debug("마지막 종성이 이모티콘으로 의심되는 경우: %s + ()", l_)
         candidates.update(lemma_candidate(l_, r, predefined, debug))
 
     return candidates
@@ -74,7 +77,7 @@ def lemma_candidate(
         candidates.add((stem, ending))
 
     def debug_message(message: str, left: str, right: str) -> None:
-        print("{}: {} + {}".format(message, left, right))
+        logger.debug("%s: %s + %s", message, left, right)
 
     candidates: set[tuple[str, str]] = {(l, r)}
     word = l + r
@@ -211,8 +214,7 @@ def lemma_candidate(
     if predefined and (l, r) in predefined:
         for stem in predefined[(l, r)]:
             candidates.add(stem)
-            if debug:
-                print("Predefined: {}".format(stem))
+            logger.debug("Predefined: %s", stem)
 
     # check whether lemma is conjugatable
     candidates_ = set()

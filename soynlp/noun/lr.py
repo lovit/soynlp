@@ -1,16 +1,18 @@
+import logging
 import os
 import re
 from collections import OrderedDict, namedtuple
 from collections.abc import Callable, Iterable
-from datetime import datetime
-from pprint import pprint
+from pprint import pformat
 
 from tqdm import tqdm
 
 from soynlp.tokenizer import MaxScoreTokenizer, NounMatchTokenizer
-from soynlp.utils import CorpusLoader, EojeolCounter, LRGraph, get_process_memory
+from soynlp.utils import CorpusLoader, EojeolCounter, LRGraph
 
 from .postprocessing import check_N_is_NJ, detaching_features, ignore_features
+
+logger = logging.getLogger(__name__)
 
 installpath = os.path.abspath(os.path.dirname(__file__))
 NounScore = namedtuple("NounScore", "frequency score")
@@ -78,8 +80,7 @@ class LRNounExtractor:
         self.max_r_length = max_r_length
         self.verbose = verbose
         self.pos, self.neg, self.common = prepare_r_features(pos_features, neg_features)
-        if verbose:
-            print_message(f"#pos={len(self.pos)}, #neg={len(self.neg)}, #common={len(self.common)}")
+        logger.info(f"#pos={len(self.pos)}, #neg={len(self.neg)}, #common={len(self.common)}")
 
         self.lrgraph: LRGraph | None = None
         self.compounds_components: dict | None = None
@@ -390,11 +391,6 @@ def prepare_r_features(
     return pos_features, neg_features, common_features
 
 
-def print_message(message: str) -> None:
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[LRNounExtractor] {now}, mem={get_process_memory():.4} GB : {message}")
-
-
 def train_lrgraph(
     train_data: str | list[str] | CorpusLoader | EojeolCounter | LRGraph,
     min_eojeol_frequency: int,
@@ -403,14 +399,12 @@ def train_lrgraph(
     verbose: bool,
 ) -> LRGraph:
     if isinstance(train_data, LRGraph):
-        if verbose:
-            print_message("input is LRGraph")
+        logger.info("input is LRGraph")
         return train_data
 
     if isinstance(train_data, EojeolCounter):
         lrgraph = train_data.to_lrgraph(max_l_length, max_r_length)
-        if verbose:
-            print_message("transformed EojeolCounter to LRGraph")
+        logger.info("transformed EojeolCounter to LRGraph")
         return lrgraph
 
     if isinstance(train_data, str) and os.path.exists(train_data):
@@ -424,8 +418,7 @@ def train_lrgraph(
         verbose=verbose,
     )
     lrgraph = eojeol_counter.to_lrgraph(max_l_length, max_r_length)
-    if verbose:
-        print_message(f"finished building LRGraph from {len(eojeol_counter)} eojeols")
+    logger.info(f"finished building LRGraph from {len(eojeol_counter)} eojeols")
     return lrgraph
 
 
@@ -527,19 +520,21 @@ def predict_single_noun(
     num_features = len(active_features)
 
     if debug:
-        pprint(
-            OrderedDict(
-                {
-                    "word": word,
-                    "pos": pos,
-                    "common": common,
-                    "neg": neg,
-                    "unk": unk,
-                    "end": end,
-                    "num_features": num_features,
-                    "score": score,
-                    "support": support,
-                }
+        logger.debug(
+            pformat(
+                OrderedDict(
+                    {
+                        "word": word,
+                        "pos": pos,
+                        "common": common,
+                        "neg": neg,
+                        "unk": unk,
+                        "end": end,
+                        "num_features": num_features,
+                        "score": score,
+                        "support": support,
+                    }
+                )
             )
         )
 
@@ -667,8 +662,7 @@ def extract_compounds_func(
 
     compounds = {noun: (compounds_counts.get(noun, 0), score) for noun, score in compounds_scores.items()}
 
-    if verbose:
-        print_message(f"found {len(compounds)} compounds (min frequency={min_noun_frequency})")
+    logger.info(f"found {len(compounds)} compounds (min frequency={min_noun_frequency})")
     return compounds, compounds_components, compound_decomposer
 
 
@@ -696,17 +690,14 @@ def postprocessing(
 ) -> dict[str, tuple[int, float]]:
     num_before = len(nouns)
     nouns, removals = detaching_features(nouns, features_to_be_detached)
-    if verbose:
-        print_message(f"postprocessing: detaching_features: {num_before} -> {len(nouns)}")
+    logger.info(f"postprocessing: detaching_features: {num_before} -> {len(nouns)}")
 
     num_before = len(nouns)
     nouns, removals = ignore_features(nouns, features_to_be_detached)
-    if verbose:
-        print_message(f"postprocessing: ignore_features: {num_before} -> {len(nouns)}")
+    logger.info(f"postprocessing: ignore_features: {num_before} -> {len(nouns)}")
 
     num_before = len(nouns)
     nouns, removals = check_N_is_NJ(nouns, lrgraph)
-    if verbose:
-        print_message(f"postprocessing: check_N_is_NJ: {num_before} -> {len(nouns)}")
+    logger.info(f"postprocessing: check_N_is_NJ: {num_before} -> {len(nouns)}")
 
     return nouns

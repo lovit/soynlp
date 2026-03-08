@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional, Union
 
 from soynlp.noun import LRNounExtractor
 from soynlp.pipeline.tasks.task import Task, TaskArgs
@@ -18,8 +17,8 @@ class ExtractNounTaskArgs(TaskArgs):
     exclude_syllables: bool = False
     exclude_numbers: bool = True
     verbose: bool = True
-    positive_features: Optional[Union[str, set]] = None
-    negative_features: Optional[Union[str, set]] = None
+    positive_features: str | set | None = None
+    negative_features: str | set | None = None
     in_key: str = "corpus"
     text_key: str = "text"
     out_key: str = "nouns"

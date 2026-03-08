@@ -13,6 +13,7 @@ TERM DEFINITION:
               and maybe some Noun + Josa
 """
 
+import logging
 from collections import defaultdict, namedtuple
 
 from soynlp.hangle import character_is_complete_korean
@@ -24,6 +25,8 @@ from soynlp.utils.utils import installpath
 from ._adjective_vs_verb import conjugate_as_imperative, conjugate_as_pleasure, conjugate_as_present, rule_classify
 from ._eomi import EomiExtractor
 from ._stem import StemExtractor
+
+logger = logging.getLogger(__name__)
 
 Predicator = namedtuple("Predicator", "frequency lemma")
 
@@ -116,16 +119,9 @@ class PredicatorExtractor:
                 for l in _conjugate_stem(stem):
                     surfaces.add(l)
             except Exception as e:
-                print(f"Exception stem = {stem}, {e}")
+                logger.warning("Exception stem = %s, %s", stem, e)
                 continue
         return surfaces
-
-    def _print(self, message: str, replace: bool = False, newline: bool = True):
-        header = "[Predicator Extractor]"
-        if replace:
-            print(f"\r{header} {message}", end="\n" if newline else "", flush=True)
-        else:
-            print(f"{header} {message}", end="\n" if newline else "", flush=True)
 
     @property
     def is_trained(self) -> bool:
@@ -202,12 +198,10 @@ class PredicatorExtractor:
                 min_stem_frequency,
             )
 
-        if self.verbose:
-            self._print("has been trained")
+        logger.info("has been trained")
 
     def _train_with_sentences(self, sentences, min_eojeol_frequency: int = 2, filtering_checkpoint: int = 100000):
-        if self.verbose:
-            self._print("counting eojeols ... ", newline=False)
+        logger.info("counting eojeols ...")
 
         preprocess = (lambda x: x) if self.ensure_normalized else normalize_sent_for_lrgraph
 
@@ -231,9 +225,7 @@ class PredicatorExtractor:
 
         self.eojeol_counter = eojeol_counter
 
-        if self.verbose:
-            mem = f"{get_process_memory():.3f}"
-            self._print(f"#eojeols={self._num_of_eojeols}, mem={mem} Gb", replace=True, newline=True)
+        logger.info("#eojeols=%d, mem=%.3f Gb", self._num_of_eojeols, get_process_memory())
 
     def extract(self, candidates=None, min_predicator_frequency: int = 1):
         """Extract predicators. candidates is EojeolCounter or dict format."""
@@ -280,8 +272,7 @@ class PredicatorExtractor:
         self._eomis.update(extracted_eomis)
         n_after = len(self._eomis)
 
-        if self.verbose:
-            self._print(f"eomis: {n_before} -> {n_after}")
+        logger.info("eomis: %d -> %d", n_before, n_after)
 
     def _extract_stem(
         self,
@@ -311,8 +302,7 @@ class PredicatorExtractor:
         self._stems.update(extracted_stems)
         n_after = len(self._stems)
 
-        if self.verbose:
-            self._print(f"stems: {n_before} -> {n_after}")
+        logger.info("stems: %d -> %d", n_before, n_after)
 
     def _extract_predicator(self, eojeol_counter=None, min_frequency: int = 1) -> dict:
         def all_characters_are_complete_korean(s: str) -> bool:
@@ -327,8 +317,7 @@ class PredicatorExtractor:
 
         lemmas = self._as_lemma_candidates(eojeol_counter)
 
-        if self.verbose:
-            self._print(f"{len(lemmas)} predicators are extracted", replace=True, newline=True)
+        logger.info("%d predicators are extracted", len(lemmas))
 
         return lemmas
 
@@ -347,8 +336,8 @@ class PredicatorExtractor:
         num_eojeol = len(eojeol_counter)  # type: ignore[arg-type]
 
         for i, (eojeol, count) in enumerate(eojeol_counter.items()):  # type: ignore[union-attr]
-            if self.verbose and i % 5000 == 4999:
-                self._print(f"lemmatizing {i + 1} / {num_eojeol} words", replace=True, newline=False)
+            if i % 5000 == 4999:
+                logger.info("lemmatizing %d / %d words", i + 1, num_eojeol)
             if is_noun_josa(eojeol):
                 continue
 
@@ -374,8 +363,7 @@ class PredicatorExtractor:
                 self._count_of_covered_eojeols += count
 
         lemmas = self._remove_wrong_eomis(lemmas, eomi_to_word_count)
-        if self.verbose:
-            self._print("lemma candidating was done", replace=True, newline=True)
+        logger.info("lemma candidating was done")
 
         return lemmas
 
@@ -412,13 +400,8 @@ class PredicatorExtractor:
             remove_morphs[eomi] = remove_words
 
         self._eomis = {eomi for eomi in self._eomis if eomi not in remove_eomis}
-        if self.verbose:
-            words = {word for words in remove_morphs.values() for word in words}
-            self._print(
-                f"{len(remove_eomis)} eomis are removed, {len(words)} words are modified.",
-                replace=True,
-                newline=True,
-            )
+        words = {word for words in remove_morphs.values() for word in words}
+        logger.info("%d eomis are removed, %d words are modified.", len(remove_eomis), len(words))
 
         for eomi, words in remove_morphs.items():
             for word in words:

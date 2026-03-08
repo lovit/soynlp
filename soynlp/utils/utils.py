@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from collections import defaultdict
 from collections.abc import Callable, ItemsView, Iterator
@@ -9,6 +10,8 @@ from sklearn.metrics import pairwise_distances
 from tqdm import tqdm
 
 from soynlp.core.lrgraph import LRGraph
+
+logger = logging.getLogger(__name__)
 
 installpath = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(os.path.sep)[:-1])
 
@@ -29,7 +32,7 @@ def check_dirs(filepath: str) -> None:
     dirname = os.path.dirname(os.path.abspath(filepath))
     if not os.path.exists(dirname):
         os.makedirs(dirname)
-        print(f"created {dirname}")
+        logger.info(f"created {dirname}")
 
 
 def most_similar(

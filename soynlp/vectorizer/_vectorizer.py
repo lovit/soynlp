@@ -1,8 +1,11 @@
+import logging
 import os
 from collections import Counter
 from collections.abc import Callable
 
 from scipy.sparse import csr_matrix
+
+logger = logging.getLogger(__name__)
 
 
 class BaseVectorizer:
@@ -47,16 +50,15 @@ class BaseVectorizer:
 
         i_doc = 0
         for i_doc, doc in enumerate(docs):
-            if self.verbose and i_doc % self._check_points == 0:
-                print("\rscanned {} docs".format(i_doc), flush=True, end="")
+            if i_doc % self._check_points == 0:
+                logger.info("scanned %d docs", i_doc)
 
             counter = Counter(token for token in self.tokenizer(doc))
             for term, freq in counter.items():
                 df[term] = df.get(term, 0) + 1
                 tf[term] = tf.get(term, 0) + freq
 
-        if self.verbose:
-            print("\rscanning was done{}".format(" " * 40), flush=True)
+        logger.info("scanning was done")
 
         n_docs = i_doc + 1
         min_df = int(n_docs * self.min_df)
@@ -69,8 +71,7 @@ class BaseVectorizer:
         self.idx2vocab = [term for term, _ in sorted(self.vocabulary_.items(), key=lambda x: x[1])]
         self.n_vocabs = len(self.idx2vocab)
 
-        if self.verbose:
-            print("{} terms are recognized".format(self.n_vocabs), flush=True)
+        logger.info("%d terms are recognized", self.n_vocabs)
 
         return self
 
@@ -80,8 +81,8 @@ class BaseVectorizer:
         data: list[int] = []
         i_doc = 0
         for i_doc, doc in enumerate(docs):
-            if self.verbose and i_doc % self._check_points == 0:
-                print("\rtransformed {} docs".format(i_doc), flush=True, end="")
+            if i_doc % self._check_points == 0:
+                logger.info("transformed %d docs", i_doc)
 
             bow = self.encode_a_doc_to_bow(doc)
             for term, count in bow.items():
@@ -89,8 +90,7 @@ class BaseVectorizer:
                 cols.append(term)
                 data.append(count)
 
-        if self.verbose:
-            print("\rtransforming docs to term frequency matrix was done", flush=True)
+        logger.info("transforming docs to term frequency matrix was done")
 
         return csr_matrix((data, (rows, cols)), shape=(i_doc + 1, self.n_vocabs))
 
@@ -103,17 +103,12 @@ class BaseVectorizer:
         n_elements = 0
         i = 0
         for i, doc in enumerate(docs):
-            if self.verbose and i % self._check_points == 0:
-                print("\rscanning number of elements from {} docs".format(i), flush=True, end="")
+            if i % self._check_points == 0:
+                logger.info("scanning number of elements from %d docs", i)
             words = self.tokenizer(doc)
             n_elements += len({word for word in words if word in self.vocabulary_})
         n_docs = i + 1
-        if self.verbose:
-            print(
-                "\rscanning number of elements was done. from {} docs".format(n_docs),
-                flush=True,
-                end="",
-            )
+        logger.info("scanning number of elements was done. from %d docs", n_docs)
 
         directory = os.path.dirname(file_path)
         if directory and not os.path.exists(directory):
@@ -124,18 +119,13 @@ class BaseVectorizer:
             f.write("%\n")
             f.write("{} {} {}\n".format(n_docs, self.n_vocabs, n_elements))
             for i, doc in enumerate(docs):
-                if self.verbose and i % self._check_points == 0:
-                    print(
-                        "\rwriting to file {} % {}".format(100 * i / n_docs, " " * 30),
-                        flush=True,
-                        end="",
-                    )
+                if i % self._check_points == 0:
+                    logger.info("writing to file %.1f %%", 100 * i / n_docs)
                 words = self.tokenizer(doc)
                 words_count = Counter([self.vocabulary_[word] for word in words if word in self.vocabulary_])
                 for j, count in words_count.items():
                     f.write("{} {} {}\n".format(i + 1, j + 1, count))
-        if self.verbose:
-            print("\rwriting to file was done. {} docs".format(n_docs), flush=True)
+        logger.info("writing to file was done. %d docs", n_docs)
 
     def __len__(self) -> int:
         return self.n_vocabs
