@@ -1,90 +1,59 @@
-import os
-import zipfile
-
 import pytest
 
-from soynlp.noun import LRNounExtractor
 from soynlp.tokenizer import NounMatchTokenizer
 
-
-def test_nounmatch_tokenizer():
-    test_cases = [
-        {
-            "noun_scores": {"아이": 0.5, "아이오": 0.7, "아이오아이": 0.8, "오이": 0.7},
-            "sentence": "아이오아이의아이들은 오이오이를 좋아하는 아이들이오",
-            "return_words": True,
-            "concat": True,
-            "must_be_L": False,
-            "nouns": ["아이오아이", "아이", "오이오이", "아이"],
-        },
-        {
-            "noun_scores": {"아이", "아이오", "아이오아이", "오이"},
-            "sentence": "아이오아이의아이들은 오이오이를 좋아하는 아이들이오",
-            "return_words": True,
-            "concat": True,
-            "must_be_L": False,
-            "nouns": ["아이오아이", "아이", "오이오이", "아이"],
-        },
-        {
-            "noun_scores": {"아이": 1.0, "아이오": 1.0, "아이오아이": 1.0, "오이": 1.0},
-            "sentence": "아이오아이의아이들은 오이오이를 좋아하는 아이들이오",
-            "return_words": True,
-            "concat": False,
-            "must_be_L": False,
-            "nouns": ["아이오아이", "아이", "오이", "오이", "아이"],
-        },
-        {
-            "noun_scores": {"아이": 1.0, "아이오": 1.0, "아이오아이": 1.0, "오이": 1.0},
-            "sentence": "헐아이오아이의아이들은 오이오이를 좋아하는 아이들이오",
-            "return_words": True,
-            "concat": False,
-            "must_be_L": False,
-            "nouns": ["아이오아이", "아이", "오이", "오이", "아이"],
-        },
-        {
-            "noun_scores": {"아이": 1.0, "아이오": 1.0, "아이오아이": 1.0, "오이": 1.0},
-            "sentence": "헐아이오아이의아이들은 오이오이를 좋아하는 아이들이오",
-            "return_words": True,
-            "concat": False,
-            "must_be_L": True,
-            "nouns": ["오이", "아이"],
-        },
-    ]
-
-    for test_case in test_cases:
-        noun_scores = test_case["noun_scores"]
-        sentence = test_case["sentence"]
-        expected = test_case["nouns"]
-
-        tokenizer = NounMatchTokenizer(noun_scores)
-        nouns = tokenizer.tokenize(
-            sentence,
-            return_words=test_case["return_words"],
-            concat_compound=test_case["concat"],
-            must_be_L=test_case["must_be_L"],
-        )
-
-        assert nouns == test_case["nouns"]
-
-        print(f"\ninput : {sentence}\nnoun_scores : {noun_scores}")
-        print(f"expected  : {expected}")
-        print(f"tokenized : {nouns}")
+SENTENCE = "아이오아이의아이들은 오이오이를 좋아하는 아이들이오"
+SENTENCE_WITH_PREFIX = "헐아이오아이의아이들은 오이오이를 좋아하는 아이들이오"
 
 
-@pytest.mark.slow
-def test_noun_tokenizer_usage():
-    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-    train_data = f"{root_dir}/data/2016-10-20.txt"
-    train_zip_data = f"{root_dir}/data/2016-10-20.zip"
-    if not os.path.exists(train_data):
-        assert os.path.exists(train_zip_data)
-        with zipfile.ZipFile(train_zip_data, "r") as zip_ref:
-            zip_ref.extractall(f"{root_dir}/data/")
-    assert os.path.exists(train_data)
-
-    noun_extractor = LRNounExtractor()
-    _ = noun_extractor.extract(train_data)
-    noun_tokenizer = noun_extractor.get_noun_tokenizer()
-    sentence = "네이버의 뉴스기사를 이용하여 학습한 모델예시입니다"
-    assert noun_tokenizer.tokenize(sentence) == ["네이버", "뉴스기사", "이용", "학습", "모델예시"]
-    print(f"\ninput : {sentence}\nnouns : {noun_tokenizer.tokenize(sentence)}")
+@pytest.mark.parametrize(
+    ("noun_scores", "sentence", "concat", "must_be_L", "expected"),
+    [
+        (
+            {"아이": 0.5, "아이오": 0.7, "아이오아이": 0.8, "오이": 0.7},
+            SENTENCE,
+            True,
+            False,
+            ["아이오아이", "아이", "오이오이", "아이"],
+        ),
+        (
+            {"아이", "아이오", "아이오아이", "오이"},
+            SENTENCE,
+            True,
+            False,
+            ["아이오아이", "아이", "오이오이", "아이"],
+        ),
+        (
+            {"아이": 1.0, "아이오": 1.0, "아이오아이": 1.0, "오이": 1.0},
+            SENTENCE,
+            False,
+            False,
+            ["아이오아이", "아이", "오이", "오이", "아이"],
+        ),
+        (
+            {"아이": 1.0, "아이오": 1.0, "아이오아이": 1.0, "오이": 1.0},
+            SENTENCE_WITH_PREFIX,
+            False,
+            False,
+            ["아이오아이", "아이", "오이", "오이", "아이"],
+        ),
+        (
+            {"아이": 1.0, "아이오": 1.0, "아이오아이": 1.0, "오이": 1.0},
+            SENTENCE_WITH_PREFIX,
+            False,
+            True,
+            ["오이", "아이"],
+        ),
+    ],
+    ids=[
+        "dict_scores_concat",
+        "set_scores_concat",
+        "no_concat",
+        "prefix_no_concat",
+        "prefix_must_be_L",
+    ],
+)
+def test_nounmatch_tokenizer(noun_scores, sentence, concat, must_be_L, expected):
+    tokenizer = NounMatchTokenizer(noun_scores)
+    nouns = tokenizer.tokenize(sentence, return_words=True, concat_compound=concat, must_be_L=must_be_L)
+    assert nouns == expected

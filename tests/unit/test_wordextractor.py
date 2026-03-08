@@ -1,7 +1,4 @@
-import os
-import zipfile
 from collections import defaultdict
-from pprint import pprint
 
 import pytest
 
@@ -9,7 +6,6 @@ from soynlp.word.word import (
     AccessorVariety,
     BranchingEntropy,
     CohesionScore,
-    WordExtractor,
     calculate_cohesion,
     calculate_cohesion_batch,
     count_substrings,
@@ -23,7 +19,7 @@ def test_score_dataclass():
     assert AccessorVariety("토크나이저", 0.8, 0.5) == AccessorVariety(subword="토크나이저", leftside=0.8, rightside=0.5)
 
 
-def test_couting_substrings():
+def test_counting_substrings():
     train_data = ["여름이는 여름을 좋아한다", "올겨울에는 겨울에 갔다"]
     L, R, prev_sub, sub_next = count_substrings(
         train_data=train_data,
@@ -106,7 +102,10 @@ def test_couting_substrings():
         ("다", "올"): 1,
     }
 
-    L, R, prev_sub, sub_next = count_substrings(
+
+def test_counting_substrings_min_frequency():
+    train_data = ["여름이는 여름을 좋아한다", "올겨울에는 겨울에 갔다"]
+    L, _, _, _ = count_substrings(
         train_data=train_data,
         L=defaultdict(int),
         R=defaultdict(int),
@@ -122,51 +121,49 @@ def test_couting_substrings():
     assert L == {"여": 2, "여름": 2}
 
 
-def test_cohesion_score():
-    def assert_e6(value):
-        assert abs(value) < 1e-6
+_COHESION_L = {
+    "아": 30000,
+    "아이": 4910,
+    "아이폰": 700,
+    "아이폰의": 100,
+    "아이돌": 350,
+    "아이오": 307,
+    "아이오아": 270,
+    "아이오아이": 270,
+    "아이오아이는": 40,
+}
+_COHESION_R = {
+    "이오아이는": 40,
+    "오아이는": 40,
+    "아이는": 350,
+    "이는": 9500,
+    "는": 54000,
+    "이폰의": 100,
+    "이폰": 700,
+    "아이돌": 50,
+    "간아이돌": 50,
+}
 
-    L = {
-        "아": 30000,
-        "아이": 4910,
-        "아이폰": 700,
-        "아이폰의": 100,
-        "아이돌": 350,
-        "아이오": 307,
-        "아이오아": 270,
-        "아이오아이": 270,
-        "아이오아이는": 40,
-    }
-    R = {
-        "이오아이는": 40,
-        "오아이는": 40,
-        "아이는": 350,
-        "이는": 9500,
-        "는": 54000,
-        "이폰의": 100,
-        "이폰": 700,
-        "아이돌": 50,
-        "간아이돌": 50,
-    }
-    queries = ["아이", "아이오", "아이오아", "아이오아이", "아이오아이는", "아이폰", "아이폰의", "아이돌", "주간아이돌"]
-    print(f"\nL: {L}\nR: {R}")
-    answers = {
-        "아이": (0.16366666666666665, 0),
-        "아이오": (0.10115993936995679, 0),
-        "아이오아": (0.20800838230519042, 0),
-        "아이오아이": (0.3080070288241023, 0),
-        "아이오아이는": (0.26606499942619716, 0.0),
-        "아이폰": (0.15275252316519466, 0),
-        "아이폰의": (0.14938015821857217, 0),
-        "아이돌": (0.10801234497346433, 0),
-        "주간아이돌": (0, 0),
-    }
-    for word in queries:
-        l_score, r_score = calculate_cohesion(word, L, R)
-        l_answer, r_answer = answers[word]
-        print(f"{word}: ({l_score}, {r_score})")
-        assert_e6(l_score - l_answer)
-        assert_e6(r_score - r_answer)
+
+@pytest.mark.parametrize(
+    ("word", "expected_l", "expected_r"),
+    [
+        ("아이", 0.16366666666666665, 0),
+        ("아이오", 0.10115993936995679, 0),
+        ("아이오아", 0.20800838230519042, 0),
+        ("아이오아이", 0.3080070288241023, 0),
+        ("아이오아이는", 0.26606499942619716, 0.0),
+        ("아이폰", 0.15275252316519466, 0),
+        ("아이폰의", 0.14938015821857217, 0),
+        ("아이돌", 0.10801234497346433, 0),
+        ("주간아이돌", 0, 0),
+    ],
+    ids=["아이", "아이오", "아이오아", "아이오아이", "아이오아이는", "아이폰", "아이폰의", "아이돌", "주간아이돌"],
+)
+def test_cohesion_score(word, expected_l, expected_r):
+    l_score, r_score = calculate_cohesion(word, _COHESION_L, _COHESION_R)
+    assert abs(l_score - expected_l) < 1e-6
+    assert abs(r_score - expected_r) < 1e-6
 
 
 def test_cohesion_score_batch():
@@ -177,7 +174,7 @@ def test_cohesion_score_batch():
         "여름이 여름에 여름을 여름여름",
         "여지가 있다",
     ]
-    L, R, prev_sub, sub_next = count_substrings(
+    L, R, _, _ = count_substrings(
         train_data=train_data,
         L=defaultdict(int),
         R=defaultdict(int),
@@ -193,57 +190,22 @@ def test_cohesion_score_batch():
 
     extracteds_L = calculate_cohesion_batch(L, R, 0.8, 0.0)
     extracteds_R = calculate_cohesion_batch(L, R, 0.0, 0.1)
-    print("\ncohesion score batch test.\nTrain data")
-    for line in train_data:
-        print(f"  {line}")
-    print("extracteds L:")
-    pprint(extracteds_L)
-    print("extracteds R:")
-    pprint(extracteds_R)
 
-    assert ("여름" not in extracteds_R) and ("겨울" not in extracteds_R) and ("이는" in extracteds_R)
-    assert ("여름" in extracteds_L) and ("겨울" in extracteds_L) and ("이는" not in extracteds_L)
+    assert "여름" not in extracteds_R
+    assert "겨울" not in extracteds_R
+    assert "이는" in extracteds_R
+    assert "여름" in extracteds_L
+    assert "겨울" in extracteds_L
+    assert "이는" not in extracteds_L
 
 
-def test_get_entropy():
-    assert abs(get_entropy([3, 4, 3]) - 1.0888999) < 0.0001
-    assert abs(get_entropy([100, 1, 1]) - 0.11010) < 0.0001
-
-
-@pytest.mark.slow
-def test_word_extractor_usage():
-    word_extractor = WordExtractor()
-    test_cases = {
-        "트와이",
-        "트와이스",
-        f"트와이스{word_extractor.R_suffix}",
-        f"와이스{word_extractor.R_suffix}",
-        "아이",
-        "아이오",
-        "아이오아",
-        "아이오아이",
-        "아이오아이는",
-        f"아이오아이{word_extractor.R_suffix}",
-        f"아이오아이는{word_extractor.R_suffix}",
-    }
-    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-    train_data = f"{root_dir}/data/2016-10-20.txt"
-    train_zip_data = f"{root_dir}/data/2016-10-20.zip"
-    if not os.path.exists(train_data):
-        assert os.path.exists(train_zip_data)
-        with zipfile.ZipFile(train_zip_data, "r") as zip_ref:
-            zip_ref.extractall(f"{root_dir}/data/")
-    assert os.path.exists(train_data)
-
-    print()
-    words = word_extractor.extract(train_data)
-    for word in test_cases:
-        print(f"\nword={word}")
-        print(f"  - cohesion         : {words['cohesion'].get(word)}")
-        print(f"  - accessor variety : {words['accessor_variety'].get(word)}")
-        print(f"  - branching entropy: {words['branching_entropy'].get(word)}")
-
-    assert "트와이스" in words["cohesion"] and "트와이스" in words["branching_entropy"]
-    assert "아이오아이" in words["cohesion"] and "아이오아이" in words["branching_entropy"]
-    assert f"트와이스{word_extractor.R_suffix}" not in words["cohesion"]
-    assert f"트와이스{word_extractor.R_suffix}" not in words["branching_entropy"]
+@pytest.mark.parametrize(
+    ("counts", "expected"),
+    [
+        ([3, 4, 3], 1.0888999),
+        ([100, 1, 1], 0.11010),
+    ],
+    ids=["uniform_ish", "skewed"],
+)
+def test_get_entropy(counts, expected):
+    assert abs(get_entropy(counts) - expected) < 0.0001

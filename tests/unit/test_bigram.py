@@ -1,13 +1,18 @@
-from pprint import pprint
+import pytest
 
 from soynlp.word import BigramExtractor
 
 
-def test_bigram_extractor():
+@pytest.mark.parametrize(
+    ("method", "threshold"),
+    [
+        ("frequency", 1),
+        ("pmi", 1.0),
+        ("mikolov", 0.1),
+    ],
+)
+def test_bigram_extractor(method, threshold):
     train_data = ["a b c d e", "a b c a b c", "a d e b", "a b"]
-    for method, threshold in [("frequency", 1), ("pmi", 1.0), ("mikolov", 0.1)]:
-        bigram_extractor = BigramExtractor(min_frequency=1, score=method, verbose=False)
-        bigrams = bigram_extractor.extract(train_data, threshold=threshold)
-        print(f"\nmethod={method}")
-        pprint(bigrams)
-        assert "a - b" in bigrams
+    bigram_extractor = BigramExtractor(min_frequency=1, score=method, verbose=False)
+    bigrams = bigram_extractor.extract(train_data, threshold=threshold)
+    assert "a - b" in bigrams
