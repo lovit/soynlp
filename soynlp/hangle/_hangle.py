@@ -308,17 +308,17 @@ class ConvolutionHangleEncoder:
         def check_cjj(c: tuple[int, ...]) -> None:
             cho, jung, jong = c
             if not (0 <= cho < self.jung_begin):
-                raise ValueError("Chosung %d is out of index" % cho)
+                raise ValueError(f"Chosung {cho} is out of index")
             if not (self.jung_begin <= jung < self.jong_begin):
-                raise ValueError("Jungsung %d is out of index" % jung)
+                raise ValueError(f"Jungsung {jung} is out of index")
             if not (self.jong_begin <= jong < self.number_begin):
-                raise ValueError("Jongsung %d is out of index" % jong)
+                raise ValueError(f"Jongsung {jong} is out of index")
 
         chars: list[str] = []
         for c in encoded_sent:
             if len(c) == 1:
                 if not 0 <= c[0] < self.dim:
-                    raise ValueError("character index %d is out of index [0, %d]" % (c[0], self.dim))
+                    raise ValueError(f"character index {c[0]} is out of index [0, {self.dim}]")
                 chars.append(self.idx_to_char[c[0]])
             elif len(c) == 3:
                 check_cjj(c)

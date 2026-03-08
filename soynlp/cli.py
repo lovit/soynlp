@@ -11,7 +11,7 @@ def main() -> None:
         "-v",
         "--version",
         action="version",
-        version="%(prog)s {}".format(meta["version"]),
+        version=f"%(prog)s {meta['version']}",
     )
     subparsers = parser.add_subparsers(dest="command")
 

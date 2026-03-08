@@ -47,7 +47,7 @@ class Dictionary:
 
     def remove_words(self, tag: str, words: set[str] | str | None = None) -> None:
         if tag not in self.pos_dict:
-            raise ValueError("tag {} does not exist".format(tag))
+            raise ValueError(f"tag {tag} does not exist")
 
         if words is None:
             self.pos_dict.pop(tag)

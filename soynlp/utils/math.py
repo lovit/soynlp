@@ -36,7 +36,7 @@ def svd(
     n_features = X.shape[1]
 
     if n_components >= n_features:
-        raise ValueError("n_components must be < n_features; got %d >= %d" % (n_components, n_features))
+        raise ValueError(f"n_components must be < n_features; got {n_components} >= {n_features}")
 
     U, Sigma, VT = randomized_svd(X, n_components, n_iter=n_iter, random_state=random_state)  # type: ignore[arg-type]
 

@@ -117,14 +117,14 @@ class BaseVectorizer:
         with open(file_path, "w", encoding=encoding) as f:
             f.write("%%MatrixMarket matrix coordinate integer general\n")
             f.write("%\n")
-            f.write("{} {} {}\n".format(n_docs, self.n_vocabs, n_elements))
+            f.write(f"{n_docs} {self.n_vocabs} {n_elements}\n")
             for i, doc in enumerate(docs):
                 if i % self._check_points == 0:
                     logger.info("writing to file %.1f %%", 100 * i / n_docs)
                 words = self.tokenizer(doc)
                 words_count = Counter([self.vocabulary_[word] for word in words if word in self.vocabulary_])
                 for j, count in words_count.items():
-                    f.write("{} {} {}\n".format(i + 1, j + 1, count))
+                    f.write(f"{i + 1} {j + 1} {count}\n")
         logger.info("writing to file was done. %d docs", n_docs)
 
     def __len__(self) -> int:
@@ -148,7 +148,7 @@ class BaseVectorizer:
             fname += ".vocab"
         with open(fname, "w", encoding="utf-8") as f:
             for vocab in self.idx2vocab:
-                f.write("{}\n".format(vocab))
+                f.write(f"{vocab}\n")
 
     def load(self, fname: str) -> None:
         if not fname.endswith(".vocab"):
