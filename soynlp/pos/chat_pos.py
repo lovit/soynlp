@@ -11,6 +11,10 @@ from .news_pos import NewsPOSExtractor
 
 logger = logging.getLogger(__name__)
 
+# 어간 끝 음절이 이들 중 하나이면 어미 결합 시 불규칙 활용이 발생하여 후보에서 제외
+# "업": '업다' 형 불규칙 (예: 없다), "닿": 받침 결합 예외, "땋": 받침 결합 예외
+_IRREGULAR_STEM_ENDINGS = frozenset({"업", "닿", "땋"})
+
 
 class ChatPOSExtractor(NewsPOSExtractor):
     def __init__(self, verbose: bool = True, ensure_normalized: bool = True, extract_eomi: bool = True):
@@ -87,7 +91,8 @@ class ChatPOSExtractor(NewsPOSExtractor):
 
     def _parse_predicator_compounds_chat(self, eojeols: dict, predicators: set, base: dict):
         def check_suffix_prefix(stem: str, eomi: str) -> bool:
-            if stem[-1] in ("업", "닿", "땋"):
+            # "업", "닿", "땋": 어간 끝 음절이 이 경우 어미 결합이 불규칙하여 제외
+            if stem[-1] in _IRREGULAR_STEM_ENDINGS:
                 return False
             l = decompose(stem[-1])  # type: ignore[assignment]
             r = decompose(eomi[0])  # type: ignore[assignment]

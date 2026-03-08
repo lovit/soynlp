@@ -351,6 +351,14 @@ class LRNounExtractor:
         return NounMatchTokenizer(noun_scores)
 
 
+def _load_features(path: str) -> set[str]:
+    """파일에서 특징(feature) 목록을 읽어 집합으로 반환하는 내부 함수"""
+    with open(path, encoding="utf-8") as f:
+        features = [line.strip() for line in f]
+    features = {feature for feature in features if feature}
+    return features
+
+
 def prepare_r_features(
     pos_features: set[str] | Iterable[str] | str | None = None,
     neg_features: set[str] | Iterable[str] | str | None = None,
@@ -367,24 +375,17 @@ def prepare_r_features(
         neg_features (set of str) : negative feature set excluding common features
         common_features (set of str) : feature appeared in both `pos_features` and `neg_features`
     """
-
-    def load_features(path: str) -> set[str]:
-        with open(path, encoding="utf-8") as f:
-            features = [line.strip() for line in f]
-        features = {feature for feature in features if feature}
-        return features
-
     default_feature_dir = f"{installpath}/pretrained_models/"
 
     if pos_features is None:
-        pos_features = load_features(f"{default_feature_dir}/lrnounextractor.features.pos.v2")
+        pos_features = _load_features(f"{default_feature_dir}/lrnounextractor.features.pos.v2")
     elif isinstance(pos_features, str) and (os.path.exists(pos_features)):
-        pos_features = load_features(pos_features)
+        pos_features = _load_features(pos_features)
 
     if neg_features is None:
-        neg_features = load_features(f"{default_feature_dir}/lrnounextractor.features.neg.v2")
+        neg_features = _load_features(f"{default_feature_dir}/lrnounextractor.features.neg.v2")
     elif isinstance(neg_features, str) and (os.path.exists(neg_features)):
-        neg_features = load_features(neg_features)
+        neg_features = _load_features(neg_features)
 
     if not isinstance(pos_features, set):
         pos_features = set(pos_features)

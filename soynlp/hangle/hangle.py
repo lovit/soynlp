@@ -2,14 +2,14 @@ import re
 
 import numpy as np
 
-kor_begin = 44032
-kor_end = 55203
-chosung_base = 588
-jungsung_base = 28
-jaum_begin = 12593
-jaum_end = 12622
-moum_begin = 12623
-moum_end = 12643
+_kor_begin = 44032
+_kor_end = 55203
+_chosung_base = 588
+_jungsung_base = 28
+_jaum_begin = 12593
+_jaum_end = 12622
+_moum_begin = 12623
+_moum_end = 12643
 
 chosung_list = [
     "ㄱ",
@@ -145,14 +145,14 @@ moum_list = [
     "ㅣ",
 ]
 
-doublespace_pattern = re.compile(r"\s+")
+_doublespace_pattern = re.compile(r"\s+")
 
 
 def compose(chosung: str, jungsung: str, jongsung: str) -> str:
     return chr(
-        kor_begin
-        + chosung_base * chosung_list.index(chosung)
-        + jungsung_base * jungsung_list.index(jungsung)
+        _kor_begin
+        + _chosung_base * chosung_list.index(chosung)
+        + _jungsung_base * jungsung_list.index(jungsung)
         + jongsung_list.index(jongsung)
     )
 
@@ -161,32 +161,32 @@ def decompose(c: str) -> tuple[str, str, str] | None:
     if not character_is_korean(c):
         return None
     i = to_base(c)
-    if jaum_begin <= i <= jaum_end:
+    if _jaum_begin <= i <= _jaum_end:
         return (c, " ", " ")
-    if moum_begin <= i <= moum_end:
+    if _moum_begin <= i <= _moum_end:
         return (" ", c, " ")
-    i -= kor_begin
-    cho = i // chosung_base
-    jung = (i - cho * chosung_base) // jungsung_base
-    jong = i - cho * chosung_base - jung * jungsung_base
+    i -= _kor_begin
+    cho = i // _chosung_base
+    jung = (i - cho * _chosung_base) // _jungsung_base
+    jong = i - cho * _chosung_base - jung * _jungsung_base
     return (chosung_list[cho], jungsung_list[jung], jongsung_list[jong])
 
 
 def character_is_korean(c: str) -> bool:
     i = to_base(c)
-    return (kor_begin <= i <= kor_end) or (jaum_begin <= i <= jaum_end) or (moum_begin <= i <= moum_end)
+    return (_kor_begin <= i <= _kor_end) or (_jaum_begin <= i <= _jaum_end) or (_moum_begin <= i <= _moum_end)
 
 
 def character_is_complete_korean(c: str) -> bool:
-    return kor_begin <= to_base(c) <= kor_end
+    return _kor_begin <= to_base(c) <= _kor_end
 
 
 def character_is_jaum(c: str) -> bool:
-    return jaum_begin <= to_base(c) <= jaum_end
+    return _jaum_begin <= to_base(c) <= _jaum_end
 
 
 def character_is_moum(c: str) -> bool:
-    return moum_begin <= to_base(c) <= moum_end
+    return _moum_begin <= to_base(c) <= _moum_end
 
 
 def to_base(c: str | int) -> int:
@@ -331,18 +331,18 @@ class ConvolutionHangleEncoder:
     def _normalize(self, sent: str) -> str:
         regex = re.compile(r"[^ㄱ-ㅎㅏ-ㅣ가-힣 0-9]")
         sent = regex.sub(" ", sent)
-        sent = doublespace_pattern.sub(" ", sent).strip()
+        sent = _doublespace_pattern.sub(" ", sent).strip()
         return sent
 
     def _compose(self, cho: int, jung: int, jong: int) -> str:
-        return chr(kor_begin + chosung_base * cho + jungsung_base * jung + jong)
+        return chr(_kor_begin + _chosung_base * cho + _jungsung_base * jung + jong)
 
     def _decompose(self, c: str, i: int) -> tuple[int, ...]:
-        if kor_begin <= i <= kor_end:
-            i -= kor_begin
-            cho = i // chosung_base
-            jung = (i - cho * chosung_base) // jungsung_base
-            jong = i - cho * chosung_base - jung * jungsung_base
+        if _kor_begin <= i <= _kor_end:
+            i -= _kor_begin
+            cho = i // _chosung_base
+            jung = (i - cho * _chosung_base) // _jungsung_base
+            jong = i - cho * _chosung_base - jung * _jungsung_base
             return (cho, self.jung_begin + jung, self.jong_begin + jong)
         else:
             return (self.jamo_to_idx.get(c, self.unk),)

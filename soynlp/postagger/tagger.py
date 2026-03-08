@@ -57,7 +57,7 @@ class BasePostprocessor:
         return best_wordstream
 
 
-class UnknowLRPostprocessor(BasePostprocessor):
+class UnknownLRPostprocessor(BasePostprocessor):
     def postprocess(self, token: str, words: list[LR]) -> list[LR]:
         n = len(token)
         adds: list[LR] = []
