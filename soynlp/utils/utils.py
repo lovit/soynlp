@@ -16,6 +16,19 @@ logger = logging.getLogger(__name__)
 installpath = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(os.path.sep)[:-1])
 
 
+def _count_eojeol_chunk(args: tuple[list, int, str]) -> dict[str, int]:
+    """Worker function for parallel eojeol counting. Must be module-level for pickling."""
+    chunk, max_length, text_key = args
+    counter: dict[str, int] = {}
+    for item in chunk:
+        sent = item[text_key] if isinstance(item, dict) else item
+        for eojeol in sent.split():
+            if (not eojeol) or (len(eojeol) > max_length):
+                continue
+            counter[eojeol] = counter.get(eojeol, 0) + 1
+    return counter
+
+
 def get_available_memory() -> float:
     """It returns remained memory as percentage"""
     mem = psutil.virtual_memory()
@@ -176,6 +189,7 @@ class EojeolCounter:
         verbose: bool = False,
         preprocess: Callable[[str], str] | None = None,
         text_key: str = "text",
+        n_workers: int = 1,
     ) -> None:
         self.min_count = min_count
         self.max_length = max_length
@@ -192,7 +206,7 @@ class EojeolCounter:
         self.preprocess = preprocess
 
         if sents is not None:
-            self._counter = self._counting_from_sents(sents)
+            self._counter = self._counting_from_sents(sents, n_workers=n_workers)
         else:
             self._counter = {}
 
@@ -209,13 +223,18 @@ class EojeolCounter:
     def __len__(self) -> int:
         return len(self._counter)
 
-    def _counting_from_sents(self, sents: Any) -> dict[str, int]:
+    def _counting_from_sents(self, sents: Any, n_workers: int = 1) -> dict[str, int]:
         check_corpus(sents)
+        use_custom_preprocess = self.preprocess.__name__ != "base_preprocessing"
+        if n_workers != 1 and not use_custom_preprocess:
+            return self._counting_from_sents_parallel(sents, n_workers)
+        if n_workers != 1 and use_custom_preprocess:
+            logger.info("EojeolCounter: custom preprocess는 멀티프로세싱 미지원 — 단일 프로세스로 집계")
         if self.verbose:
             sent_iterator = tqdm(sents, desc="[EojeolCounter] counting eojeols ", total=len(sents))
         else:
             sent_iterator = sents
-        counter = {}
+        counter: dict[str, int] = {}
         for i_sent, item in enumerate(sent_iterator):
             if isinstance(item, dict):
                 sent = item[self.text_key]
@@ -230,6 +249,24 @@ class EojeolCounter:
                 counter[eojeol] = counter.get(eojeol, 0) + 1
         counter = {eojeol: count for eojeol, count in counter.items() if count >= self.min_count}
         return counter
+
+    def _counting_from_sents_parallel(self, sents: Any, n_workers: int) -> dict[str, int]:
+        from multiprocessing import Pool, cpu_count
+
+        texts = list(sents)
+        n = cpu_count() if n_workers == -1 else n_workers
+        chunk_size = max(1, len(texts) // n)
+        chunks = [texts[i : i + chunk_size] for i in range(0, len(texts), chunk_size)]
+        worker_args = [(chunk, self.max_length, self.text_key) for chunk in chunks]
+
+        with Pool(processes=n) as pool:
+            partial_counters = pool.map(_count_eojeol_chunk, worker_args)
+
+        merged: dict[str, int] = {}
+        for partial in partial_counters:
+            for eojeol, count in partial.items():
+                merged[eojeol] = merged.get(eojeol, 0) + count
+        return {eojeol: count for eojeol, count in merged.items() if count >= self.min_count}
 
     def remove_eojeols(self, eojeols: set[str] | str) -> "EojeolCounter":
         """Remove eojeols
