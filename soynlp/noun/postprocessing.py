@@ -15,6 +15,30 @@ def load_lines_as_set(path: str) -> set[str]:
 josaset = load_lines_as_set(josapath)
 suffixset = load_lines_as_set(suffixpath)
 
+# 파생 명사 접미사: 생산성 높음/중간
+# 주의: "가"는 josaset에도 포함된 조사이므로 제외 (check_N_is_NJ 후처리와 충돌 가능)
+_HIGH_MEDIUM_SUFFIXES: tuple[str, ...] = (
+    "화",
+    "성",
+    "적",
+    "자",
+    "들",
+    "상",
+    "기",
+    "학",
+    "론",
+    "계",
+    "형",
+    "주의",
+    "권",
+    "력",
+    "감",
+    "관",
+    "제",
+)
+# 파생 명사 접미사: 생산성 낮음 (Noun 길이 >= 2 조건 적용)
+_LOW_SUFFIXES: tuple[str, ...] = ("꾼", "쟁이", "질")
+
 
 def subtract(base: dict[str, tuple[int, float]], removals: set[str]) -> dict[str, tuple[int, float]]:
     return {word: score for word, score in base.items() if (word not in removals)}
@@ -46,6 +70,37 @@ def ignore_features(nouns: dict[str, tuple[int, float]], features: set[str]) -> 
             removals.add(word)
     nouns = subtract(nouns, removals)
     return nouns, removals
+
+
+def expand_suffix_nouns(
+    nouns: dict[str, tuple[int, float]],
+    lrgraph: LRGraph,
+    min_noun_frequency: int = 1,
+) -> dict[str, tuple[int, float]]:
+    """추출된 명사에 파생 접미사를 붙인 형태가 코퍼스에 존재할 경우 명사로 추가한다.
+
+    - 생산성 높음/중간 접미사: 이미 추출된 명사가 아닌 경우에만 추가
+    - 생산성 낮음 접미사 (꾼, 쟁이, 질): Noun 길이 >= 2 조건 추가 적용
+    - 추가된 명사의 score 는 1.0 으로 설정
+    """
+    added: dict[str, tuple[int, float]] = {}
+    for noun in list(nouns.keys()):
+        for suffix in _HIGH_MEDIUM_SUFFIXES:
+            candidate = noun + suffix
+            if candidate in nouns or candidate in added:
+                continue
+            freq = sum(lrgraph._lr_origin.get(candidate, {}).values())
+            if freq >= min_noun_frequency:
+                added[candidate] = (freq, 1.0)
+        if len(noun) >= 2:
+            for suffix in _LOW_SUFFIXES:
+                candidate = noun + suffix
+                if candidate in nouns or candidate in added:
+                    continue
+                freq = sum(lrgraph._lr_origin.get(candidate, {}).values())
+                if freq >= min_noun_frequency:
+                    added[candidate] = (freq, 1.0)
+    return {**nouns, **added}
 
 
 def check_N_is_NJ(

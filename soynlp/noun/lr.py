@@ -11,7 +11,7 @@ from tqdm import tqdm
 from soynlp.tokenizer import MaxScoreTokenizer, NounMatchTokenizer, Token
 from soynlp.utils import CorpusLoader, EojeolCounter, LRGraph
 
-from .postprocessing import check_N_is_NJ, detaching_features, ignore_features
+from .postprocessing import check_N_is_NJ, detaching_features, expand_suffix_nouns, ignore_features
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +144,7 @@ class LRNounExtractor:
         extract_compounds: bool = True,
         exclude_syllables: bool = False,
         exclude_numbers: bool = True,
+        expand_suffixes: bool = True,
         custom_exclude_function: Callable[[str], bool] | None = None,
         postprocessing_nj: bool = True,
         known_nouns: set[str] | None = None,
@@ -272,7 +273,9 @@ class LRNounExtractor:
 
         features_to_be_detached = {r for r in self.pos}
         features_to_be_detached.update(self.common)
-        nouns = postprocessing(nouns, lrgraph, features_to_be_detached, min_noun_score, self.verbose, postprocessing_nj)
+        nouns = postprocessing(
+            nouns, lrgraph, features_to_be_detached, min_noun_score, self.verbose, postprocessing_nj, expand_suffixes, min_noun_frequency
+        )
 
         if known_nouns:
             nouns = _inject_known_nouns(nouns, known_nouns, lrgraph, min_noun_frequency)
@@ -876,6 +879,8 @@ def postprocessing(
     min_noun_score: float,
     verbose: bool,
     postprocessing_nj: bool = True,
+    expand_suffixes: bool = True,
+    min_noun_frequency: int = 1,
 ) -> dict[str, tuple[int, float]]:
     num_before = len(nouns)
     nouns, removals = detaching_features(nouns, features_to_be_detached)
@@ -889,5 +894,10 @@ def postprocessing(
         num_before = len(nouns)
         nouns, removals = check_N_is_NJ(nouns, lrgraph)
         logger.info(f"postprocessing: check_N_is_NJ: {num_before} -> {len(nouns)}")
+
+    if expand_suffixes:
+        num_before = len(nouns)
+        nouns = expand_suffix_nouns(nouns, lrgraph, min_noun_frequency)
+        logger.info(f"postprocessing: expand_suffix_nouns: {num_before} -> {len(nouns)}")
 
     return nouns
