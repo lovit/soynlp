@@ -1,6 +1,7 @@
 import warnings
 
 from soynlp.normalizer.normalizer import (
+    EmojiNormalizer,
     HangleEmojiNormalizer,
     PaddingSpacetoWordsNormalizer,
     PassCharacterNormalizer,
@@ -90,6 +91,34 @@ def test_normalizer_builder():
         normalizer("soynlp의 주소는 https://github.com/lovit/soynlp/ 입니다.")
         == "soynlp의 주소는 https://github.com/lovit/soynlp/ 입니다."
     )
+
+
+def test_emoji_normalizer():
+    """EmojiNormalizer는 Unicode 이모지를 제거하거나 치환한다."""
+    n = EmojiNormalizer()
+
+    # 단일 코드포인트 이모지 제거
+    assert n.normalize("안녕 😀 반가워") == "안녕  반가워"
+    assert n.normalize("파티 🎉") == "파티 "
+
+    # replace 옵션으로 토큰 치환
+    n_token = EmojiNormalizer(replace="[EMOJI]")
+    assert n_token.normalize("안녕 😀") == "안녕 [EMOJI]"
+
+    # ZWJ 시퀀스 (👨‍💻 = 👨 + ZWJ + 💻)
+    assert n.normalize("👨‍💻 코딩") == " 코딩"
+
+    # Skin tone modifier (👋🏽 = 👋 + U+1F3FD)
+    assert n.normalize("👋🏽 안녕") == " 안녕"
+
+    # Regional indicator 국기 이모지 (🇰🇷 = 🇰 + 🇷)
+    assert n.normalize("🇰🇷 한국") == " 한국"
+
+    # 이모지가 없으면 원문 유지
+    assert n.normalize("이모지 없음") == "이모지 없음"
+
+    # 한국어 자모 이모티콘은 처리 대상 아님 (HangleEmojiNormalizer 담당)
+    assert n.normalize("ㅋㅋㅋ") == "ㅋㅋㅋ"
 
 
 def test_emoticon_normalize_deprecated():

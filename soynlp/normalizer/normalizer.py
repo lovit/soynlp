@@ -180,6 +180,51 @@ class HangleEmojiNormalizer(Normalizer):
         return "".join(s_)
 
 
+class EmojiNormalizer(Normalizer):
+    """Unicode 이모지를 제거하거나 지정 문자열로 치환한다.
+
+    단일 코드포인트 이모지(😀)뿐 아니라 ZWJ 시퀀스(👨‍💻), Skin tone modifier(👋🏽),
+    Regional indicator(🇰🇷) 등 복합 이모지 시퀀스도 올바르게 처리한다.
+    내부적으로 `emoji` 패키지를 사용하며, 미설치 시 ImportError가 발생한다.
+
+    한국어 자모 이모티콘(ㅋㅋㅋ, ㅎㅎㅎ)은 Unicode 이모지가 아니므로 이 클래스의
+    처리 대상이 아니다. 해당 패턴은 HangleEmojiNormalizer와 RepeatCharacterNormalizer로 처리한다.
+
+    Args:
+        replace (str): 이모지를 치환할 문자열. 기본값 "" (제거).
+            "[EMOJI]"로 설정하면 이모지 위치를 토큰으로 유지할 수 있다.
+
+    Examples:
+        >>> normalizer = EmojiNormalizer()
+        >>> normalizer.normalize("안녕 😀 반가워 🎉")
+        '안녕  반가워 '
+        >>> EmojiNormalizer(replace="[EMOJI]").normalize("안녕 😀")
+        '안녕 [EMOJI]'
+        >>> EmojiNormalizer().normalize("👨‍💻 코딩 중")  # ZWJ 시퀀스
+        ' 코딩 중'
+        >>> EmojiNormalizer().normalize("🇰🇷 한국")  # Regional indicator
+        ' 한국'
+
+    Raises:
+        ImportError: `emoji` 패키지가 설치되지 않은 경우.
+            `pip install soynlp[emoji]` 또는 `pip install emoji` 로 설치.
+    """
+
+    def __init__(self, replace: str = "") -> None:
+        try:
+            import emoji as _emoji_module  # type: ignore[import-untyped]
+
+            self._emoji = _emoji_module
+        except ImportError as e:
+            raise ImportError(
+                "EmojiNormalizer requires the `emoji` package. Install it with: pip install soynlp[emoji]"
+            ) from e
+        self.replace = replace
+
+    def normalize(self, s: str) -> str:
+        return self._emoji.replace_emoji(s, replace=self.replace)
+
+
 class RepeatCharacterNormalizer(Normalizer):
     """
     Args:

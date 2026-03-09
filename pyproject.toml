@@ -14,6 +14,9 @@ dependencies = [
     "tqdm>=4.66",
 ]
 
+[project.optional-dependencies]
+emoji = ["emoji>=2.0"]
+
 [project.scripts]
 soynlp = "soynlp.__main__:main"
 
@@ -23,6 +26,7 @@ dev = [
     "ruff>=0.9.4",
     "pre-commit>=4.1.0",
     "pyright>=1.1.393",
+    "emoji>=2.0",
 ]
 
 [tool.pytest.ini_options]
