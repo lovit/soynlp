@@ -1,6 +1,7 @@
 import copy
 import os
 from collections import defaultdict
+from collections.abc import Iterable, Sized
 
 
 class LRGraph:
@@ -16,7 +17,7 @@ class LRGraph:
     _rl: dict[str, dict[str, int]]
     _lr_origin: dict[str, dict[str, int]]
 
-    def __init__(self, lrgraph: dict[str, dict[str, int]], max_l_length: int = 10, max_r_length: int = 9):
+    def __init__(self, lrgraph: dict[str, dict[str, int]], max_l_length: int = 10, max_r_length: int = 9) -> None:
         if not (isinstance(max_l_length, int) and max_l_length > 1):
             raise ValueError(f"`max_l_length` must be an integer greater than 1, got {max_l_length}")
         if not (isinstance(max_r_length, int) and max_r_length > 0):
@@ -40,11 +41,13 @@ class LRGraph:
         return lrgraph, rlgraph
 
     @classmethod
-    def from_sents(cls, sents, max_l_length: int = 10, max_r_length: int = 9, verbose: bool = False) -> "LRGraph":
+    def from_sents(
+        cls, sents: Iterable[str], max_l_length: int = 10, max_r_length: int = 9, verbose: bool = False
+    ) -> "LRGraph":
         if verbose:
             from tqdm import tqdm
 
-            total = len(sents) if hasattr(sents, "__len__") else None
+            total = len(sents) if isinstance(sents, Sized) else None
             sent_iterator = tqdm(sents, desc="[LRGraph] construct dict graph ... ", total=total)
         else:
             sent_iterator = sents
