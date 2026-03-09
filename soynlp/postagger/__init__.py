@@ -1,6 +1,7 @@
 from . import tagset
 from .dictionary import Dictionary, DictionaryProtocol
 from .evaluator import BaseEvaluator, LREvaluator, SimpleEojeolEvaluator
+from .korean_tagger import KoreanPOSTagger
 from .lrtagger import LRMaxScoreTagger
 from .maxscore import MaxScoreTagger
 from .pos_extractor import ExtractorStepProtocol, POSExtractor
@@ -13,6 +14,7 @@ __all__ = [
     "BaseEvaluator",
     "SimpleEojeolEvaluator",
     "LREvaluator",
+    "KoreanPOSTagger",
     "LRMaxScoreTagger",
     "BaseTemplateMatcher",
     "EojeolTemplateMatcher",

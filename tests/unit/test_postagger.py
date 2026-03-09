@@ -8,6 +8,7 @@ from soynlp.postagger import (
     DictionaryProtocol,
     EojeolTemplateMatcher,
     ExtractorStepProtocol,
+    KoreanPOSTagger,
     MorphTag,
     POSExtractor,
     SimpleEojeolEvaluator,
@@ -274,3 +275,50 @@ class TestEojeolTemplateMatcherFilePath:
         path.write_text(__import__("json").dumps(template), encoding="utf-8")
         matcher = EojeolTemplateMatcher(sample_dict, template_path=str(path))
         assert matcher.single_tags == ["Noun", "Verb"]
+
+
+class TestKoreanPOSTagger:
+    def test_default_creates_instance(self):
+        tagger = KoreanPOSTagger.default()
+        assert isinstance(tagger, KoreanPOSTagger)
+
+    def test_is_trained_true_after_init(self):
+        tagger = KoreanPOSTagger.default()
+        assert tagger.is_trained is True
+
+    def test_repr(self):
+        tagger = KoreanPOSTagger.default()
+        r = repr(tagger)
+        assert "KoreanPOSTagger" in r
+        assert "trained=True" in r
+        assert "vocab_size" in r
+
+    def test_tag_works_without_train(self):
+        tagger = KoreanPOSTagger.default()
+        result = tagger.tag("나는 학교에 갔다")
+        assert isinstance(result, list)
+        assert all(isinstance(m, MorphTag) for m in result)
+
+    def test_tag_returns_morph_tag_list(self):
+        tagger = KoreanPOSTagger.default()
+        result = tagger.tag("사과를")
+        assert isinstance(result, list)
+        assert all(isinstance(m, MorphTag) for m in result)
+
+    def test_train_with_extra_nouns(self):
+        tagger = KoreanPOSTagger.default()
+        tagger.train(extra_nouns={"ChatGPT", "딥러닝"})
+        assert tagger._dictionary.word_is_tag("ChatGPT", "Noun")
+        assert tagger._dictionary.word_is_tag("딥러닝", "Noun")
+
+    def test_train_with_sentences_does_not_raise(self):
+        tagger = KoreanPOSTagger.default()
+        tagger.train(sentences=["나는 학교에 갔다", "사과를 먹었다"])
+        assert tagger.is_trained is True
+
+    def test_custom_dictionary(self):
+        custom_dict = Dictionary({"Noun": {"사과", "배", "귤"}, "Josa": {"를", "이", "가", "은", "는"}})
+        tagger = KoreanPOSTagger(dictionary=custom_dict)
+        result = tagger.tag("사과를")
+        surfaces = [m.surface for m in result]
+        assert "사과" in surfaces or "사과를" in surfaces
