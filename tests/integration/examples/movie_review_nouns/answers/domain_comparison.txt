@@ -1,8 +1,8 @@
-Review nouns: 685
-News nouns: 14716
-Common: 480
-Review-only: 205
-News-only: 14236
+Review nouns: 720
+News nouns: 16000
+Common: 503
+Review-only: 217
+News-only: 15497
 
 Top review-only nouns (domain-specific):
   황정민	3346
