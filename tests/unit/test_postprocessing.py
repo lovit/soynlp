@@ -92,9 +92,19 @@ class TestExpandSuffixNouns:
         assert freq == 60  # 30 + 20 + 10
         assert score == 1.0
 
+    def test_josa_suffix_excluded(self):
+        """josaset에 포함된 '가'는 접미사 목록에서 제외된다 (오분류 방지)."""
+        nouns: dict[str, tuple[int, float]] = {"학생": (100, 0.9)}
+        eojeols = ["학생가는"] * 50  # '학생가'가 코퍼스에 등장해도
+        lrgraph = _make_lrgraph(eojeols)
+
+        result = expand_suffix_nouns(nouns, lrgraph, min_noun_frequency=1)
+
+        assert "학생가" not in result  # josa '가'이므로 추가되지 않아야 함
+
     @pytest.mark.parametrize(
         "suffix",
-        ["화", "성", "적", "자", "들", "상", "기", "학", "론", "가", "계", "형", "주의", "권", "력", "감", "관", "제"],
+        ["화", "성", "적", "자", "들", "상", "기", "학", "론", "계", "형", "주의", "권", "력", "감", "관", "제"],
     )
     def test_high_medium_suffixes_supported(self, suffix: str):
         """생산성 높음/중간 접미사 전체가 지원된다."""
@@ -120,3 +130,21 @@ class TestExpandSuffixNouns:
         result = expand_suffix_nouns(nouns, lrgraph, min_noun_frequency=1)
 
         assert candidate in result, f"'{candidate}' 이 결과에 없음 (suffix='{suffix}')"
+
+
+class TestExpandSuffixNounsDisabled:
+    """expand_suffixes=False 옵션이 올바르게 동작함을 검증한다."""
+
+    def test_expand_suffixes_false_skips_expansion(self):
+        """postprocessing에서 expand_suffixes=False 이면 파생어를 추가하지 않는다."""
+        from soynlp.noun.lr import postprocessing
+
+        nouns: dict[str, tuple[int, float]] = {"언어": (100, 0.9)}
+        eojeols = ["언어학은"] * 50 + ["언어학의"] * 30
+        lrgraph = LRGraph.from_sents(eojeols)
+
+        result_with = postprocessing(nouns.copy(), lrgraph, set(), 0.3, False, expand_suffixes=True, min_noun_frequency=1)
+        result_without = postprocessing(nouns.copy(), lrgraph, set(), 0.3, False, expand_suffixes=False, min_noun_frequency=1)
+
+        assert "언어학" in result_with
+        assert "언어학" not in result_without

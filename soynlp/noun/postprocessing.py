@@ -16,6 +16,7 @@ josaset = load_lines_as_set(josapath)
 suffixset = load_lines_as_set(suffixpath)
 
 # 파생 명사 접미사: 생산성 높음/중간
+# 주의: "가"는 josaset에도 포함된 조사이므로 제외 (check_N_is_NJ 후처리와 충돌 가능)
 _HIGH_MEDIUM_SUFFIXES: tuple[str, ...] = (
     "화",
     "성",
@@ -26,7 +27,6 @@ _HIGH_MEDIUM_SUFFIXES: tuple[str, ...] = (
     "기",
     "학",
     "론",
-    "가",
     "계",
     "형",
     "주의",
@@ -100,9 +100,7 @@ def expand_suffix_nouns(
                 freq = sum(lrgraph._lr_origin.get(candidate, {}).values())
                 if freq >= min_noun_frequency:
                     added[candidate] = (freq, 1.0)
-    nouns = dict(nouns)
-    nouns.update(added)
-    return nouns
+    return {**nouns, **added}
 
 
 def check_N_is_NJ(
