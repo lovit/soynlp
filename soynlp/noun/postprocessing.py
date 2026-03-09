@@ -1,10 +1,11 @@
+import functools
 import os
 
 from soynlp.core.lrgraph import LRGraph
 
-filepath = os.path.dirname(os.path.realpath(__file__))
-josapath = os.path.join(filepath, "frequent_enrolled_josa.txt")
-suffixpath = os.path.join(filepath, "frequent_noun_suffix.txt")
+_filepath = os.path.dirname(os.path.realpath(__file__))
+_josapath = os.path.join(_filepath, "frequent_enrolled_josa.txt")
+_suffixpath = os.path.join(_filepath, "frequent_noun_suffix.txt")
 
 
 def load_lines_as_set(path: str) -> set[str]:
@@ -12,8 +13,15 @@ def load_lines_as_set(path: str) -> set[str]:
         return {word.strip() for word in f if word.strip()}
 
 
-josaset = load_lines_as_set(josapath)
-suffixset = load_lines_as_set(suffixpath)
+@functools.lru_cache(maxsize=None)
+def _josaset() -> set[str]:
+    return load_lines_as_set(_josapath)
+
+
+@functools.lru_cache(maxsize=None)
+def _suffixset() -> set[str]:
+    return load_lines_as_set(_suffixpath)
+
 
 # 파생 명사 접미사: 생산성 높음/중간
 # 주의: "가"는 josaset에도 포함된 조사이므로 제외 (check_N_is_NJ 후처리와 충돌 가능)
@@ -106,6 +114,8 @@ def expand_suffix_nouns(
 def check_N_is_NJ(
     nouns: dict[str, tuple[int, float]], lrgraph: LRGraph, min_num_of_josa: int = 5
 ) -> tuple[dict[str, tuple[int, float]], set[str]]:
+    josaset = _josaset()
+    suffixset = _suffixset()
     removals: set[str] = set()
     for word, score in nouns.items():
         n = len(word)
