@@ -1,5 +1,26 @@
+from dataclasses import dataclass
+
 from .evaluator import BaseEvaluator
 from .template import LR, BaseTemplateMatcher
+
+
+@dataclass(frozen=True, slots=True)
+class MorphTag:
+    """형태소 분석 결과 단위.
+
+    Attributes:
+        surface: 표층형 (실제 텍스트)
+        tag: 품사 태그. 미등록어인 경우 None.
+
+    Example:
+        >>> MorphTag(surface="사과", tag="Noun")
+        MorphTag(surface='사과', tag='Noun')
+        >>> MorphTag(surface="를", tag="Josa")
+        MorphTag(surface='를', tag='Josa')
+    """
+
+    surface: str
+    tag: str | None
 
 
 class BaseTagger:
@@ -16,8 +37,23 @@ class BaseTagger:
 
 
 class SimpleTagger(BaseTagger):
-    def tag(self, sentence: str, flatten: bool = True, debug: bool = False) -> list | tuple[list, list]:
-        sent_: list[list[tuple[str, str | None]]] = []
+    def tag(
+        self, sentence: str, flatten: bool = True, debug: bool = False
+    ) -> list[MorphTag] | list[list[MorphTag]] | tuple[list[MorphTag], list] | tuple[list[list[MorphTag]], list]:
+        """문장을 형태소 분석한다.
+
+        Args:
+            sentence: 분석할 문장.
+            flatten: True이면 모든 어절의 결과를 하나의 리스트로 합쳐 반환.
+                     False이면 어절 단위 리스트의 리스트로 반환.
+            debug: True이면 (결과, 디버그 정보) 튜플로 반환.
+
+        Returns:
+            flatten=True, debug=False: list[MorphTag]
+            flatten=False, debug=False: list[list[MorphTag]]
+            debug=True: 위 결과와 디버그 정보의 tuple
+        """
+        sent_: list[list[MorphTag]] = []
         debug_: list[list] = []
         eojeols = sentence.split()
 
@@ -30,12 +66,12 @@ class SimpleTagger(BaseTagger):
             else:
                 postprocessed = best
 
-            postprocessed_: list[tuple[str, str | None]] = []
+            postprocessed_: list[MorphTag] = []
             for word in postprocessed:
                 if word.l:
-                    postprocessed_.append((word.l, word.l_tag))
+                    postprocessed_.append(MorphTag(word.l, word.l_tag))
                 if word.r:
-                    postprocessed_.append((word.r, word.r_tag))
+                    postprocessed_.append(MorphTag(word.r, word.r_tag))
 
             sent_.append(postprocessed_)
 

@@ -6,6 +6,7 @@ from soynlp.postagger import (
     LR,
     Dictionary,
     EojeolTemplateMatcher,
+    MorphTag,
     SimpleEojeolEvaluator,
     SimpleTagger,
 )
@@ -103,11 +104,49 @@ class TestSimpleEojeolEvaluator:
         assert best is not None
 
 
+class TestMorphTag:
+    def test_fields(self):
+        mt = MorphTag(surface="사과", tag="Noun")
+        assert mt.surface == "사과"
+        assert mt.tag == "Noun"
+
+    def test_unknown_tag(self):
+        mt = MorphTag(surface="모름", tag=None)
+        assert mt.tag is None
+
+    def test_frozen(self):
+        mt = MorphTag(surface="사과", tag="Noun")
+        with pytest.raises(AttributeError):
+            mt.surface = "바나나"  # type: ignore[misc]
+
+
 class TestSimpleTagger:
-    def test_tag(self, sample_dict):
+    def test_tag_returns_morph_tag_list(self, sample_dict):
         matcher = EojeolTemplateMatcher(sample_dict)
         evaluator = SimpleEojeolEvaluator()
         tagger = SimpleTagger(matcher, evaluator)
         result = tagger.tag("사과")
         assert isinstance(result, list)
         assert len(result) >= 1
+        assert all(isinstance(m, MorphTag) for m in result)
+
+    def test_tag_noun_josa(self, sample_dict):
+        from typing import cast
+
+        matcher = EojeolTemplateMatcher(sample_dict)
+        evaluator = SimpleEojeolEvaluator()
+        tagger = SimpleTagger(matcher, evaluator)
+        result = cast(list[MorphTag], tagger.tag("사과를"))
+        surfaces = [m.surface for m in result]
+        assert "사과" in surfaces or "사과를" in surfaces
+
+    def test_tag_not_flatten(self, sample_dict):
+        from typing import cast
+
+        matcher = EojeolTemplateMatcher(sample_dict)
+        evaluator = SimpleEojeolEvaluator()
+        tagger = SimpleTagger(matcher, evaluator)
+        result = cast(list[list[MorphTag]], tagger.tag("나는 학교에서", flatten=False))
+        assert isinstance(result, list)
+        assert all(isinstance(eojeol, list) for eojeol in result)
+        assert all(isinstance(m, MorphTag) for eojeol in result for m in eojeol)
