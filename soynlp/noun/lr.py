@@ -244,8 +244,7 @@ class LRNounExtractor:
                 train_data, min_eojeol_frequency, self.max_l_length, self.max_r_length, self.verbose, n_workers
             )
         else:
-            if self.lrgraph is None:
-                raise ValueError("`train_data` must not be `None` if noun extractor has no LRGraph")
+            assert self.lrgraph is not None  # guaranteed by the check above (is_trained ↔ lrgraph is not None)
             self.lrgraph.reset_lrgraph()
 
         lrgraph = self.lrgraph  # guaranteed non-None after above block
@@ -274,7 +273,14 @@ class LRNounExtractor:
         features_to_be_detached = {r for r in self.pos}
         features_to_be_detached.update(self.common)
         nouns = postprocessing(
-            nouns, lrgraph, features_to_be_detached, min_noun_score, self.verbose, postprocessing_nj, expand_suffixes, min_noun_frequency
+            nouns,
+            lrgraph,
+            features_to_be_detached,
+            min_noun_score,
+            self.verbose,
+            postprocessing_nj,
+            expand_suffixes,
+            min_noun_frequency,
         )
 
         if known_nouns:
