@@ -10,6 +10,22 @@ from tqdm import tqdm
 from soynlp.utils import CorpusLoader
 
 
+def _count_bigrams_chunk(args: tuple) -> tuple[dict[str, int], dict[tuple[str, str], int]]:
+    """Worker: count unigrams and bigrams for a chunk of sentences."""
+    chunk, tokenizer = args
+    unigrams: dict[str, int] = {}
+    bigrams: dict[tuple[str, str], int] = {}
+    for sent in chunk:
+        if isinstance(sent, dict):
+            sent = sent.get("text", "")
+        words = tokenizer(sent) if tokenizer is not None else sent.split()
+        for word in words:
+            unigrams[word] = unigrams.get(word, 0) + 1
+        for w0, w1 in zip(words, words[1:]):
+            bigrams[(w0, w1)] = bigrams.get((w0, w1), 0) + 1
+    return unigrams, bigrams
+
+
 @dataclass(slots=True)
 class NgramScore:
     ngram: str | tuple[str, str]
@@ -32,6 +48,7 @@ class BigramExtractor:
         filtering_checkpoint: int = 100000,
         tokenizer: Callable[[str], list[str]] | None = None,
     ) -> None:
+        self._has_custom_tokenizer = tokenizer is not None
         if tokenizer is None:
 
             def _default_tokenizer(line: str) -> list[str]:
@@ -77,43 +94,75 @@ class BigramExtractor:
         train_data: str | list[str] | CorpusLoader,
         threshold: float = 0,
         topk: int = -1,
+        n_workers: int = 1,
     ) -> dict[str, NgramScore]:
-        def to_bigram(words: list[str]) -> list[tuple[str, str]]:
-            bigrams = [(w0, w1) for w0, w1 in zip(words, words[1:])]
-            return bigrams
-
         if isinstance(train_data, str) and os.path.exists(train_data):
             fmt = "jsonl" if train_data.endswith(".jsonl") else "text"
             train_data = CorpusLoader(train_data, format=fmt)
 
+        if n_workers != 1:
+            unigrams, bigrams = self._count_bigrams_parallel(train_data, n_workers)
+        else:
+            unigrams, bigrams = self._count_bigrams_sequential(train_data)
+
+        unigrams = {u: f for u, f in unigrams.items() if f >= self.min_frequency}
+        bigrams = {b: f for b, f in bigrams.items() if f >= self.min_frequency}
+        self.unigrams = unigrams
+        self.bigrams = bigrams
+        scored: dict[str, NgramScore] = self.score(unigrams=unigrams, bigrams=bigrams, threshold=threshold, topk=topk)
+        return scored
+
+    def _count_bigrams_sequential(self, train_data: Any) -> tuple[dict[str, int], dict[tuple[str, str], int]]:
         if not self.verbose:
             train_iterator: Any = train_data
         else:
             total: int | None = len(train_data) if hasattr(train_data, "__len__") else None  # type: ignore[arg-type]
-            desc = "[BigramExtractor] counting bigrams"
-            train_iterator = tqdm(train_data, desc=desc, total=total)
+            train_iterator = tqdm(train_data, desc="[BigramExtractor] counting bigrams", total=total)
 
         unigrams: dict[str, int] = {}
         bigrams: dict[tuple[str, str], int] = {}
         for i_sent, sent in enumerate(train_iterator):
             if self.filtering_checkpoint > 0 and (i_sent % self.filtering_checkpoint == 0):
-                bigrams = {bigram: freq for bigram, freq in bigrams.items() if freq >= self.min_frequency}
+                bigrams = {b: f for b, f in bigrams.items() if f >= self.min_frequency}
             if isinstance(sent, dict):
                 sent = sent.get("text", "")
             words = self.tokenizer(sent)
             for word in words:
                 unigrams[word] = unigrams.get(word, 0) + 1
-            if len(words) <= 1:
-                continue
-            for bigram in to_bigram(words):
-                bigrams[bigram] = bigrams.get(bigram, 0) + 1
+            for w0, w1 in zip(words, words[1:]):
+                bigrams[(w0, w1)] = bigrams.get((w0, w1), 0) + 1
+        return unigrams, bigrams
 
-        unigrams = {unigram: freq for unigram, freq in unigrams.items() if freq >= self.min_frequency}
-        bigrams = {bigram: freq for bigram, freq in bigrams.items() if freq >= self.min_frequency}
-        self.unigrams = unigrams
-        self.bigrams = bigrams
-        scored: dict[str, NgramScore] = self.score(unigrams=unigrams, bigrams=bigrams, threshold=threshold, topk=topk)
-        return scored
+    def _count_bigrams_parallel(self, train_data: Any, n_workers: int) -> tuple[dict[str, int], dict[tuple[str, str], int]]:
+        import pickle
+        from multiprocessing import Pool, cpu_count
+
+        texts = list(train_data)
+        n = cpu_count() if n_workers == -1 else n_workers
+        chunk_size = max(1, len(texts) // n)
+        chunks = [texts[i : i + chunk_size] for i in range(0, len(texts), chunk_size)]
+
+        try:
+            pickle.dumps(self.tokenizer)
+            tok = self.tokenizer if self._has_custom_tokenizer else None
+        except (pickle.PicklingError, AttributeError):
+            import logging
+
+            logging.getLogger(__name__).info("BigramExtractor: tokenizer가 pickle 불가 — 단일 프로세스로 집계")
+            return self._count_bigrams_sequential(train_data)
+
+        worker_args = [(chunk, tok) for chunk in chunks]
+        with Pool(processes=n) as pool:
+            results = pool.map(_count_bigrams_chunk, worker_args)
+
+        merged_uni: dict[str, int] = {}
+        merged_bi: dict[tuple[str, str], int] = {}
+        for pU, pB in results:
+            for k, v in pU.items():
+                merged_uni[k] = merged_uni.get(k, 0) + v
+            for k, v in pB.items():
+                merged_bi[k] = merged_bi.get(k, 0) + v
+        return merged_uni, merged_bi
 
 
 class Scorer:
