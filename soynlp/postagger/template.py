@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 
 from .dictionary import DictionaryProtocol
@@ -24,12 +25,42 @@ class BaseTemplateMatcher:
 
 
 class EojeolTemplateMatcher(BaseTemplateMatcher):
+    """어절 단위 template 매처.
+
+    어절 전체를 단일 품사로 분석하거나, L+R 조합으로 분석하는 후보를 생성한다.
+
+    Template 파일 포맷 (JSON):
+        {
+            "single_tags": ["Noun", "Verb", "Adjective", "Adverb", "Exclamation"],
+            "lr_templates": [["Noun", "Verb"], ["Noun", "Adjective"], ["Noun", "Josa"]]
+        }
+
+        - single_tags: 어절 전체를 하나의 품사로 인정할 태그 목록
+        - lr_templates: 허용할 (L_tag, R_tag) 조합 목록
+
+    Example:
+        >>> # 파일에서 로드
+        >>> matcher = EojeolTemplateMatcher.from_file("my_template.json", dictionary)
+
+        >>> # 파라미터로 직접 지정
+        >>> matcher = EojeolTemplateMatcher(
+        ...     dictionary,
+        ...     single_tags=["Noun", "Verb"],
+        ...     lr_templates=[("Noun", "Josa")],
+        ... )
+    """
+
     def __init__(
         self,
         dictionary: DictionaryProtocol,
         single_tags: list[str] | None = None,
         lr_templates: list[tuple[str, str]] | None = None,
+        template_path: str | None = None,
     ) -> None:
+        if template_path is not None:
+            loaded = self._load_template(template_path)
+            single_tags = loaded["single_tags"]
+            lr_templates = [tuple(pair) for pair in loaded["lr_templates"]]  # type: ignore[misc]
         if not single_tags:
             single_tags = ["Noun", "Verb", "Adjective", "Adverb", "Exclamation"]
         if not lr_templates:
@@ -37,6 +68,37 @@ class EojeolTemplateMatcher(BaseTemplateMatcher):
         self.dictionary = dictionary
         self.single_tags = single_tags
         self.lr_templates = lr_templates
+
+    @classmethod
+    def from_file(cls, template_path: str, dictionary: DictionaryProtocol) -> "EojeolTemplateMatcher":
+        """JSON 파일에서 template을 로드하여 인스턴스를 생성한다.
+
+        Args:
+            template_path: JSON template 파일 경로.
+            dictionary: 사용할 사전 객체.
+
+        Returns:
+            파일에서 로드된 template이 적용된 EojeolTemplateMatcher 인스턴스.
+        """
+        return cls(dictionary, template_path=template_path)
+
+    def save(self, path: str) -> None:
+        """현재 template 설정을 JSON 파일로 저장한다.
+
+        Args:
+            path: 저장할 파일 경로.
+        """
+        data = {
+            "single_tags": self.single_tags,
+            "lr_templates": [list(pair) for pair in self.lr_templates],
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    @staticmethod
+    def _load_template(path: str) -> dict:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
 
     def generate(self, eojeol: str) -> list[list[LR]]:
         n = len(eojeol)
@@ -83,12 +145,44 @@ class EojeolTemplateMatcher(BaseTemplateMatcher):
 
 
 class LRTemplateMatcher(BaseTemplateMatcher):
+    """LR 분리 기반 template 매처.
+
+    어절을 L(체언/용언 어간)과 R(조사/어미) 조합으로 분석하는 후보를 생성한다.
+
+    Template 파일 포맷 (JSON):
+        {
+            "ltags": ["Noun", "Adjective", "Verb", "Adverb", "Exclamation"],
+            "templates": {
+                "Noun": ["Josa", "Verb", "Adjective"]
+            }
+        }
+
+        - ltags: L 위치에 허용할 품사 태그 목록
+        - templates: L_tag → 허용 R_tag 목록 매핑
+
+    Example:
+        >>> # 파일에서 로드
+        >>> matcher = LRTemplateMatcher.from_file("my_template.json", dictionary)
+
+        >>> # 파라미터로 직접 지정
+        >>> matcher = LRTemplateMatcher(
+        ...     dictionary,
+        ...     ltags={"Noun"},
+        ...     templates={"Noun": ("Josa",)},
+        ... )
+    """
+
     def __init__(
         self,
         dictionary: DictionaryProtocol,
         ltags: set[str] | None = None,
         templates: dict[str, tuple[str, ...]] | None = None,
+        template_path: str | None = None,
     ) -> None:
+        if template_path is not None:
+            loaded = self._load_template(template_path)
+            ltags = set(loaded["ltags"])
+            templates = {k: tuple(v) for k, v in loaded["templates"].items()}
         if not ltags:
             ltags = {"Noun", "Adjective", "Verb", "Adverb", "Exclamation"}
         if not templates:
@@ -98,6 +192,37 @@ class LRTemplateMatcher(BaseTemplateMatcher):
         self.ltags = ltags
         self.rtags = {tag for tags in templates.values() for tag in tags}
         self.templates = templates
+
+    @classmethod
+    def from_file(cls, template_path: str, dictionary: DictionaryProtocol) -> "LRTemplateMatcher":
+        """JSON 파일에서 template을 로드하여 인스턴스를 생성한다.
+
+        Args:
+            template_path: JSON template 파일 경로.
+            dictionary: 사용할 사전 객체.
+
+        Returns:
+            파일에서 로드된 template이 적용된 LRTemplateMatcher 인스턴스.
+        """
+        return cls(dictionary, template_path=template_path)
+
+    def save(self, path: str) -> None:
+        """현재 template 설정을 JSON 파일로 저장한다.
+
+        Args:
+            path: 저장할 파일 경로.
+        """
+        data = {
+            "ltags": list(self.ltags),
+            "templates": {k: list(v) for k, v in self.templates.items()},
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    @staticmethod
+    def _load_template(path: str) -> dict:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
 
     def generate(self, token: str) -> list[LR]:
         candidates = self._initialize_L(token)

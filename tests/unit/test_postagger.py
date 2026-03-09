@@ -212,3 +212,34 @@ class TestDictionaryProtocol:
         matcher = EojeolTemplateMatcher(MinimalDict())
         candidates = matcher.generate("사과")
         assert len(candidates) >= 1
+
+
+class TestEojeolTemplateMatcherFilePath:
+    def test_save_and_load(self, sample_dict):
+        matcher = EojeolTemplateMatcher(sample_dict)
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            matcher.save(f.name)
+            loaded = EojeolTemplateMatcher.from_file(f.name, sample_dict)
+            assert loaded.single_tags == matcher.single_tags
+            assert loaded.lr_templates == matcher.lr_templates
+
+    def test_from_file_custom_template(self, sample_dict, tmp_path):
+        template = {
+            "single_tags": ["Noun"],
+            "lr_templates": [["Noun", "Josa"]],
+        }
+        path = tmp_path / "template.json"
+        path.write_text(__import__("json").dumps(template), encoding="utf-8")
+        matcher = EojeolTemplateMatcher.from_file(str(path), sample_dict)
+        assert matcher.single_tags == ["Noun"]
+        assert ("Noun", "Josa") in matcher.lr_templates
+
+    def test_template_path_in_init(self, sample_dict, tmp_path):
+        template = {
+            "single_tags": ["Noun", "Verb"],
+            "lr_templates": [["Noun", "Josa"]],
+        }
+        path = tmp_path / "template.json"
+        path.write_text(__import__("json").dumps(template), encoding="utf-8")
+        matcher = EojeolTemplateMatcher(sample_dict, template_path=str(path))
+        assert matcher.single_tags == ["Noun", "Verb"]
