@@ -1,4 +1,5 @@
 from .normalizer import (
+    EmojiNormalizer,
     HangleEmojiNormalizer,
     PaddingSpacetoWordsNormalizer,
     PassCharacterNormalizer,
@@ -29,6 +30,7 @@ __all__ = [
     "normalize_sent_for_lrgraph",
     "PassCharacterNormalizer",
     "HangleEmojiNormalizer",
+    "EmojiNormalizer",
     "RepeatCharacterNormalizer",
     "RemoveLongspaceNormalizer",
     "PaddingSpacetoWordsNormalizer",
