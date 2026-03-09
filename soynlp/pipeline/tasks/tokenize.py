@@ -36,7 +36,7 @@ class TokenizeTask(Task[TokenizeTaskArgs]):
         parameters[self._args.out_key] = tokenized
         return parameters
 
-    def _build_tokenizer(self, parameters):
+    def _build_tokenizer(self, parameters: dict) -> LTokenizer | MaxScoreTokenizer | NounMatchTokenizer | RegexTokenizer:
         if self._args.tokenizer_type == "regex":
             return RegexTokenizer()
 

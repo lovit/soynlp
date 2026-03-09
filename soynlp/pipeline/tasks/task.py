@@ -12,7 +12,7 @@ TaskArgsType = TypeVar("TaskArgsType", bound=TaskArgs)
 
 
 class Task(ABC, Generic[TaskArgsType]):
-    def __init__(self, args: TaskArgsType):
+    def __init__(self, args: TaskArgsType) -> None:
         self._args = args
 
     @classmethod

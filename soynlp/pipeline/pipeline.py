@@ -5,7 +5,7 @@ from soynlp.pipeline.tasks import TASK_REGISTRY, Task
 
 
 class Pipeline:
-    def __call__(self, config: Config):
+    def __call__(self, config: Config) -> dict:
         tasks: list[Task] = self._load_tasks(config)
         parameters: dict = {}
 
@@ -26,7 +26,7 @@ class Pipeline:
         return tasks
 
     @classmethod
-    def run(cls, config_file: str):
+    def run(cls, config_file: str) -> None:
         config = from_yaml(config_file)
         pipeline = Pipeline()
         pipeline(config)
