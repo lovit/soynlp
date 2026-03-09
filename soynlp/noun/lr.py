@@ -795,7 +795,7 @@ def extract_compounds_func(
 ) -> tuple[dict[str, tuple[int, float]], dict[str, tuple[str, ...]], MaxScoreTokenizer]:
     candidates = {
         l: rdict.get("", 0)
-        for l, rdict in lrgraph._lr_origin.items()  # noqa: E741
+        for l, rdict in lrgraph.iter_original_lr()  # noqa: E741
         if (len(l) >= 4) and (l not in noun_scores)
     }
     candidates = {l: count for l, count in candidates.items() if count >= min_noun_frequency}  # noqa: E741
