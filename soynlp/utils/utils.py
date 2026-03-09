@@ -101,23 +101,38 @@ def check_corpus(corpus: Any) -> bool:
 class CorpusLoader:
     """JSONL/TXT 코퍼스 로더.
 
-    Args:
-        corpus_path (str) : 파일 경로
-        format (str) : "jsonl" 또는 "text"
-        text_key (str) : JSONL에서 텍스트 필드명 (기본: "text")
-        verbose (bool) : 진행률 표시 여부
+    이터레이션 시 각 행을 dict로 반환한다.
+    - JSONL 형식: 원본 JSON 객체 전체를 반환
+    - TXT 형식: ``{text_key: line}`` 형태의 dict를 반환
 
-    iter 시 dict를 반환 (JSONL: 원본 dict, TXT: {text_key: line})
-    __len__ 구현으로 EojeolCounter 등 기존 코드 호환
+    ``__len__`` 을 구현하여 ``EojeolCounter``, ``tqdm`` 등에서 진행률 표시가 가능하다.
+
+    Args:
+        corpus_path: 읽을 파일 경로. 존재하지 않으면 ``FileNotFoundError``.
+        format: 파일 형식. ``"jsonl"`` 또는 ``"text"`` 중 하나.
+        text_key: JSONL 또는 TXT 반환 dict에서 텍스트를 가리키는 키 이름.
+            기본값 ``"text"`` — JSONL 행이 ``{"text": "...", "id": 1}`` 형태일 때 사용.
+        verbose: True이면 tqdm으로 읽기 진행률을 출력한다.
 
     Examples::
-        >>> loader = CorpusLoader("corpus.jsonl", format="jsonl")
-        >>> for item in loader:
-        ...     print(item["text"])
 
-        >>> loader = CorpusLoader("corpus.txt", format="text")
-        >>> for item in loader:
-        ...     print(item["text"])
+        JSONL 파일 (각 줄: ``{"text": "안녕하세요", "id": 1}`` 형태)::
+
+            >>> loader = CorpusLoader("corpus.jsonl", format="jsonl")
+            >>> for item in loader:
+            ...     print(item["text"])  # "안녕하세요"
+
+        TXT 파일 (각 줄이 하나의 문장)::
+
+            >>> loader = CorpusLoader("corpus.txt", format="text")
+            >>> for item in loader:
+            ...     print(item["text"])  # 각 줄 내용
+
+        사용자 정의 text_key::
+
+            >>> loader = CorpusLoader("corpus.jsonl", format="jsonl", text_key="content")
+            >>> for item in loader:
+            ...     print(item["content"])
     """
 
     def __init__(self, corpus_path: str, format: str = "jsonl", text_key: str = "text", verbose: bool = False) -> None:
@@ -162,24 +177,41 @@ class CorpusLoader:
 
 
 class EojeolCounter:
-    """
+    """문장 목록에서 어절(공백 기준 분리 단위) 빈도를 집계한다.
+
+    집계 결과를 ``to_lrgraph()``로 LRGraph로 변환하여 명사 추출에 사용할 수 있다.
+
     Args:
-        sents (list of str like) : sentence list
-        min_count (int) : minimum frequency of eojeol
-        max_length (int) : maximum length of eojeol
-        filtering_checkpoint (int) : it drops eojeols which appear less than `min_count` for every `filtering_checkpoint`
-        verbose (Boolean) : if True, it shows progress
-        preprocess (callable) : sentence preprocessing function
-            Defaults to lambda x: x
+        sents: 문장 이터러블. ``str`` 리스트, ``CorpusLoader``, 또는 이터러블이면 모두 허용.
+            ``None``이면 빈 카운터로 초기화된다.
+        min_count: 어절 최소 출현 횟수. 이 값 미만의 어절은 최종 결과에서 제외된다.
+        max_length: 어절 최대 길이. 초과하는 어절은 무시된다.
+        filtering_checkpoint: ``filtering_checkpoint`` 문장마다 ``min_count`` 미만 어절을 임시 제거한다.
+            0이면 중간 정리를 하지 않는다. 메모리 절약에 유용하다.
+        verbose: True이면 tqdm으로 카운팅 진행률을 출력한다.
+        preprocess: 각 문장에 적용하는 전처리 함수. 기본값은 항등 함수(변환 없음).
+            병렬 처리(``n_workers > 1``) 시 pickle 가능한 함수여야 한다.
+        text_key: 입력이 JSONL dict 형태일 때 텍스트를 가져올 키 이름. 기본값 ``"text"``.
+        n_workers: 병렬 처리 워커 수. 1이면 단일 프로세스.
 
     Examples::
-        >>> sents = ['이것은 어절 입니다', '이것은 예문 입니다', '이것도 예문 이고요']
-        >>> eojeol_counter = EojeolCounter(sents=sents)
-        >>> print(eojeol_counter.items())
-        $ dict_items([('이것은', 2), ('어절', 1), ('입니다', 2), ('예문', 2), ('이것도', 1), ('이고요', 1)])
 
-        >>> lrgraph = eojeol_counter.to_lrgraph()
-        >>> lrgraph.get_r('이것')  # [('은', 2), ('도', 1)]
+        문장 리스트에서 생성::
+
+            >>> sents = ['이것은 어절 입니다', '이것은 예문 입니다', '이것도 예문 이고요']
+            >>> eojeol_counter = EojeolCounter(sents=sents)
+            >>> print(eojeol_counter.items())
+            dict_items([('이것은', 2), ('어절', 1), ('입니다', 2), ('예문', 2), ('이것도', 1), ('이고요', 1)])
+
+        LRGraph로 변환::
+
+            >>> lrgraph = eojeol_counter.to_lrgraph()
+            >>> lrgraph.get_r('이것')  # [('은', 2), ('도', 1)]
+
+        JSONL 파일에서 생성 (각 줄: ``{"text": "..."}`` 형태)::
+
+            >>> loader = CorpusLoader("corpus.jsonl", format="jsonl")
+            >>> eojeol_counter = EojeolCounter(sents=loader, text_key="text")
     """
 
     def __init__(
