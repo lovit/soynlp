@@ -93,6 +93,9 @@ class TestBaseVectorizerMultiprocessing:
         assert x_single.shape == x_multi.shape  # type: ignore[index]
 
 
+_WORD_CONTEXT_DOCS = ["a b c d e f"] * 200
+
+
 class TestSentToWordContextsMatrix:
     def test_basic(self):
         sents = ["a b c d e"] * 20
@@ -113,3 +116,18 @@ class TestSentToWordContextsMatrix:
         x2, _ = sent_to_word_contexts_matrix(sents, windows=2, min_tf=1, dynamic_weight=True, verbose=False)
         # With dynamic weight, some values should be smaller
         assert x1.sum() >= x2.sum()
+
+    def test_n_workers_equals_single(self):
+        """n_workers=2로 실행해도 어휘와 행렬 합계가 단일 프로세스와 동일하다."""
+        x1, idx1 = sent_to_word_contexts_matrix(_WORD_CONTEXT_DOCS, windows=2, min_tf=1, verbose=False, n_workers=1)
+        x2, idx2 = sent_to_word_contexts_matrix(_WORD_CONTEXT_DOCS, windows=2, min_tf=1, verbose=False, n_workers=2)
+        assert set(idx1) == set(idx2)
+        assert abs(x1.sum() - x2.sum()) < 1e-6  # type: ignore[operator]
+
+    def test_n_workers_lambda_fallback(self):
+        """lambda tokenizer는 pickle 불가이므로 n_workers가 무시되어 정상 동작한다."""
+        sents = ["a b c d e"] * 20
+        x, idx2vocab = sent_to_word_contexts_matrix(
+            sents, windows=2, min_tf=1, tokenizer=lambda x: x.split(), verbose=False, n_workers=2
+        )
+        assert x.shape[0] == x.shape[1]  # type: ignore[index]
