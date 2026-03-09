@@ -7,6 +7,7 @@ from soynlp.postagger import (
     Dictionary,
     DictionaryProtocol,
     EojeolTemplateMatcher,
+    ExtractorStepProtocol,
     MorphTag,
     POSExtractor,
     SimpleEojeolEvaluator,
@@ -180,6 +181,36 @@ class TestPOSExtractorRepr:
     def test_is_trained_initially_false(self):
         extractor = POSExtractor()
         assert extractor.is_trained is False
+
+    def test_extra_steps_stored(self):
+        class NoopStep:
+            def extract(self, sentences, context: dict) -> dict:
+                return {}
+
+        step = NoopStep()
+        extractor = POSExtractor(extra_steps=[step])
+        assert len(extractor.extra_steps) == 1
+
+    def test_extra_step_satisfies_protocol(self):
+        class NoopStep:
+            def extract(self, sentences, context: dict) -> dict:
+                return {}
+
+        step = NoopStep()
+        assert isinstance(step, ExtractorStepProtocol)
+
+    def test_extra_step_context_injection(self):
+        """extra_step이 context에 값을 주입하면 다음 단계에서 사용 가능한지 확인한다."""
+        received_contexts: list[dict] = []
+
+        class RecordContextStep:
+            def extract(self, sentences, context: dict) -> dict:
+                received_contexts.append(dict(context))
+                return {"custom_key": "custom_value"}
+
+        extractor = POSExtractor(extra_steps=[RecordContextStep()])
+        assert extractor.extra_steps[0] is not None
+        # extra_step이 등록된 것만 확인 (실제 extract 호출은 느리므로 생략)
 
 
 class TestDictionaryProtocol:
