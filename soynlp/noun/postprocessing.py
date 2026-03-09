@@ -9,6 +9,16 @@ _suffixpath = os.path.join(_filepath, "frequent_noun_suffix.txt")
 
 
 def load_lines_as_set(path: str) -> set[str]:
+    """텍스트 파일을 읽어 줄 단위 문자열 집합으로 반환한다.
+
+    빈 줄과 앞뒤 공백만 있는 줄은 제외된다.
+
+    Args:
+        path: 읽을 파일의 경로.
+
+    Returns:
+        각 줄을 strip한 문자열의 집합.
+    """
     with open(path, encoding="utf-8") as f:
         return {word.strip() for word in f if word.strip()}
 
@@ -49,6 +59,15 @@ _LOW_SUFFIXES: tuple[str, ...] = ("꾼", "쟁이", "질")
 
 
 def subtract(base: dict[str, tuple[int, float]], removals: set[str]) -> dict[str, tuple[int, float]]:
+    """base에서 removals에 포함된 단어를 제외한 새 dict를 반환한다.
+
+    Args:
+        base: 원본 {word: (frequency, score)} dict.
+        removals: 제거할 단어 집합.
+
+    Returns:
+        removals에 없는 단어만 포함하는 새 dict.
+    """
     return {word: score for word, score in base.items() if (word not in removals)}
 
 
@@ -72,6 +91,17 @@ def detaching_features(
 
 
 def ignore_features(nouns: dict[str, tuple[int, float]], features: set[str]) -> tuple[dict[str, tuple[int, float]], set[str]]:
+    """nouns 중 features에 포함된 단어를 제거한다.
+
+    추출된 명사가 조사·어미 등의 특징 집합에 포함될 경우 오추출로 간주하여 제외한다.
+
+    Args:
+        nouns: 현재 추출된 {word: (frequency, score)} dict.
+        features: 제거 대상 특징 집합 (조사, 어미 등).
+
+    Returns:
+        (정제된 nouns dict, 제거된 단어 집합)
+    """
     removals: set[str] = set()
     for word in nouns:
         if word in features:
