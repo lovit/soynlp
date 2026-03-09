@@ -116,6 +116,40 @@ class WordExtractor:
         remove_subwords: bool = False,
         n_workers: int = 1,
     ) -> dict[str, dict[str, CohesionScore] | dict[str, AccessorVariety] | dict[str, BranchingEntropy]]:
+        """학습 데이터로부터 단어 스코어를 추출한다.
+
+        Args:
+            train_data: 학습 입력. 파일 경로(str), 문장 리스트(list[str]), CorpusLoader 중 하나.
+                None이면 ValueError를 발생시킨다.
+            cumulate: True이면 이전 학습 결과에 누적한다. False이면 처음부터 새로 학습한다.
+            extract_cohesion_only: True이면 cohesion 점수만 계산하고 AV/BE는 생략한다.
+            min_frequency: 부분 문자열 최소 출현 횟수.
+            min_cohesion_leftside: cohesion 점수 좌측 최솟값.
+            min_cohesion_rightside: cohesion 점수 우측 최솟값.
+            min_brancingentropy_leftside: branching entropy 좌측 최솟값.
+            min_brancingentropy_rightside: branching entropy 우측 최솟값.
+            min_accessorvariety_leftside: accessor variety 좌측 최솟값.
+            min_accessorvariety_rightside: accessor variety 우측 최솟값.
+            prune_per_lines: N줄마다 저빈도 항목을 정리한다. -1이면 정리하지 않는다.
+            remove_subwords: (미사용) 부분 문자열 제거 여부 플래그.
+            n_workers: 병렬 처리 워커 수. 1이면 단일 프로세스.
+
+        Returns:
+            스코어 유형별 결과 dict. 키는 다음과 같다:
+
+            - ``"cohesion"``: ``dict[str, CohesionScore]``
+            - ``"accessor_variety"``: ``dict[str, AccessorVariety]`` (extract_cohesion_only=False일 때)
+            - ``"branching_entropy"``: ``dict[str, BranchingEntropy]`` (extract_cohesion_only=False일 때)
+
+            extract_cohesion_only=True이면 ``{"cohesion": ...}`` 만 반환된다.
+
+        Examples::
+            >>> extractor = WordExtractor()
+            >>> result = extractor.extract(["아이디어가 좋습니다", "좋은 아이디어입니다"])
+            >>> cohesion = result["cohesion"]
+            >>> av = result["accessor_variety"]
+            >>> be = result["branching_entropy"]
+        """
         if isinstance(train_data, str) and os.path.exists(train_data):
             fmt = "jsonl" if train_data.endswith(".jsonl") else "text"
             train_data = CorpusLoader(train_data, format=fmt)
