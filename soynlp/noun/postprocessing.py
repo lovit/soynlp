@@ -3,8 +3,8 @@ import os
 from soynlp.core.lrgraph import LRGraph
 
 filepath = os.path.dirname(os.path.realpath(__file__))
-josapath = filepath + "/frequent_enrolled_josa.txt"
-suffixpath = filepath + "/frequent_noun_suffix.txt"
+josapath = os.path.join(filepath, "frequent_enrolled_josa.txt")
+suffixpath = os.path.join(filepath, "frequent_noun_suffix.txt")
 
 
 def load_lines_as_set(path: str) -> set[str]:
