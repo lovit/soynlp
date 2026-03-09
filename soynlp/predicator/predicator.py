@@ -148,6 +148,7 @@ class PredicatorExtractor:
         min_entropy_of_R: float = 1.5,
         min_stem_score: float = 0.7,
         min_stem_frequency: int = 100,
+        n_workers: int = 1,
     ):
         self.train(
             inputs,
@@ -161,6 +162,7 @@ class PredicatorExtractor:
             min_entropy_of_R,
             min_stem_score,
             min_stem_frequency,
+            n_workers=n_workers,
         )
         return self.extract(candidates, min_predicator_frequency)
 
@@ -177,13 +179,14 @@ class PredicatorExtractor:
         min_entropy_of_R: float = 1.5,
         min_stem_score: float = 0.7,
         min_stem_frequency: int = 100,
+        n_workers: int = 1,
     ):
         if isinstance(inputs, LRGraph):
             self._train_with_eojeol_counter(inputs.to_EojeolCounter(), min_eojeol_frequency)  # type: ignore[union-attr]
         elif isinstance(inputs, EojeolCounter):
             self._train_with_eojeol_counter(inputs, min_eojeol_frequency)
         else:
-            self._train_with_sentences(inputs, min_eojeol_frequency, filtering_checkpoint)
+            self._train_with_sentences(inputs, min_eojeol_frequency, filtering_checkpoint, n_workers=n_workers)
 
         if self.extract_eomi or self.extract_stem:
             lrgraph = self._prepare_predicator_lrgraph()
@@ -205,7 +208,9 @@ class PredicatorExtractor:
 
         logger.info("has been trained")
 
-    def _train_with_sentences(self, sentences, min_eojeol_frequency: int = 2, filtering_checkpoint: int = 100000):
+    def _train_with_sentences(
+        self, sentences, min_eojeol_frequency: int = 2, filtering_checkpoint: int = 100000, n_workers: int = 1
+    ):
         logger.info("counting eojeols ...")
 
         preprocess = (lambda x: x) if self.ensure_normalized else normalize_sent_for_lrgraph
@@ -215,6 +220,7 @@ class PredicatorExtractor:
             min_count=min_eojeol_frequency,
             verbose=self.verbose,
             preprocess=preprocess,
+            n_workers=n_workers,
         )
         self._train_with_eojeol_counter(eojeol_counter)
 

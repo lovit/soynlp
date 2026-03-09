@@ -163,3 +163,37 @@ class TestPredicatorExtractor:
         # "아름답" has suffix "답" -> should be classified as adjective
         adj, verb = extractor._separate_adjective_verb(predicators)
         assert "아름다워" in adj
+
+
+_PREDICATOR_SENTS = [
+    "사과가 맛있습니다",
+    "바나나를 먹었습니다",
+    "사과를 먹고 바나나도 먹었습니다",
+    "공부하는 학생들이 많습니다",
+    "열심히 공부합니다",
+] * 100
+
+
+class TestPredicatorExtractorMultiprocessing:
+    def test_train_with_sentences_n_workers_accepted(self):
+        """n_workers 파라미터가 에러 없이 수용되고 eojeol_counter가 구축된다."""
+        from soynlp.predicator import PredicatorExtractor
+
+        extractor = PredicatorExtractor(nouns={"사과", "바나나"}, verbose=False)
+        extractor.train(_PREDICATOR_SENTS, n_workers=4)
+        assert extractor.eojeol_counter is not None
+        assert len(extractor.eojeol_counter) > 0
+
+    def test_train_multi_eojeol_counter_same_as_single(self):
+        """n_workers=4로 구축한 EojeolCounter가 단일 프로세스와 동일하다."""
+        from soynlp.predicator import PredicatorExtractor
+
+        ext_single = PredicatorExtractor(nouns={"사과", "바나나"}, verbose=False)
+        ext_single.train(_PREDICATOR_SENTS, n_workers=1)
+
+        ext_multi = PredicatorExtractor(nouns={"사과", "바나나"}, verbose=False)
+        ext_multi.train(_PREDICATOR_SENTS, n_workers=4)
+
+        assert ext_single.eojeol_counter is not None
+        assert ext_multi.eojeol_counter is not None
+        assert dict(ext_single.eojeol_counter.items()) == dict(ext_multi.eojeol_counter.items())
