@@ -162,6 +162,14 @@ class LRGraph:
             sorted_L_freq = sorted_L_freq[:topk]
         return sorted_L_freq
 
+    def has_l(self, word: str) -> bool:
+        """주어진 단어가 L 그래프에 존재하는지 반환한다."""
+        return word in self._lr
+
+    def has_r(self, word: str) -> bool:
+        """주어진 단어가 R 그래프에 존재하는지 반환한다."""
+        return word in self._rl
+
     def get_total_frequency(self, word: str) -> int:
         """Return the total corpus frequency of `word` (sum over all R parts in the original graph)."""
         return sum(self._lr_origin.get(word, {}).values())
