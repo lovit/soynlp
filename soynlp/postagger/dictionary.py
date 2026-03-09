@@ -15,6 +15,12 @@ class Dictionary:
             else:
                 raise ValueError("dictionary file does not exist")
 
+    def __repr__(self) -> str:
+        num_tags = len(self.pos_dict)
+        num_words = sum(len(words) for words in self.pos_dict.values())
+        tags = list(self.pos_dict.keys())
+        return f"Dictionary(num_tags={num_tags}, num_words={num_words}, tags={tags})"
+
     def _check_max_length(self, pos_dict: dict[str, set[str]]) -> int:
         return max(len(word) for words in pos_dict.values() for word in words)
 

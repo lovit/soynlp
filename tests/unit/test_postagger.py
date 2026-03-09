@@ -7,6 +7,7 @@ from soynlp.postagger import (
     Dictionary,
     EojeolTemplateMatcher,
     MorphTag,
+    POSExtractor,
     SimpleEojeolEvaluator,
     SimpleTagger,
 )
@@ -150,3 +151,31 @@ class TestSimpleTagger:
         assert isinstance(result, list)
         assert all(isinstance(eojeol, list) for eojeol in result)
         assert all(isinstance(m, MorphTag) for eojeol in result for m in eojeol)
+
+    def test_repr(self, sample_dict):
+        matcher = EojeolTemplateMatcher(sample_dict)
+        evaluator = SimpleEojeolEvaluator()
+        tagger = SimpleTagger(matcher, evaluator)
+        r = repr(tagger)
+        assert "SimpleTagger" in r
+        assert "EojeolTemplateMatcher" in r
+
+
+class TestDictionaryRepr:
+    def test_repr(self, sample_dict):
+        r = repr(sample_dict)
+        assert "Dictionary" in r
+        assert "num_tags" in r
+        assert "num_words" in r
+
+
+class TestPOSExtractorRepr:
+    def test_repr_not_trained(self):
+        extractor = POSExtractor()
+        r = repr(extractor)
+        assert "POSExtractor" in r
+        assert "trained=False" in r
+
+    def test_is_trained_initially_false(self):
+        extractor = POSExtractor()
+        assert extractor.is_trained is False

@@ -25,6 +25,14 @@ class POSExtractor:
         self.verbose = verbose
         self.logpath = logpath
 
+    @property
+    def is_trained(self) -> bool:
+        """extract()가 완료된 경우 True를 반환한다."""
+        return hasattr(self, "noun_extractor") and hasattr(self, "predicator_extractor")
+
+    def __repr__(self) -> str:
+        return f"POSExtractor(trained={self.is_trained}, l_max_length={self.l_max_length}, r_max_length={self.r_max_length})"
+
     def extract(self, sentences):
         self._num_of_eojeols = 0
         self._num_of_covered_eojeols = 0
