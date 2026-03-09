@@ -221,11 +221,11 @@ class LTokenizer:
             candidates = [(token[:end], token[end:]) for end in range(2, n + 1)]
             candidates = [(self.scores.get(l, self.unknown_score), l, r) for l, r in candidates]  # noqa: E741
             if tolerance > 0:
-                max_score = max([c[0] for c in candidates])
+                max_score = max(c[0] for c in candidates)
                 candidates = [c for c in candidates if (max_score - c[0]) <= tolerance]
-                best = sorted(candidates, key=lambda x: len(x[1]), reverse=True)[0]
+                best = max(candidates, key=lambda x: len(x[1]))
             else:
-                best = sorted(candidates, key=lambda x: (x[0], len(x[1])), reverse=True)[0]
+                best = max(candidates, key=lambda x: (x[0], len(x[1])))
             return best
 
         offset = 0
