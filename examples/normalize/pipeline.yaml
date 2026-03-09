@@ -1,0 +1,18 @@
+pipeline:
+  - name: ReadText
+    args:
+      path: ../../data/91031.txt
+      text_key: text
+  - name: Normalize
+    args:
+      alphabet: true
+      hangle: true
+      number: true
+      symbol: false
+      decompose_hangle_emoji: true
+      remove_repeatchar: 2
+      remove_longspace: true
+  - name: WriteText
+    args:
+      path: normalized.txt
+      text_key: text

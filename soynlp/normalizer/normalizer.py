@@ -2,12 +2,11 @@ import logging
 import os
 import re
 import unicodedata
+import warnings
 from collections.abc import Callable
 from glob import glob
 
 from tqdm import tqdm
-
-from soynlp.hangle import compose, decompose
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +31,12 @@ def normalize(
     symbol: bool = False,
     remove_repeat: int = 0,
 ) -> str:
+    """.. deprecated:: Use ``TextNormalizer.build_normalizer()`` instead."""
+    warnings.warn(
+        "`normalize` is deprecated. Use `TextNormalizer.build_normalizer()` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     doc = _text_filter.sub(" ", doc)
     if not alphabet:
         doc = _alphabet_pattern.sub(" ", doc)
@@ -47,10 +52,22 @@ def normalize(
 
 
 def remove_doublespace(sent: str) -> str:
+    """.. deprecated:: Use ``RemoveLongspaceNormalizer`` instead."""
+    warnings.warn(
+        "`remove_doublespace` is deprecated. Use `RemoveLongspaceNormalizer` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return _doublespace_pattern.sub(" ", sent)
 
 
 def repeat_normalize(sent: str, num_repeats: int = 2) -> str:
+    """.. deprecated:: Use ``RepeatCharacterNormalizer`` instead."""
+    warnings.warn(
+        "`repeat_normalize` is deprecated. Use `RepeatCharacterNormalizer` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if num_repeats > 0:
         sent = _repeatchars_pattern.sub("\\1" * num_repeats, sent)
     sent = _doublespace_pattern.sub(" ", sent)
@@ -58,53 +75,55 @@ def repeat_normalize(sent: str, num_repeats: int = 2) -> str:
 
 
 def emoticon_normalize(sent: str, num_repeats: int = 2) -> str:
-    if not sent:
-        return sent
+    """한국어 자모-음절 혼합 이모티콘을 정규화한다.
 
-    def _char_type(idx: int) -> int:
-        if 12593 <= idx <= 12622:
-            return 0  # Jaum
-        elif 12623 <= idx <= 12643:
-            return 1  # Moum
-        elif 44032 <= idx <= 55203:
-            return 2  # Complete
-        return -1
+    .. deprecated::
+        `emoticon_normalize`는 deprecated입니다.
+        `HangleEmojiNormalizer`와 `RepeatCharacterNormalizer`를 조합하여 사용하세요.
 
-    idxs = [_char_type(ord(c)) for c in sent]
-    sent_ = []
-    last_idx = len(idxs) - 1
-    for i, (idx, c) in enumerate(zip(idxs, sent)):
-        if (0 < i < last_idx) and (idxs[i - 1] == 0 and idx == 2 and idxs[i + 1] == 1):
-            cho, jung, jong = decompose(c)  # type: ignore[misc]
-            if (cho == sent[i - 1]) and (jung == sent[i + 1]) and (jong == " "):
-                sent_.append(cho)
-                sent_.append(jung)
-            else:
-                sent_.append(c)
-        elif (i < last_idx) and (idx == 2) and (idxs[i + 1] == 0):
-            cho, jung, jong = decompose(c)  # type: ignore[misc]
-            if jong == sent[i + 1]:
-                sent_.append(compose(cho, jung, " "))
-                sent_.append(jong)
-        elif (i > 0) and (idx == 2 and idxs[i - 1] == 0):
-            cho, jung, jong = decompose(c)  # type: ignore[misc]
-            if cho == sent[i - 1]:
-                sent_.append(cho)
-                sent_.append(jung)
-        else:
-            sent_.append(c)
-    return repeat_normalize("".join(sent_), num_repeats)
+        기존 구현은 완성형 음절 뒤에 자음이 오면서 종성 조건이 불일치할 때
+        해당 음절을 묵소 삭제하는 버그가 있었습니다. (예: 'ㅋ크ㅋ' → 'ㅋㅋ')
+        `HangleEmojiNormalizer`는 이 케이스를 올바르게 처리합니다.
+    """
+    warnings.warn(
+        "`emoticon_normalize` is deprecated. Use `HangleEmojiNormalizer` and `RepeatCharacterNormalizer` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    normalized = HangleEmojiNormalizer().normalize(sent)
+    if num_repeats > 0:
+        normalized = RepeatCharacterNormalizer(max_repeat=num_repeats).normalize(normalized)
+    normalized = _doublespace_pattern.sub(" ", normalized)
+    return normalized.strip()
 
 
 def only_hangle(sent: str) -> str:
+    """.. deprecated:: Use ``PassCharacterNormalizer(alphabet=False, number=False, symbol=False)`` instead."""
+    warnings.warn(
+        "`only_hangle` is deprecated. Use `PassCharacterNormalizer(alphabet=False, number=False, symbol=False)` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return _doublespace_pattern.sub(" ", _hangle_filter.sub(" ", sent)).strip()
 
 
 def only_hangle_number(sent: str) -> str:
+    """.. deprecated:: Use ``PassCharacterNormalizer(alphabet=False, symbol=False)`` instead."""
+    warnings.warn(
+        "`only_hangle_number` is deprecated. Use `PassCharacterNormalizer(alphabet=False, symbol=False)` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return _doublespace_pattern.sub(" ", _hangle_number_filter.sub(" ", sent)).strip()
 
 
 def only_text(sent: str) -> str:
+    """.. deprecated:: Use ``PassCharacterNormalizer()`` instead."""
+    warnings.warn(
+        "`only_text` is deprecated. Use `PassCharacterNormalizer()` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return _doublespace_pattern.sub(" ", _text_filter.sub(" ", sent)).strip()
 
 
@@ -200,6 +219,51 @@ class HangleEmojiNormalizer(Normalizer):
         return "".join(s_)
 
 
+class EmojiNormalizer(Normalizer):
+    """Unicode 이모지를 제거하거나 지정 문자열로 치환한다.
+
+    단일 코드포인트 이모지(😀)뿐 아니라 ZWJ 시퀀스(👨‍💻), Skin tone modifier(👋🏽),
+    Regional indicator(🇰🇷) 등 복합 이모지 시퀀스도 올바르게 처리한다.
+    내부적으로 `emoji` 패키지를 사용하며, 미설치 시 ImportError가 발생한다.
+
+    한국어 자모 이모티콘(ㅋㅋㅋ, ㅎㅎㅎ)은 Unicode 이모지가 아니므로 이 클래스의
+    처리 대상이 아니다. 해당 패턴은 HangleEmojiNormalizer와 RepeatCharacterNormalizer로 처리한다.
+
+    Args:
+        replace (str): 이모지를 치환할 문자열. 기본값 "" (제거).
+            "[EMOJI]"로 설정하면 이모지 위치를 토큰으로 유지할 수 있다.
+
+    Examples:
+        >>> normalizer = EmojiNormalizer()
+        >>> normalizer.normalize("안녕 😀 반가워 🎉")
+        '안녕  반가워 '
+        >>> EmojiNormalizer(replace="[EMOJI]").normalize("안녕 😀")
+        '안녕 [EMOJI]'
+        >>> EmojiNormalizer().normalize("👨‍💻 코딩 중")  # ZWJ 시퀀스
+        ' 코딩 중'
+        >>> EmojiNormalizer().normalize("🇰🇷 한국")  # Regional indicator
+        ' 한국'
+
+    Raises:
+        ImportError: `emoji` 패키지가 설치되지 않은 경우.
+            `pip install soynlp[emoji]` 또는 `pip install emoji` 로 설치.
+    """
+
+    def __init__(self, replace: str = "") -> None:
+        try:
+            import emoji as _emoji_module  # type: ignore[import-untyped]
+
+            self._emoji = _emoji_module
+        except ImportError as e:
+            raise ImportError(
+                "EmojiNormalizer requires the `emoji` package. Install it with: pip install soynlp[emoji]"
+            ) from e
+        self.replace = replace
+
+    def normalize(self, s: str) -> str:
+        return self._emoji.replace_emoji(s, replace=self.replace)
+
+
 class RepeatCharacterNormalizer(Normalizer):
     """
     Args:
@@ -216,11 +280,13 @@ class RepeatCharacterNormalizer(Normalizer):
 
 
 class RemoveLongspaceNormalizer(Normalizer):
+    """2개 이상의 공백(탭·개행 포함)을 단일 공백으로 줄인다."""
+
     def __init__(self):
-        self.pattern = re.compile(r"[ ]{2,}")
+        self.pattern = re.compile(r"\s+")
 
     def normalize(self, s: str) -> str:
-        return self.pattern.sub("  ", s)
+        return self.pattern.sub(" ", s)
 
 
 class PaddingSpacetoWordsNormalizer(Normalizer):
@@ -319,6 +385,12 @@ def task_normalize(
     remove_repeatchar: int = 2,
     remove_longspace: bool = True,
 ):
+    """.. deprecated:: Use ``ReadTextTask`` + ``NormalizeTask`` + ``WriteTextTask`` pipeline 조합을 사용하세요."""
+    warnings.warn(
+        "`task_normalize` is deprecated. Use `ReadTextTask` + `NormalizeTask` + `WriteTextTask` pipeline instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     task_normalizer = TextNormalizer.build_normalizer(
         alphabet=alphabet,
         hangle=hangle,

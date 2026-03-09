@@ -1,7 +1,15 @@
 from soynlp.pipeline.tasks.dummy import DummyTask  # noqa F401
 from soynlp.pipeline.tasks.extract_nouns import ExtractNounTask  # noqa F401
 from soynlp.pipeline.tasks.extract_words import ExtractWordTask  # noqa F401
-from soynlp.pipeline.tasks.normalize import NormalizeTask  # noqa F401
+from soynlp.pipeline.tasks.normalize import (  # noqa F401
+    EmojiNormalizeTask,
+    HangleEmojiNormalizeTask,
+    NormalizeTask,
+    PaddingSpaceNormalizeTask,
+    PassCharacterNormalizeTask,
+    RemoveLongspaceNormalizeTask,
+    RepeatCharacterNormalizeTask,
+)
 from soynlp.pipeline.tasks.read_json import ReadJsonTask  # noqa F401
 from soynlp.pipeline.tasks.read_text import ReadTextTask  # noqa F401
 from soynlp.pipeline.tasks.task import Task  # noqa F401
@@ -17,6 +25,12 @@ __all__ = (
     "ExtractNounTask",
     "ExtractWordTask",
     "NormalizeTask",
+    "PassCharacterNormalizeTask",
+    "HangleEmojiNormalizeTask",
+    "EmojiNormalizeTask",
+    "RepeatCharacterNormalizeTask",
+    "RemoveLongspaceNormalizeTask",
+    "PaddingSpaceNormalizeTask",
     "ReadJsonTask",
     "ReadTextTask",
     "TokenizeTask",
@@ -29,6 +43,12 @@ TASK_REGISTRY: dict[str, type[Task]] = {
     "ExtractNoun": ExtractNounTask,
     "ExtractWord": ExtractWordTask,
     "Normalize": NormalizeTask,
+    "PassCharacterNormalize": PassCharacterNormalizeTask,
+    "HangleEmojiNormalize": HangleEmojiNormalizeTask,
+    "EmojiNormalize": EmojiNormalizeTask,
+    "RepeatCharacterNormalize": RepeatCharacterNormalizeTask,
+    "RemoveLongspaceNormalize": RemoveLongspaceNormalizeTask,
+    "PaddingSpaceNormalize": PaddingSpaceNormalizeTask,
     "ReadJson": ReadJsonTask,
     "ReadText": ReadTextTask,
     "Tokenize": TokenizeTask,
