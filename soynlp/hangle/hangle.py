@@ -210,6 +210,52 @@ def character_is_punctuation(c: str) -> bool:
     return i in (33, 34, 39, 44, 46, 63, 96)
 
 
+def text_to_jamo(text: str, join_jongsung: bool = True) -> str:
+    """한국어 텍스트를 자모 단위로 분해한 문자열로 변환한다.
+
+    각 완성형 한글 음절은 (초성, 중성, 종성) 세 자모로 분해된다.
+    종성이 없는 음절은 초성·중성 두 자모로만 구성된다 (기본값).
+    비한글 문자는 그대로 유지된다.
+
+    Args:
+        text: 변환할 텍스트.
+        join_jongsung: True이면 종성이 없을 때 자모를 2개만 출력한다 (기본값).
+            False이면 종성 자리에 공백(' ')을 추가하여 항상 3자모로 출력한다.
+
+    Returns:
+        자모 단위로 분해된 문자열.
+
+    Examples::
+        >>> text_to_jamo("한글")
+        'ㅎㅏㄴㄱㅡㄹ'
+
+        >>> text_to_jamo("나는")
+        'ㄴㅏㄴㅡㄴ'
+
+        >>> text_to_jamo("abc한")
+        'abcㅎㅏㄴ'
+
+        >>> text_to_jamo("가나", join_jongsung=False)
+        'ㄱㅏ ㄴㅏ '
+    """
+    chars: list[str] = []
+    for c in text:
+        result = decompose(c)
+        if result is None:
+            chars.append(c)
+        else:
+            cho, jung, jong = result
+            if cho != " ":
+                chars.append(cho)
+            if jung != " ":
+                chars.append(jung)
+            if jong != " ":
+                chars.append(jong)
+            elif not join_jongsung:
+                chars.append(" ")
+    return "".join(chars)
+
+
 class ConvolutionHangleEncoder:
     """Encode Korean characters into cho/jung/jong one-hot vectors.
 
