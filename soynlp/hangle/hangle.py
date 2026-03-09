@@ -2,14 +2,20 @@ import re
 
 import numpy as np
 
-_kor_begin = 44032
-_kor_end = 55203
-_chosung_base = 588
-_jungsung_base = 28
-_jaum_begin = 12593
-_jaum_end = 12622
-_moum_begin = 12623
-_moum_end = 12643
+# 한글 음절 유니코드 범위: U+AC00 (가) ~ U+D7A3 (힣)
+# 공식 규격: https://www.unicode.org/charts/PDF/UAC00.pdf
+# 음절 코드포인트 = _kor_begin + (초성_idx * 21 + 중성_idx) * 28 + 종성_idx
+_kor_begin = 44032  # U+AC00 '가'
+_kor_end = 55203  # U+D7A3 '힣'
+_chosung_base = 588  # 중성(21) × 종성(28) = 588
+_jungsung_base = 28  # 종성 수
+
+# 자모 유니코드 범위 (호환 자모 블록: Hangul Compatibility Jamo)
+# https://www.unicode.org/charts/PDF/U3130.pdf
+_jaum_begin = 12593  # U+3131 'ㄱ'
+_jaum_end = 12622  # U+314E 'ㅎ'
+_moum_begin = 12623  # U+314F 'ㅏ'
+_moum_end = 12643  # U+3163 'ㅣ'
 
 chosung_list = [
     "ㄱ",
