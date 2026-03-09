@@ -216,11 +216,13 @@ class RepeatCharacterNormalizer(Normalizer):
 
 
 class RemoveLongspaceNormalizer(Normalizer):
+    """2개 이상의 공백(탭·개행 포함)을 단일 공백으로 줄인다."""
+
     def __init__(self):
-        self.pattern = re.compile(r"[ ]{2,}")
+        self.pattern = re.compile(r"\s+")
 
     def normalize(self, s: str) -> str:
-        return self.pattern.sub("  ", s)
+        return self.pattern.sub(" ", s)
 
 
 class PaddingSpacetoWordsNormalizer(Normalizer):
