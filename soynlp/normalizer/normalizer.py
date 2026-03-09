@@ -2,12 +2,11 @@ import logging
 import os
 import re
 import unicodedata
+import warnings
 from collections.abc import Callable
 from glob import glob
 
 from tqdm import tqdm
-
-from soynlp.hangle import compose, decompose
 
 logger = logging.getLogger(__name__)
 
@@ -58,42 +57,23 @@ def repeat_normalize(sent: str, num_repeats: int = 2) -> str:
 
 
 def emoticon_normalize(sent: str, num_repeats: int = 2) -> str:
-    if not sent:
-        return sent
+    """한국어 자모-음절 혼합 이모티콘을 정규화한다.
 
-    def _char_type(idx: int) -> int:
-        if 12593 <= idx <= 12622:
-            return 0  # Jaum
-        elif 12623 <= idx <= 12643:
-            return 1  # Moum
-        elif 44032 <= idx <= 55203:
-            return 2  # Complete
-        return -1
+    .. deprecated::
+        `emoticon_normalize`는 deprecated입니다.
+        `HangleEmojiNormalizer`와 `RepeatCharacterNormalizer`를 조합하여 사용하세요.
 
-    idxs = [_char_type(ord(c)) for c in sent]
-    sent_ = []
-    last_idx = len(idxs) - 1
-    for i, (idx, c) in enumerate(zip(idxs, sent)):
-        if (0 < i < last_idx) and (idxs[i - 1] == 0 and idx == 2 and idxs[i + 1] == 1):
-            cho, jung, jong = decompose(c)  # type: ignore[misc]
-            if (cho == sent[i - 1]) and (jung == sent[i + 1]) and (jong == " "):
-                sent_.append(cho)
-                sent_.append(jung)
-            else:
-                sent_.append(c)
-        elif (i < last_idx) and (idx == 2) and (idxs[i + 1] == 0):
-            cho, jung, jong = decompose(c)  # type: ignore[misc]
-            if jong == sent[i + 1]:
-                sent_.append(compose(cho, jung, " "))
-                sent_.append(jong)
-        elif (i > 0) and (idx == 2 and idxs[i - 1] == 0):
-            cho, jung, jong = decompose(c)  # type: ignore[misc]
-            if cho == sent[i - 1]:
-                sent_.append(cho)
-                sent_.append(jung)
-        else:
-            sent_.append(c)
-    return repeat_normalize("".join(sent_), num_repeats)
+        기존 구현은 완성형 음절 뒤에 자음이 오면서 종성 조건이 불일치할 때
+        해당 음절을 묵소 삭제하는 버그가 있었습니다. (예: 'ㅋ크ㅋ' → 'ㅋㅋ')
+        `HangleEmojiNormalizer`는 이 케이스를 올바르게 처리합니다.
+    """
+    warnings.warn(
+        "`emoticon_normalize` is deprecated. Use `HangleEmojiNormalizer` and `RepeatCharacterNormalizer` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    normalized = HangleEmojiNormalizer().normalize(sent)
+    return repeat_normalize(normalized, num_repeats)
 
 
 def only_hangle(sent: str) -> str:

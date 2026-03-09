@@ -1,3 +1,5 @@
+import warnings
+
 from soynlp.normalizer.normalizer import (
     HangleEmojiNormalizer,
     PaddingSpacetoWordsNormalizer,
@@ -5,6 +7,7 @@ from soynlp.normalizer.normalizer import (
     RemoveLongspaceNormalizer,
     RepeatCharacterNormalizer,
     TextNormalizer,
+    emoticon_normalize,
     text_normalizer,
 )
 
@@ -87,6 +90,26 @@ def test_normalizer_builder():
         normalizer("soynlp의 주소는 https://github.com/lovit/soynlp/ 입니다.")
         == "soynlp의 주소는 https://github.com/lovit/soynlp/ 입니다."
     )
+
+
+def test_emoticon_normalize_deprecated():
+    """emoticon_normalize는 deprecated이며 HangleEmojiNormalizer와 동일 결과를 반환한다."""
+    s = "어머나 ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ 하하"
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        result = emoticon_normalize(s, num_repeats=2)
+        assert len(w) == 1
+        assert issubclass(w[0].category, DeprecationWarning)
+        assert "deprecated" in str(w[0].message).lower()
+
+    expected = RepeatCharacterNormalizer(max_repeat=2)(HangleEmojiNormalizer()(s))
+    assert result == expected
+
+    # 기존 구현의 버그: 'ㅋ크ㅋ' → 'ㅋㅋ' (크가 묵소 삭제됨)
+    # HangleEmojiNormalizer는 이를 올바르게 처리: 'ㅋ크ㅋ' → 'ㅋ크ㅋ' (변경 없음)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        assert emoticon_normalize("ㅋ크ㅋ", num_repeats=0) == "ㅋ크ㅋ"
 
 
 def test_default_text_normalizer():
