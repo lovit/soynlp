@@ -89,7 +89,7 @@ def expand_suffix_nouns(
             candidate = noun + suffix
             if candidate in nouns or candidate in added:
                 continue
-            freq = sum(lrgraph._lr_origin.get(candidate, {}).values())
+            freq = lrgraph.get_total_frequency(candidate)
             if freq >= min_noun_frequency:
                 added[candidate] = (freq, 1.0)
         if len(noun) >= 2:
@@ -97,7 +97,7 @@ def expand_suffix_nouns(
                 candidate = noun + suffix
                 if candidate in nouns or candidate in added:
                     continue
-                freq = sum(lrgraph._lr_origin.get(candidate, {}).values())
+                freq = lrgraph.get_total_frequency(candidate)
                 if freq >= min_noun_frequency:
                     added[candidate] = (freq, 1.0)
     return {**nouns, **added}
@@ -120,7 +120,7 @@ def check_N_is_NJ(
                 or score[0] >= nouns[l][0]  # L 의 명사 빈도수가 더 작으면
             ):
                 continue
-            features = lrgraph._lr_origin.get(l, {})
+            features = lrgraph.get_original_r(l)
             features = [r for r in features if r in josaset]
             n_josa = len(features)
             if n_josa >= min_num_of_josa:

@@ -114,6 +114,18 @@ class LRGraph:
             sorted_L_freq = sorted_L_freq[:topk]
         return sorted_L_freq
 
+    def get_total_frequency(self, word: str) -> int:
+        """Return the total corpus frequency of `word` (sum over all R parts in the original graph)."""
+        return sum(self._lr_origin.get(word, {}).values())
+
+    def get_original_r(self, word: str) -> dict[str, int]:
+        """Return the original R-frequency dict for `word` (before any compound extraction edits)."""
+        return dict(self._lr_origin.get(word, {}))
+
+    def iter_original_lr(self):
+        """Yield (L, R_freq_dict) pairs from the original (frozen) L-R graph."""
+        yield from self._lr_origin.items()
+
     def freeze(self) -> None:
         """Freeze current L-R graph state into _lr_origin via deepcopy."""
         self._lr_origin = copy.deepcopy(self._lr)
