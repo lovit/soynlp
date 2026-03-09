@@ -32,6 +32,12 @@ class BaseTagger:
         self.dictionary = generator.dictionary
         self.postprocessor = postprocessor
 
+    def __repr__(self) -> str:
+        generator_type = type(self.generator).__name__
+        evaluator_type = type(self.evaluator).__name__
+        postprocessor_type = type(self.postprocessor).__name__ if self.postprocessor else None
+        return f"{type(self).__name__}(generator={generator_type}, evaluator={evaluator_type}, postprocessor={postprocessor_type})"
+
     def tag(self, sentence: str, flatten: bool = True, debug: bool = False) -> list | tuple[list, list]:
         raise NotImplementedError
 
