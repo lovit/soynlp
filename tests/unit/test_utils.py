@@ -235,3 +235,35 @@ def test_corpus_loader_with_eojeol_counter(jsonl_file):
     counter = EojeolCounter(sents=loader)
     assert counter["이것은"] == 1
     assert counter["예문입니다"] == 1
+
+
+# --- EojeolCounter multiprocessing tests ---
+
+_MULTI_SENTS = [
+    "아이오아이가 평가단에게 높은 점수를 받았습니다",
+    "아이오아이는 아이돌 그룹입니다",
+    "자연어처리는 어렵습니다",
+    "자연어처리를 공부합니다",
+    "명사추출은 중요한 작업입니다",
+] * 100
+
+
+def test_eojeol_counter_multi_equals_single():
+    """n_workers=4 결과가 단일 프로세스 결과와 동일하다."""
+    single = EojeolCounter(sents=_MULTI_SENTS, n_workers=1)
+    multi = EojeolCounter(sents=_MULTI_SENTS, n_workers=4)
+    assert dict(single.items()) == dict(multi.items())
+
+
+def test_eojeol_counter_auto_workers():
+    """n_workers=-1이면 CPU 코어 수를 자동 사용한다."""
+    single = EojeolCounter(sents=_MULTI_SENTS, n_workers=1)
+    auto = EojeolCounter(sents=_MULTI_SENTS, n_workers=-1)
+    assert dict(single.items()) == dict(auto.items())
+
+
+def test_eojeol_counter_multi_with_min_count():
+    """n_workers > 1일 때 min_count 필터가 올바르게 적용된다."""
+    single = EojeolCounter(sents=_MULTI_SENTS, min_count=5, n_workers=1)
+    multi = EojeolCounter(sents=_MULTI_SENTS, min_count=5, n_workers=4)
+    assert dict(single.items()) == dict(multi.items())
