@@ -1,5 +1,37 @@
 import json
 import os
+from typing import Protocol, runtime_checkable
+
+
+@runtime_checkable
+class DictionaryProtocol(Protocol):
+    """커스텀 사전 주입을 위한 인터페이스.
+
+    이 프로토콜을 구현하면 `EojeolTemplateMatcher`, `LRTemplateMatcher` 등에
+    도메인 특화 사전을 주입할 수 있다.
+
+    Example:
+        >>> class MyMedicalDictionary:
+        ...     max_length = 10
+        ...
+        ...     def get_pos(self, word: str) -> list[str]:
+        ...         return ["Noun"] if word in {"암", "세포", "항체"} else []
+        ...
+        ...     def word_is_tag(self, word: str, tag: str) -> bool:
+        ...         return tag == "Noun" and word in {"암", "세포", "항체"}
+        ...
+        >>> matcher = EojeolTemplateMatcher(MyMedicalDictionary())
+    """
+
+    max_length: int
+
+    def get_pos(self, word: str) -> list[str]:
+        """단어의 품사 태그 목록을 반환한다."""
+        ...
+
+    def word_is_tag(self, word: str, tag: str) -> bool:
+        """단어가 주어진 품사 태그에 해당하는지 반환한다."""
+        ...
 
 
 class Dictionary:

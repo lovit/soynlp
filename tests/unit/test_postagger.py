@@ -5,6 +5,7 @@ import pytest
 from soynlp.postagger import (
     LR,
     Dictionary,
+    DictionaryProtocol,
     EojeolTemplateMatcher,
     MorphTag,
     POSExtractor,
@@ -179,3 +180,35 @@ class TestPOSExtractorRepr:
     def test_is_trained_initially_false(self):
         extractor = POSExtractor()
         assert extractor.is_trained is False
+
+
+class TestDictionaryProtocol:
+    def test_dictionary_satisfies_protocol(self, sample_dict):
+        assert isinstance(sample_dict, DictionaryProtocol)
+
+    def test_custom_dictionary_satisfies_protocol(self):
+        class MyDict:
+            max_length = 5
+
+            def get_pos(self, word: str) -> list[str]:
+                return ["Noun"] if word == "사과" else []
+
+            def word_is_tag(self, word: str, tag: str) -> bool:
+                return tag == "Noun" and word == "사과"
+
+        my_dict = MyDict()
+        assert isinstance(my_dict, DictionaryProtocol)
+
+    def test_custom_dictionary_usable_in_template(self):
+        class MinimalDict:
+            max_length = 5
+
+            def get_pos(self, word: str) -> list[str]:
+                return ["Noun"] if word in {"사과", "배"} else []
+
+            def word_is_tag(self, word: str, tag: str) -> bool:
+                return tag == "Noun" and word in {"사과", "배"}
+
+        matcher = EojeolTemplateMatcher(MinimalDict())
+        candidates = matcher.generate("사과")
+        assert len(candidates) >= 1
