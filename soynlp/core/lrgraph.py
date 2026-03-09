@@ -44,6 +44,20 @@ class LRGraph:
     def from_sents(
         cls, sents: Iterable[str], max_l_length: int = 10, max_r_length: int = 9, verbose: bool = False
     ) -> "LRGraph":
+        """문장 이터러블로부터 LRGraph를 구축한다.
+
+        각 문장을 공백으로 분리하여 어절을 얻고, 어절을 모든 가능한 (L, R) 쌍으로 분해하여
+        빈도를 집계한다. L 길이는 `max_l_length`, R 길이는 `max_r_length`로 제한된다.
+
+        Args:
+            sents: 학습할 문장 이터러블. `Sized`이면 tqdm 진행률 표시에 전체 개수가 사용된다.
+            max_l_length: L 부분의 최대 길이.
+            max_r_length: R 부분의 최대 길이.
+            verbose: True이면 tqdm으로 진행 상황을 출력한다.
+
+        Returns:
+            구축된 LRGraph 인스턴스.
+        """
         if verbose:
             from tqdm import tqdm
 
@@ -64,6 +78,11 @@ class LRGraph:
         return cls(lrgraph_dict, max_l_length, max_r_length)
 
     def reset_lrgraph(self) -> None:
+        """LRGraph를 초기 상태(_lr_origin)로 복원한다.
+
+        명사 추출 과정에서 `remove_lr_pair()` 등으로 수정된 _lr과 _rl을
+        `_lr_origin` 스냅숏으로부터 재구축한다. _lr_origin이 비어 있으면 아무 것도 하지 않는다.
+        """
         if not self._lr_origin:
             return
         self._lr, self._rl = self._to_bidirectional_graph(
@@ -71,6 +90,16 @@ class LRGraph:
         )
 
     def add_lr_pair(self, L: str, R: str, frequency: int = 1) -> None:
+        """(L, R) 쌍의 빈도를 `frequency`만큼 증가시킨다.
+
+        L 또는 R의 길이가 각각 `max_l_length`, `max_r_length`를 초과하면 무시한다.
+        R이 빈 문자열이면 _rl은 갱신하지 않는다.
+
+        Args:
+            L: L 부분 문자열.
+            R: R 부분 문자열 (빈 문자열 허용).
+            frequency: 더할 빈도 값 (기본값 1).
+        """
         if (len(L) > self.max_l_length) or (len(R) > self.max_r_length):
             return
         self._lr.setdefault(L, {})[R] = self._lr.get(L, {}).get(R, 0) + frequency
@@ -106,12 +135,30 @@ class LRGraph:
             self.remove_lr_pair(L, R, frequency)
 
     def get_r(self, L: str, topk: int = 10) -> list[tuple[str, int]]:
+        """주어진 L에 대해 빈도 내림차순으로 (R, frequency) 쌍을 반환한다.
+
+        Args:
+            L: 조회할 L 부분 문자열.
+            topk: 반환할 최대 항목 수. 0 이하이면 전체를 반환한다.
+
+        Returns:
+            [(R, frequency), ...] 형태의 리스트 (빈도 내림차순).
+        """
         sorted_R_freq = sorted(self._lr.get(L, {}).items(), key=lambda R_freq: -R_freq[1])
         if topk > 0:
             sorted_R_freq = sorted_R_freq[:topk]
         return sorted_R_freq
 
     def get_l(self, R: str, topk: int = 10) -> list[tuple[str, int]]:
+        """주어진 R에 대해 빈도 내림차순으로 (L, frequency) 쌍을 반환한다.
+
+        Args:
+            R: 조회할 R 부분 문자열.
+            topk: 반환할 최대 항목 수. 0 이하이면 전체를 반환한다.
+
+        Returns:
+            [(L, frequency), ...] 형태의 리스트 (빈도 내림차순).
+        """
         sorted_L_freq = sorted(self._rl.get(R, {}).items(), key=lambda L_freq: -L_freq[1])
         if topk > 0:
             sorted_L_freq = sorted_L_freq[:topk]

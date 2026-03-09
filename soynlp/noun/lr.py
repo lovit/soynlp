@@ -473,6 +473,25 @@ def train_lrgraph(
     verbose: bool,
     n_workers: int = 1,
 ) -> LRGraph:
+    """학습 데이터로부터 LRGraph를 구축하여 반환한다.
+
+    입력 타입에 따라 적절한 변환 경로를 선택한다:
+    - `LRGraph` → 그대로 반환
+    - `EojeolCounter` → `to_lrgraph()`로 변환
+    - `str` (파일 경로) → `CorpusLoader`로 읽은 뒤 `EojeolCounter`를 거쳐 변환
+    - `list[str]` / `CorpusLoader` → `EojeolCounter` 또는 병렬 `corpus_to_lrgraph`로 변환
+
+    Args:
+        train_data: 학습 입력. 파일 경로, 문장 리스트, CorpusLoader, EojeolCounter, LRGraph 중 하나.
+        min_eojeol_frequency: 어절 최소 출현 횟수. 이 값 미만의 어절은 LRGraph에서 제외된다.
+        max_l_length: L 부분의 최대 길이.
+        max_r_length: R 부분의 최대 길이.
+        verbose: True이면 진행 상황을 출력한다.
+        n_workers: 병렬 처리에 사용할 워커 수. 1이면 단일 프로세스로 실행한다.
+
+    Returns:
+        구축된 LRGraph.
+    """
     from soynlp.core import corpus_to_lrgraph
 
     if isinstance(train_data, LRGraph):
@@ -531,6 +550,23 @@ def prepare_noun_candidates(
     exclude_numbers: bool = True,
     custom_exclude_function: Callable[[str], bool] | None = None,
 ) -> set[str]:
+    """LRGraph에서 명사 후보를 추출한다.
+
+    긍정 특징(pos_features, 조사 등)의 왼쪽(L)에 등장한 어절을 명사 후보로 수집한다.
+    각 후보의 긍정 특징 동시출현 빈도 합이 `min_noun_frequency` 이상인 것만 반환한다.
+
+    Args:
+        lrgraph: 구축된 LRGraph.
+        pos_features: 긍정 특징 집합 (조사, 명사 접미사 등).
+        min_noun_frequency: 후보의 최소 출현 빈도.
+        exclude_syllables: True이면 1음절 후보를 제외한다.
+        exclude_numbers: True이면 숫자로만 이루어진 후보를 제외한다.
+        custom_exclude_function: 추가 제외 조건. 단어를 받아 True를 반환하면 제외된다.
+
+    Returns:
+        명사 후보 단어 집합.
+    """
+
     def is_number(word: str) -> bool:
         return number_pattern.sub("", word) == ""
 
@@ -567,16 +603,30 @@ def longer_first_prediction(
     verbose: bool,
     n_workers: int = 1,
 ) -> dict[str, tuple[int, float]]:
-    """Predict noun scores for all candidates in longer-first order.
+    """긴 후보부터 명사 여부를 판별하고 LRGraph를 갱신하며 점수를 반환한다.
 
-    When n_workers > 1, scoring is parallelized using a frozen LRGraph snapshot.
-    The sequential LRGraph modification (removing confirmed noun eojeols) is then
-    applied in a single pass after all scores are gathered.
+    명사로 판정된 단어 L에 대해 `L + R` 형태의 모든 어절을 LRGraph에서 제거한다.
+    이렇게 하면 더 짧은 L의 R 분포에서 긴 명사 형태가 제거되어 정확도가 높아진다.
+    예: '아이디어'가 명사로 판정되면 '아이디'의 R에서 '어'가 제거되어
+    '아이디'도 명사로 판별될 수 있다.
 
-    Trade-off with n_workers > 1: shorter candidates are scored on the original
-    LRGraph without the benefit of longer nouns having been removed first. This
-    may cause minor score differences compared to the sequential (n_workers=1) path.
-    Use n_workers=1 for exact results.
+    n_workers > 1이면 LRGraph 스냅숏을 병렬로 스코어링하므로,
+    순차 방식(n_workers=1)보다 빠르지만 단계적 제거 효과가 없어 점수가 미세하게 달라질 수 있다.
+
+    Args:
+        candidates: 명사 후보 단어 집합.
+        lrgraph: 구축된 LRGraph (순차 모드에서는 인플레이스로 수정된다).
+        pos_features: 긍정 특징 집합.
+        neg_features: 부정 특징 집합.
+        common_features: 긍정·부정 양쪽에 속하는 공통 특징 집합.
+        min_noun_score: 이 값 미만의 점수는 명사로 인정하지 않는다.
+        min_num_of_features: 이 수 미만의 활성 특징이 있으면 명사로 인정하지 않는다.
+        min_eojeol_is_noun_frequency: 어절 단독 출현이 이 수 이상이면 명사로 판정한다.
+        verbose: True이면 진행 상황을 tqdm으로 출력한다.
+        n_workers: 병렬 처리 워커 수. 1이면 순차 실행.
+
+    Returns:
+        {word: (frequency, score)} 형태의 dict.
     """
     sorted_candidates = sorted(candidates, key=lambda x: -len(x))
 
