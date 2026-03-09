@@ -67,7 +67,7 @@ class RegexTokenizer:
             re.compile(r"[가-힣]+", re.UNICODE),  # Korean
             re.compile(r"[ㄱ-ㅎ]+", re.UNICODE),  # jaum
             re.compile(r"[ㅏ-ㅣ]+", re.UNICODE),  # moum
-            re.compile(r"[a-zA-ZÀ-ÿ]+[[`']{1,1}s]*|[a-zA-ZÀ-ÿ]+", re.UNICODE),  # Alphabet
+            re.compile(r"[a-zA-ZÀ-ÿ]+(?:[`']s)?", re.UNICODE),  # Alphabet (optional 's possessive)
         ]
 
     def __call__(self, sentence, return_words=True):
