@@ -145,6 +145,7 @@ class LRNounExtractor:
         exclude_syllables: bool = False,
         exclude_numbers: bool = True,
         custom_exclude_function: Callable[[str], bool] | None = None,
+        postprocessing_nj: bool = True,
         n_workers: int = 1,
     ) -> dict[str, NounScore]:
         """Extract nouns from `train_data` or trained L-R graph
@@ -193,6 +194,12 @@ class LRNounExtractor:
                        '아이돌그룹': NounScore(frequency=16, score=1.0),
                        '아이덴티티': NounScore(frequency=25, score=1.0),
                          ... }
+
+            postprocessing_nj (bool) :
+                If True (default), applies the `check_N_is_NJ` postprocessing step which
+                removes `Noun+조사` patterns when the base noun has higher frequency.
+                Set to False to keep `Noun+조사` candidates (e.g., when you need to
+                preserve words like '천불이' alongside '천불').
 
         Returns:
             nouns ({str: NounScore}) : {word: NounScore}
@@ -257,7 +264,7 @@ class LRNounExtractor:
 
         features_to_be_detached = {r for r in self.pos}
         features_to_be_detached.update(self.common)
-        nouns = postprocessing(nouns, lrgraph, features_to_be_detached, min_noun_score, self.verbose)
+        nouns = postprocessing(nouns, lrgraph, features_to_be_detached, min_noun_score, self.verbose, postprocessing_nj)
 
         lrgraph.reset_lrgraph()
         self.nouns = {noun: NounScore(frequency, score) for noun, (frequency, score) in nouns.items()}
@@ -833,6 +840,7 @@ def postprocessing(
     features_to_be_detached: set[str],
     min_noun_score: float,
     verbose: bool,
+    postprocessing_nj: bool = True,
 ) -> dict[str, tuple[int, float]]:
     num_before = len(nouns)
     nouns, removals = detaching_features(nouns, features_to_be_detached)
@@ -842,8 +850,9 @@ def postprocessing(
     nouns, removals = ignore_features(nouns, features_to_be_detached)
     logger.info(f"postprocessing: ignore_features: {num_before} -> {len(nouns)}")
 
-    num_before = len(nouns)
-    nouns, removals = check_N_is_NJ(nouns, lrgraph)
-    logger.info(f"postprocessing: check_N_is_NJ: {num_before} -> {len(nouns)}")
+    if postprocessing_nj:
+        num_before = len(nouns)
+        nouns, removals = check_N_is_NJ(nouns, lrgraph)
+        logger.info(f"postprocessing: check_N_is_NJ: {num_before} -> {len(nouns)}")
 
     return nouns
