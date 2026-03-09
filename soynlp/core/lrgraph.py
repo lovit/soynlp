@@ -135,6 +135,8 @@ class LRGraph:
             R_freq: dict[str, int] = {}
             for line in file:
                 sep = line.split()
+                if not sep:
+                    continue
                 if not (sep[0] == L):
                     if R_freq:
                         lr_data[L] = R_freq

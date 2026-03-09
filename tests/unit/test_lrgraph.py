@@ -85,6 +85,20 @@ class TestLRGraph:
             loaded = LRGraph.load(path)
             assert dict(loaded.get_r("이것", topk=-1)) == {"은": 2, "도": 1, "": 3}
 
+    def test_load_tolerates_blank_lines(self):
+        """파일에 빈 줄이 있어도 IndexError 없이 로드된다."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "lrgraph.txt")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("이것 은 2\n")
+                f.write("\n")  # 빈 줄
+                f.write("이것 도 1\n")
+                f.write("   \n")  # 공백만 있는 줄
+            loaded = LRGraph.load(path)
+            r_items = dict(loaded.get_r("이것", topk=-1))
+            assert r_items["은"] == 2
+            assert r_items["도"] == 1
+
     def test_from_sents(self):
         sents = ["이것은 예문 입니다", "이것도 예문 입니다"]
         lrgraph = LRGraph.from_sents(sents)
