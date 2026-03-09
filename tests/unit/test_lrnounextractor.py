@@ -190,3 +190,42 @@ class TestInjectKnownNouns:
         lrgraph = self._make_lrgraph([])
         result = _inject_known_nouns(nouns, set(), lrgraph, min_noun_frequency=1)
         assert result == nouns
+
+
+class TestCompoundMinNounScoreFilter:
+    """compound 추출 시 min_noun_score 필터링이 적용됨을 검증한다."""
+
+    def test_compounds_below_min_score_excluded(self):
+        """min_noun_score 미만인 compound는 nouns에 추가되지 않는다."""
+        min_noun_score = 0.3
+        nouns: dict[str, tuple[int, float]] = {"학교": (100, 0.9)}
+        compounds: dict[str, tuple[int, float]] = {
+            "서울대학교": (50, 0.8),  # min_noun_score 이상 → 포함
+            "어떤복합어": (30, 0.2),  # min_noun_score 미만 → 제외
+            "경계복합어": (20, 0.3),  # 정확히 min_noun_score → 포함 (>= 조건)
+        }
+        nouns.update({noun: (freq, sc) for noun, (freq, sc) in compounds.items() if sc >= min_noun_score})
+
+        assert "서울대학교" in nouns
+        assert "경계복합어" in nouns
+        assert "어떤복합어" not in nouns
+
+    def test_all_compounds_pass_min_score_threshold(self):
+        """extract_compounds_func 이 반환한 compounds 는 항상 min_noun_score 이상이다."""
+        from soynlp.noun.lr import extract_compounds_func
+
+        pos_features = {"는", "의", "를", "이", "가", "에"}
+        # 서울(0.9), 대학교(0.8) → compound 서울대학교 추출
+        noun_scores: dict[str, tuple[int, float]] = {
+            "서울": (100, 0.9),
+            "대학교": (80, 0.8),
+        }
+        # 서울대학교가 eojeol 로 등장하는 그래프
+        sents = ["서울대학교는 유명하다"] * 10
+        lrgraph = LRGraph.from_sents(sents)
+
+        min_noun_score = 0.3
+        compounds, _, _ = extract_compounds_func(lrgraph, noun_scores, 1, min_noun_score, pos_features, False)
+        filtered = {noun: score for noun, score in compounds.items() if score[1] >= min_noun_score}
+
+        assert set(compounds.keys()) == set(filtered.keys()), "필터 전후 compound 집합이 달라지면 안 됨"

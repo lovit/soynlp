@@ -268,7 +268,7 @@ class LRNounExtractor:
         if extract_compounds:
             returns = extract_compounds_func(lrgraph, nouns, min_noun_frequency, min_noun_score, self.pos, self.verbose)
             compounds, self.compounds_components, self.compound_decomposer = returns
-            nouns.update(compounds)
+            nouns.update({noun: score for noun, score in compounds.items() if score[1] >= min_noun_score})
 
         features_to_be_detached = {r for r in self.pos}
         features_to_be_detached.update(self.common)
