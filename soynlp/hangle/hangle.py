@@ -151,15 +151,19 @@ moum_list = [
     "ㅣ",
 ]
 
+_chosung_to_idx: dict[str, int] = {c: i for i, c in enumerate(chosung_list)}
+_jungsung_to_idx: dict[str, int] = {c: i for i, c in enumerate(jungsung_list)}
+_jongsung_to_idx: dict[str, int] = {c: i for i, c in enumerate(jongsung_list)}
+
 _doublespace_pattern = re.compile(r"\s+")
 
 
 def compose(chosung: str, jungsung: str, jongsung: str) -> str:
     return chr(
         _kor_begin
-        + _chosung_base * chosung_list.index(chosung)
-        + _jungsung_base * jungsung_list.index(jungsung)
-        + jongsung_list.index(jongsung)
+        + _chosung_base * _chosung_to_idx[chosung]
+        + _jungsung_base * _jungsung_to_idx[jungsung]
+        + _jongsung_to_idx[jongsung]
     )
 
 
