@@ -307,7 +307,7 @@ class LRNounExtractor:
             $ None
         """
         if self.compound_decomposer is None:
-            raise ValueError("[LRNounExtractor] retrain using `extract(extract_compounds=True)` first")
+            raise ValueError("Compound decomposer is not available. Call `extract(extract_compounds=True)` first.")
         tokens = self.compound_decomposer.tokenize(compound)
         for token in tokens:
             if token not in self.nouns:
@@ -375,7 +375,7 @@ class LRNounExtractor:
         """
         if word_features is None:
             if self.lrgraph is None:
-                raise ValueError("Train LRNounExtractor first")
+                raise ValueError("LRGraph is not available. Call `extract(train_data)` first.")
             word_features = self.lrgraph.get_r(word, -1)
 
         support, score = predict_single_noun(
@@ -413,7 +413,7 @@ class LRNounExtractor:
                 $ ['네이버', '뉴스', '기사', '이용', '학습', '모델', '예시']
         """
         if not self.is_trained or self.nouns is None:
-            raise RuntimeError("Train LRNounExtractor first. LRNounExtractor().extract(train-data)")
+            raise RuntimeError("Noun extractor is not trained. Call `extract(train_data)` first.")
         noun_scores = {noun: score.score for noun, score in self.nouns.items()}
         return NounMatchTokenizer(noun_scores)
 
