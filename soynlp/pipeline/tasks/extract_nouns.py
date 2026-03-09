@@ -17,6 +17,7 @@ class ExtractNounTaskArgs(TaskArgs):
     exclude_syllables: bool = False
     exclude_numbers: bool = True
     postprocessing_nj: bool = True
+    expand_suffixes: bool = True
     verbose: bool = True
     positive_features: str | set | None = None
     negative_features: str | set | None = None
@@ -53,6 +54,7 @@ class ExtractNounTask(Task[ExtractNounTaskArgs]):
             exclude_syllables=self._args.exclude_syllables,
             exclude_numbers=self._args.exclude_numbers,
             postprocessing_nj=self._args.postprocessing_nj,
+            expand_suffixes=self._args.expand_suffixes,
             known_nouns=set(self._args.known_nouns) if self._args.known_nouns else None,
             n_workers=self._args.n_workers,
         )
