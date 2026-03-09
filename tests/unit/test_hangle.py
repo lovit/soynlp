@@ -15,6 +15,7 @@ from soynlp.hangle import (
     jaccard_distance,
     jamo_levenshtein,
     levenshtein,
+    text_to_jamo,
     to_base,
 )
 
@@ -142,6 +143,36 @@ class TestJaccardDistance:
 
     def test_empty(self):
         assert jaccard_distance("", "abc") == 1
+
+
+class TestTextToJamo:
+    def test_with_jongsung(self):
+        assert text_to_jamo("한글") == "ㅎㅏㄴㄱㅡㄹ"
+
+    def test_without_jongsung(self):
+        assert text_to_jamo("나는") == "ㄴㅏㄴㅡㄴ"
+
+    def test_non_korean_preserved(self):
+        result = text_to_jamo("abc한")
+        assert result == "abcㅎㅏㄴ"
+
+    def test_space_preserved(self):
+        result = text_to_jamo("한 글")
+        assert " " in result
+
+    def test_join_jongsung_false(self):
+        # 종성 없는 음절은 공백 포함 3자모
+        result = text_to_jamo("가나", join_jongsung=False)
+        assert result == "ㄱㅏ ㄴㅏ "
+
+    def test_mixed_jongsung(self):
+        # '한'(종성ㄴ) + '가'(종성없음) — join_jongsung=False 시 길이 체크
+        result = text_to_jamo("한가", join_jongsung=False)
+        # '한' → ㅎㅏㄴ (3), '가' → ㄱㅏ  (3, 마지막 공백)
+        assert len(result) == 6
+
+    def test_empty(self):
+        assert text_to_jamo("") == ""
 
 
 class TestConvolutionHangleEncoder:

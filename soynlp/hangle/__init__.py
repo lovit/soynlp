@@ -15,12 +15,14 @@ from .hangle import (
     jongsung_list,
     jungsung_list,
     moum_list,
+    text_to_jamo,
     to_base,
 )
 
 __all__ = [
     "compose",
     "decompose",
+    "text_to_jamo",
     "character_is_korean",
     "character_is_complete_korean",
     "character_is_jaum",
