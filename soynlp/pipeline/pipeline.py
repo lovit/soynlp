@@ -10,7 +10,13 @@ class Pipeline:
         parameters: dict = {}
 
         for task in tasks:
-            parameters |= task(parameters)
+            result = task(parameters)
+            if not isinstance(result, dict):
+                raise TypeError(
+                    f"Task {type(task).__name__!r} returned {type(result).__name__!r}, expected dict. "
+                    "All Task.__call__() implementations must return a dict."
+                )
+            parameters |= result
         return parameters
 
     def _load_tasks(self, config: Config) -> list[Task]:
