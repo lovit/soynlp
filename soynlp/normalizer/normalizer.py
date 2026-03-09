@@ -385,6 +385,12 @@ def task_normalize(
     remove_repeatchar: int = 2,
     remove_longspace: bool = True,
 ):
+    """.. deprecated:: Use ``ReadTextTask`` + ``NormalizeTask`` + ``WriteTextTask`` pipeline 조합을 사용하세요."""
+    warnings.warn(
+        "`task_normalize` is deprecated. Use `ReadTextTask` + `NormalizeTask` + `WriteTextTask` pipeline instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     task_normalizer = TextNormalizer.build_normalizer(
         alphabet=alphabet,
         hangle=hangle,
