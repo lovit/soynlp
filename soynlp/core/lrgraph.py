@@ -18,9 +18,9 @@ class LRGraph:
 
     def __init__(self, lrgraph: dict[str, dict[str, int]], max_l_length: int = 10, max_r_length: int = 9):
         if not (isinstance(max_l_length, int) and max_l_length > 1):
-            raise ValueError(f"`max_l_length` must be an integer greater than 1, got {max_l_length}")
+            raise ValueError(f"`max_l_length` must be an integer greater than 1 (typical value is 10), got {max_l_length!r}")
         if not (isinstance(max_r_length, int) and max_r_length > 0):
-            raise ValueError(f"`max_r_length` must be a positive integer, got {max_r_length}")
+            raise ValueError(f"`max_r_length` must be a positive integer (typical value is 9), got {max_r_length!r}")
         self.max_l_length = max_l_length
         self.max_r_length = max_r_length
         self._lr, self._rl = self._to_bidirectional_graph(lrgraph)
