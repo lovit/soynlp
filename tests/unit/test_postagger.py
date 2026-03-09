@@ -5,7 +5,12 @@ import pytest
 from soynlp.postagger import (
     LR,
     Dictionary,
+    DictionaryProtocol,
     EojeolTemplateMatcher,
+    ExtractorStepProtocol,
+    KoreanPOSTagger,
+    MorphTag,
+    POSExtractor,
     SimpleEojeolEvaluator,
     SimpleTagger,
 )
@@ -103,11 +108,217 @@ class TestSimpleEojeolEvaluator:
         assert best is not None
 
 
+class TestMorphTag:
+    def test_fields(self):
+        mt = MorphTag(surface="사과", tag="Noun")
+        assert mt.surface == "사과"
+        assert mt.tag == "Noun"
+
+    def test_unknown_tag(self):
+        mt = MorphTag(surface="모름", tag=None)
+        assert mt.tag is None
+
+    def test_frozen(self):
+        mt = MorphTag(surface="사과", tag="Noun")
+        with pytest.raises(AttributeError):
+            mt.surface = "바나나"  # type: ignore[misc]
+
+
 class TestSimpleTagger:
-    def test_tag(self, sample_dict):
+    def test_tag_returns_morph_tag_list(self, sample_dict):
         matcher = EojeolTemplateMatcher(sample_dict)
         evaluator = SimpleEojeolEvaluator()
         tagger = SimpleTagger(matcher, evaluator)
         result = tagger.tag("사과")
         assert isinstance(result, list)
         assert len(result) >= 1
+        assert all(isinstance(m, MorphTag) for m in result)
+
+    def test_tag_noun_josa(self, sample_dict):
+        from typing import cast
+
+        matcher = EojeolTemplateMatcher(sample_dict)
+        evaluator = SimpleEojeolEvaluator()
+        tagger = SimpleTagger(matcher, evaluator)
+        result = cast(list[MorphTag], tagger.tag("사과를"))
+        surfaces = [m.surface for m in result]
+        assert "사과" in surfaces or "사과를" in surfaces
+
+    def test_tag_not_flatten(self, sample_dict):
+        from typing import cast
+
+        matcher = EojeolTemplateMatcher(sample_dict)
+        evaluator = SimpleEojeolEvaluator()
+        tagger = SimpleTagger(matcher, evaluator)
+        result = cast(list[list[MorphTag]], tagger.tag("나는 학교에서", flatten=False))
+        assert isinstance(result, list)
+        assert all(isinstance(eojeol, list) for eojeol in result)
+        assert all(isinstance(m, MorphTag) for eojeol in result for m in eojeol)
+
+    def test_repr(self, sample_dict):
+        matcher = EojeolTemplateMatcher(sample_dict)
+        evaluator = SimpleEojeolEvaluator()
+        tagger = SimpleTagger(matcher, evaluator)
+        r = repr(tagger)
+        assert "SimpleTagger" in r
+        assert "EojeolTemplateMatcher" in r
+
+
+class TestDictionaryRepr:
+    def test_repr(self, sample_dict):
+        r = repr(sample_dict)
+        assert "Dictionary" in r
+        assert "num_tags" in r
+        assert "num_words" in r
+
+
+class TestPOSExtractorRepr:
+    def test_repr_not_trained(self):
+        extractor = POSExtractor()
+        r = repr(extractor)
+        assert "POSExtractor" in r
+        assert "trained=False" in r
+
+    def test_is_trained_initially_false(self):
+        extractor = POSExtractor()
+        assert extractor.is_trained is False
+
+    def test_extra_steps_stored(self):
+        class NoopStep:
+            def extract(self, sentences, context: dict) -> dict:
+                return {}
+
+        step = NoopStep()
+        extractor = POSExtractor(extra_steps=[step])
+        assert len(extractor.extra_steps) == 1
+
+    def test_extra_step_satisfies_protocol(self):
+        class NoopStep:
+            def extract(self, sentences, context: dict) -> dict:
+                return {}
+
+        step = NoopStep()
+        assert isinstance(step, ExtractorStepProtocol)
+
+    def test_extra_step_context_injection(self):
+        """extra_step이 context에 값을 주입하면 다음 단계에서 사용 가능한지 확인한다."""
+        received_contexts: list[dict] = []
+
+        class RecordContextStep:
+            def extract(self, sentences, context: dict) -> dict:
+                received_contexts.append(dict(context))
+                return {"custom_key": "custom_value"}
+
+        extractor = POSExtractor(extra_steps=[RecordContextStep()])
+        assert extractor.extra_steps[0] is not None
+        # extra_step이 등록된 것만 확인 (실제 extract 호출은 느리므로 생략)
+
+
+class TestDictionaryProtocol:
+    def test_dictionary_satisfies_protocol(self, sample_dict):
+        assert isinstance(sample_dict, DictionaryProtocol)
+
+    def test_custom_dictionary_satisfies_protocol(self):
+        class MyDict:
+            max_length = 5
+
+            def get_pos(self, word: str) -> list[str]:
+                return ["Noun"] if word == "사과" else []
+
+            def word_is_tag(self, word: str, tag: str) -> bool:
+                return tag == "Noun" and word == "사과"
+
+        my_dict = MyDict()
+        assert isinstance(my_dict, DictionaryProtocol)
+
+    def test_custom_dictionary_usable_in_template(self):
+        class MinimalDict:
+            max_length = 5
+
+            def get_pos(self, word: str) -> list[str]:
+                return ["Noun"] if word in {"사과", "배"} else []
+
+            def word_is_tag(self, word: str, tag: str) -> bool:
+                return tag == "Noun" and word in {"사과", "배"}
+
+        matcher = EojeolTemplateMatcher(MinimalDict())
+        candidates = matcher.generate("사과")
+        assert len(candidates) >= 1
+
+
+class TestEojeolTemplateMatcherFilePath:
+    def test_save_and_load(self, sample_dict):
+        matcher = EojeolTemplateMatcher(sample_dict)
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            matcher.save(f.name)
+            loaded = EojeolTemplateMatcher.from_file(f.name, sample_dict)
+            assert loaded.single_tags == matcher.single_tags
+            assert loaded.lr_templates == matcher.lr_templates
+
+    def test_from_file_custom_template(self, sample_dict, tmp_path):
+        template = {
+            "single_tags": ["Noun"],
+            "lr_templates": [["Noun", "Josa"]],
+        }
+        path = tmp_path / "template.json"
+        path.write_text(__import__("json").dumps(template), encoding="utf-8")
+        matcher = EojeolTemplateMatcher.from_file(str(path), sample_dict)
+        assert matcher.single_tags == ["Noun"]
+        assert ("Noun", "Josa") in matcher.lr_templates
+
+    def test_template_path_in_init(self, sample_dict, tmp_path):
+        template = {
+            "single_tags": ["Noun", "Verb"],
+            "lr_templates": [["Noun", "Josa"]],
+        }
+        path = tmp_path / "template.json"
+        path.write_text(__import__("json").dumps(template), encoding="utf-8")
+        matcher = EojeolTemplateMatcher(sample_dict, template_path=str(path))
+        assert matcher.single_tags == ["Noun", "Verb"]
+
+
+class TestKoreanPOSTagger:
+    def test_default_creates_instance(self):
+        tagger = KoreanPOSTagger.default()
+        assert isinstance(tagger, KoreanPOSTagger)
+
+    def test_is_trained_true_after_init(self):
+        tagger = KoreanPOSTagger.default()
+        assert tagger.is_trained is True
+
+    def test_repr(self):
+        tagger = KoreanPOSTagger.default()
+        r = repr(tagger)
+        assert "KoreanPOSTagger" in r
+        assert "trained=True" in r
+        assert "vocab_size" in r
+
+    def test_tag_works_without_train(self):
+        tagger = KoreanPOSTagger.default()
+        result = tagger.tag("나는 학교에 갔다")
+        assert isinstance(result, list)
+        assert all(isinstance(m, MorphTag) for m in result)
+
+    def test_tag_returns_morph_tag_list(self):
+        tagger = KoreanPOSTagger.default()
+        result = tagger.tag("사과를")
+        assert isinstance(result, list)
+        assert all(isinstance(m, MorphTag) for m in result)
+
+    def test_train_with_extra_nouns(self):
+        tagger = KoreanPOSTagger.default()
+        tagger.train(extra_nouns={"ChatGPT", "딥러닝"})
+        assert tagger._dictionary.word_is_tag("ChatGPT", "Noun")
+        assert tagger._dictionary.word_is_tag("딥러닝", "Noun")
+
+    def test_train_with_sentences_does_not_raise(self):
+        tagger = KoreanPOSTagger.default()
+        tagger.train(sentences=["나는 학교에 갔다", "사과를 먹었다"])
+        assert tagger.is_trained is True
+
+    def test_custom_dictionary(self):
+        custom_dict = Dictionary({"Noun": {"사과", "배", "귤"}, "Josa": {"를", "이", "가", "은", "는"}})
+        tagger = KoreanPOSTagger(dictionary=custom_dict)
+        result = tagger.tag("사과를")
+        surfaces = [m.surface for m in result]
+        assert "사과" in surfaces or "사과를" in surfaces

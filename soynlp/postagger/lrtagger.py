@@ -102,6 +102,8 @@ class LRMaxScoreTagger:
         self.evaluator = evaluator if evaluator else LREvaluator()
         self.preference = preference if preference else {}
         self.lrgraph = lrgraph if lrgraph else {}
+        self.lrgraph_lmax = lrgraph_lmax
+        self.lrgraph_rmax = lrgraph_rmax
 
         if (not self.lrgraph) and sents:
             self.lrgraph = self._build_lrgraph(sents, lrgraph_lmax, lrgraph_rmax)
@@ -114,6 +116,18 @@ class LRMaxScoreTagger:
                 self.base_tokenizer = MaxScoreTokenizer(scores=self.cohesion_l)
             except Exception as e:
                 logger.warning("MaxScoreTokenizer(cohesion) exception: %s", e)
+
+    @property
+    def is_trained(self) -> bool:
+        """LR 그래프가 구축된 경우 True를 반환한다."""
+        return bool(self.lcount)
+
+    def __repr__(self) -> str:
+        vocab_size = len(self.lcount)
+        return (
+            f"LRMaxScoreTagger(trained={self.is_trained}, vocab_size={vocab_size}, "
+            f"lrgraph_lmax={self.lrgraph_lmax}, lrgraph_rmax={self.lrgraph_rmax})"
+        )
 
     def _build_lrgraph(self, sents, lmax: int = 12, rmax: int = 8) -> dict:
         from collections import Counter, defaultdict
@@ -148,6 +162,8 @@ class LRMaxScoreTagger:
         return lrgraph_norm, lcount, cohesion_l, droprate_l
 
     def pos(self, sent: str, flatten: bool = True, debug: bool = False) -> list:
+        if not self.is_trained:
+            logger.warning("LRMaxScoreTagger has no lrgraph. Results may be inaccurate. Pass sents= or lrgraph= to __init__.")
         sent_ = [self._pos(eojeol, debug) for eojeol in sent.split() if eojeol]
         if flatten:
             sent_ = [word for words in sent_ for word in words]
