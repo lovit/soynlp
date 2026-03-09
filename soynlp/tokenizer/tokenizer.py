@@ -1,6 +1,9 @@
 import re
 from dataclasses import dataclass
 
+# MaxScoreTokenizer 내부 루프 무한반복 방지 상한값
+_MAX_TOKENIZE_ITERATIONS = 100
+
 
 @dataclass(slots=True)
 class Token:
@@ -366,7 +369,7 @@ class MaxScoreTokenizer:
             for i in reversed(removals):
                 del scored[i]
             num_iter += 1
-            if num_iter > 100:
+            if num_iter > _MAX_TOKENIZE_ITERATIONS:
                 break
         return sorted(result, key=lambda x: x.begin)
 
