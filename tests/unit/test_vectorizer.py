@@ -63,6 +63,36 @@ class TestBaseVectorizer:
             assert count >= 2
 
 
+_VECTORIZER_DOCS = [
+    "나는 학생 입니다",
+    "나는 사과를 먹었다",
+    "학생이 사과를 먹었다",
+    "나는 나는 학생 학생",
+] * 200
+
+
+class TestBaseVectorizerMultiprocessing:
+    def test_fit_multi_equals_single(self):
+        """n_workers=4로 fit한 vocabulary가 단일 프로세스와 동일하다."""
+        vec_single = BaseVectorizer(min_tf=0, verbose=False)
+        vec_single.fit(_VECTORIZER_DOCS, n_workers=1)
+
+        vec_multi = BaseVectorizer(min_tf=0, verbose=False)
+        vec_multi.fit(_VECTORIZER_DOCS, n_workers=4)
+
+        assert vec_single.vocabulary_ == vec_multi.vocabulary_
+
+    def test_fit_transform_multi(self):
+        """n_workers=4 fit_transform이 에러 없이 동작하고 같은 모양의 행렬을 반환한다."""
+        vec_single = BaseVectorizer(min_tf=0, verbose=False)
+        x_single = vec_single.fit_transform(_VECTORIZER_DOCS)
+
+        vec_multi = BaseVectorizer(min_tf=0, verbose=False)
+        x_multi = vec_multi.fit_transform(_VECTORIZER_DOCS, n_workers=4)
+
+        assert x_single.shape == x_multi.shape  # type: ignore[index]
+
+
 class TestSentToWordContextsMatrix:
     def test_basic(self):
         sents = ["a b c d e"] * 20
