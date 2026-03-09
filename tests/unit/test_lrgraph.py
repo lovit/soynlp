@@ -99,6 +99,16 @@ class TestLRGraph:
             assert r_items["은"] == 2
             assert r_items["도"] == 1
 
+    def test_has_l(self):
+        lrgraph = LRGraph({"이것": {"은": 2}})
+        assert lrgraph.has_l("이것") is True
+        assert lrgraph.has_l("없는단어") is False
+
+    def test_has_r(self):
+        lrgraph = LRGraph({"이것": {"은": 2}})
+        assert lrgraph.has_r("은") is True
+        assert lrgraph.has_r("없는조사") is False
+
     def test_from_sents(self):
         sents = ["이것은 예문 입니다", "이것도 예문 입니다"]
         lrgraph = LRGraph.from_sents(sents)
