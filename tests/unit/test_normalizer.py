@@ -48,7 +48,10 @@ def test_repeat_character_normalizer():
 
 
 def test_longspace_normalizer():
-    assert RemoveLongspaceNormalizer()("ab     cd    d  f ") == "ab  cd  d  f "
+    assert RemoveLongspaceNormalizer()("ab     cd    d  f ") == "ab cd d f "
+    assert RemoveLongspaceNormalizer()("a\t\tb") == "a b"
+    assert RemoveLongspaceNormalizer()("a\n\nb") == "a b"
+    assert RemoveLongspaceNormalizer()("a b") == "a b"
 
 
 def test_padding_space_to_words():
@@ -74,10 +77,10 @@ def test_normalizer_builder():
     assert normalizer("(주)일이삼 [[공지]]제목 이것은예시다!!") == "(주)일이삼 [[공지]]제목 이것은예시다!!"
 
     normalizer = TextNormalizer.build_normalizer(padding_space=True)
-    assert normalizer("(주)일이삼 [[공지]]제목 이것은예시다!!") == "( 주 ) 일이삼  [[ 공지 ]] 제목  이것은예시다 !!"
+    assert normalizer("(주)일이삼 [[공지]]제목 이것은예시다!!") == "( 주 ) 일이삼 [[ 공지 ]] 제목 이것은예시다 !!"
 
     normalizer = TextNormalizer.build_normalizer(padding_space=True, symbol=False)
-    assert normalizer("(주)일이삼 [[공지]]제목 이것은예시다!!") == " 주  일이삼  공지  제목  이것은예시다 "
+    assert normalizer("(주)일이삼 [[공지]]제목 이것은예시다!!") == " 주 일이삼 공지 제목 이것은예시다 "
 
     normalizer = TextNormalizer.build_normalizer(padding_space=False, symbol=False, custom="/:@.")
     assert (
