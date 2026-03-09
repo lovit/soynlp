@@ -31,6 +31,12 @@ def normalize(
     symbol: bool = False,
     remove_repeat: int = 0,
 ) -> str:
+    """.. deprecated:: Use ``TextNormalizer.build_normalizer()`` instead."""
+    warnings.warn(
+        "`normalize` is deprecated. Use `TextNormalizer.build_normalizer()` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     doc = _text_filter.sub(" ", doc)
     if not alphabet:
         doc = _alphabet_pattern.sub(" ", doc)
@@ -46,10 +52,22 @@ def normalize(
 
 
 def remove_doublespace(sent: str) -> str:
+    """.. deprecated:: Use ``RemoveLongspaceNormalizer`` instead."""
+    warnings.warn(
+        "`remove_doublespace` is deprecated. Use `RemoveLongspaceNormalizer` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return _doublespace_pattern.sub(" ", sent)
 
 
 def repeat_normalize(sent: str, num_repeats: int = 2) -> str:
+    """.. deprecated:: Use ``RepeatCharacterNormalizer`` instead."""
+    warnings.warn(
+        "`repeat_normalize` is deprecated. Use `RepeatCharacterNormalizer` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if num_repeats > 0:
         sent = _repeatchars_pattern.sub("\\1" * num_repeats, sent)
     sent = _doublespace_pattern.sub(" ", sent)
@@ -73,18 +91,39 @@ def emoticon_normalize(sent: str, num_repeats: int = 2) -> str:
         stacklevel=2,
     )
     normalized = HangleEmojiNormalizer().normalize(sent)
-    return repeat_normalize(normalized, num_repeats)
+    if num_repeats > 0:
+        normalized = RepeatCharacterNormalizer(max_repeat=num_repeats).normalize(normalized)
+    normalized = _doublespace_pattern.sub(" ", normalized)
+    return normalized.strip()
 
 
 def only_hangle(sent: str) -> str:
+    """.. deprecated:: Use ``PassCharacterNormalizer(alphabet=False, number=False, symbol=False)`` instead."""
+    warnings.warn(
+        "`only_hangle` is deprecated. Use `PassCharacterNormalizer(alphabet=False, number=False, symbol=False)` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return _doublespace_pattern.sub(" ", _hangle_filter.sub(" ", sent)).strip()
 
 
 def only_hangle_number(sent: str) -> str:
+    """.. deprecated:: Use ``PassCharacterNormalizer(alphabet=False, symbol=False)`` instead."""
+    warnings.warn(
+        "`only_hangle_number` is deprecated. Use `PassCharacterNormalizer(alphabet=False, symbol=False)` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return _doublespace_pattern.sub(" ", _hangle_number_filter.sub(" ", sent)).strip()
 
 
 def only_text(sent: str) -> str:
+    """.. deprecated:: Use ``PassCharacterNormalizer()`` instead."""
+    warnings.warn(
+        "`only_text` is deprecated. Use `PassCharacterNormalizer()` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return _doublespace_pattern.sub(" ", _text_filter.sub(" ", sent)).strip()
 
 

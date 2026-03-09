@@ -9,6 +9,12 @@ from soynlp.normalizer.normalizer import (
     RepeatCharacterNormalizer,
     TextNormalizer,
     emoticon_normalize,
+    normalize,
+    only_hangle,
+    only_hangle_number,
+    only_text,
+    remove_doublespace,
+    repeat_normalize,
     text_normalizer,
 )
 
@@ -146,3 +152,55 @@ def test_default_text_normalizer():
         text_normalizer("어머나 ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅋㅋㅋ쿠ㅜㅜㅜㅜㅜ 하하")
         == "어머나 ㅋㅋㅜㅜ이런게 있으면 어떻게 떼어내냐 ㅋㅋㅜㅜ 하하"
     )
+
+
+def _assert_deprecated(func, *args, **kwargs):
+    """deprecated 함수가 DeprecationWarning을 정확히 1번 발생시키는지 검증한다."""
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        func(*args, **kwargs)
+        assert len(w) == 1, f"Expected 1 warning, got {len(w)}"
+        assert issubclass(w[0].category, DeprecationWarning)
+        assert "deprecated" in str(w[0].message).lower()
+
+
+def test_deprecated_normalize():
+    _assert_deprecated(normalize, "안녕 hello 123")
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        assert normalize("안녕 hello 123") == "안녕"
+
+
+def test_deprecated_remove_doublespace():
+    _assert_deprecated(remove_doublespace, "a  b")
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        assert remove_doublespace("a  b") == "a b"
+
+
+def test_deprecated_repeat_normalize():
+    _assert_deprecated(repeat_normalize, "ㅋㅋㅋㅋ")
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        assert repeat_normalize("ㅋㅋㅋㅋ") == "ㅋㅋ"
+
+
+def test_deprecated_only_hangle():
+    _assert_deprecated(only_hangle, "안녕 hello 123")
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        assert only_hangle("안녕 hello 123") == "안녕"
+
+
+def test_deprecated_only_hangle_number():
+    _assert_deprecated(only_hangle_number, "안녕 hello 123")
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        assert only_hangle_number("안녕 hello 123") == "안녕 123"
+
+
+def test_deprecated_only_text():
+    _assert_deprecated(only_text, "안녕 hello @@ 123")
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        assert only_text("안녕 hello @@ 123") == "안녕 hello 123"
