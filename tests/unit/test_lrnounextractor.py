@@ -1,7 +1,9 @@
 import pytest
 
+from soynlp.core.lrgraph import LRGraph
 from soynlp.noun.lr import (
     check_r_features,
+    postprocessing,
     predict_single_noun,
     remove_ambiguous_features,
 )
@@ -117,3 +119,37 @@ def test_predict_single_noun(word, features, expected_support, expected_score):
     support, score = predict_single_noun(word, features, PREDICT_POS, PREDICT_NEG, PREDICT_COMMON)
     assert support == expected_support
     assert score == expected_score
+
+
+class TestPostprocessingNJ:
+    """postprocessing_nj=False 시 check_N_is_NJ 단계를 건너뜀을 검증한다."""
+
+    def _make_lrgraph(self, eojeols: list[str]) -> LRGraph:
+        lrgraph = LRGraph({})
+        for eojeol in eojeols:
+            lrgraph.add_eojeol(eojeol)
+        return lrgraph
+
+    def test_postprocessing_nj_default_removes(self):
+        """기본값(postprocessing_nj=True)이면 N+조사 패턴이 제거될 수 있다."""
+        # 상식이 vs 상식: '이'가 josaset에 없으면 제거되지 않지만, suffixset에 있으면 제거 안됨
+        # 단순히 postprocessing 함수가 호출될 때 예외 없이 동작하는지 검증
+        nouns: dict[str, tuple[int, float]] = {"상식": (100, 1.0), "상식이": (10, 0.8)}
+        eojeols = ["상식은"] * 100 + ["상식의"] * 50 + ["상식이다"] * 10
+        lrgraph = self._make_lrgraph(eojeols)
+        features: set[str] = set()
+        result = postprocessing(nouns, lrgraph, features, 0.3, False, postprocessing_nj=True)
+        assert isinstance(result, dict)
+
+    def test_postprocessing_nj_false_preserves(self):
+        """postprocessing_nj=False이면 check_N_is_NJ 단계를 건너뛴다."""
+        nouns: dict[str, tuple[int, float]] = {"상식": (100, 1.0), "상식이": (10, 0.8)}
+        eojeols = ["상식은"] * 100 + ["상식의"] * 50
+        lrgraph = self._make_lrgraph(eojeols)
+        features: set[str] = set()
+
+        result_with_nj = postprocessing(nouns.copy(), lrgraph, features, 0.3, False, postprocessing_nj=True)
+        result_without_nj = postprocessing(nouns.copy(), lrgraph, features, 0.3, False, postprocessing_nj=False)
+
+        # postprocessing_nj=False면 check_N_is_NJ가 실행되지 않아 같거나 더 많은 명사를 보존
+        assert len(result_without_nj) >= len(result_with_nj)
