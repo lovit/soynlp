@@ -11,6 +11,52 @@ from tqdm import tqdm
 from soynlp.utils import CorpusLoader
 
 
+def _count_substrings_chunk(args: tuple) -> tuple[dict, dict, dict, dict]:
+    """Worker: count L/R substrings and prev_sub/sub_next for a chunk of lines."""
+    chunk, max_left_length, max_right_length, cohesion_only = args
+    L: dict = {}
+    R: dict = {}
+    prev_sub: dict = {}
+    sub_next: dict = {}
+
+    for line in chunk:
+        if isinstance(line, dict):
+            line = line.get("text", "")
+        words = line.split()
+
+        for word in words:
+            if (not word) or (len(word) <= 1):
+                continue
+            n = len(word)
+            for i in range(1, min(max_left_length, n) + 1):
+                key = word[:i]
+                L[key] = L.get(key, 0) + 1
+            for i in range(1, min(max_right_length + 1, n)):
+                key = word[-i:]
+                R[key] = R.get(key, 0) + 1
+
+        if cohesion_only or len(words) <= 1:
+            continue
+
+        prev_words = [words[-1]] + words[:-1]
+        next_words = words[1:] + [words[0]]
+        for prev_word, word, next_word in zip(prev_words, words, next_words):
+            prev_char = prev_word[-1]
+            next_char = next_word[0]
+            n = len(word)
+            if n <= max_left_length:
+                key_sn = (word, next_char)
+                sub_next[key_sn] = sub_next.get(key_sn, 0) + 1
+            for i in range(1, min(max_left_length, n) + 1):
+                key_ps = (prev_char, word[:i])
+                prev_sub[key_ps] = prev_sub.get(key_ps, 0) + 1
+            for i in range(1, min(max_right_length + 1, n)):
+                key_sn = (word[-i:], next_char)
+                sub_next[key_sn] = sub_next.get(key_sn, 0) + 1
+
+    return L, R, prev_sub, sub_next
+
+
 @dataclass(slots=True)
 class CohesionScore:
     subword: str
@@ -68,6 +114,7 @@ class WordExtractor:
         min_accessorvariety_rightside: int = 2,
         prune_per_lines: int = -1,
         remove_subwords: bool = False,
+        n_workers: int = 1,
     ) -> dict[str, dict[str, CohesionScore] | dict[str, AccessorVariety] | dict[str, BranchingEntropy]]:
         if isinstance(train_data, str) and os.path.exists(train_data):
             fmt = "jsonl" if train_data.endswith(".jsonl") else "text"
@@ -87,6 +134,7 @@ class WordExtractor:
             prune_per_lines=prune_per_lines,
             cohesion_only=extract_cohesion_only,
             verbose=self.verbose,
+            n_workers=n_workers,
         )
         self.L, self.R, self.prev_sub, self.sub_next = L, R, prev_sub, sub_next
         cohesions = calculate_cohesion_batch(
@@ -141,7 +189,13 @@ def count_substrings(
     prune_per_lines: int,
     cohesion_only: bool,
     verbose: bool,
+    n_workers: int = 1,
 ) -> tuple[dict[str, int], dict[str, int], dict[Any, int], dict[Any, int]]:
+    if n_workers != 1:
+        return _count_substrings_parallel(
+            train_data, L, R, prev_sub, sub_next, max_left_length, max_right_length, min_frequency, cohesion_only, n_workers
+        )
+
     if not verbose:
         train_iterator: Iterable[Any] = train_data
     else:
@@ -190,6 +244,46 @@ def count_substrings(
     prev_sub = dict(prune_counter(prev_sub, min_frequency))
     sub_next = dict(prune_counter(sub_next, min_frequency))
     return L, R, prev_sub, sub_next
+
+
+def _count_substrings_parallel(
+    train_data: Iterable[Any],
+    L: dict[Any, int],
+    R: dict[Any, int],
+    prev_sub: dict[Any, int],
+    sub_next: dict[Any, int],
+    max_left_length: int,
+    max_right_length: int,
+    min_frequency: int,
+    cohesion_only: bool,
+    n_workers: int,
+) -> tuple[dict[str, int], dict[str, int], dict[Any, int], dict[Any, int]]:
+    from multiprocessing import Pool, cpu_count
+
+    texts = list(train_data)
+    n = cpu_count() if n_workers == -1 else n_workers
+    chunk_size = max(1, len(texts) // n)
+    chunks = [texts[i : i + chunk_size] for i in range(0, len(texts), chunk_size)]
+    worker_args = [(chunk, max_left_length, max_right_length, cohesion_only) for chunk in chunks]
+
+    with Pool(processes=n) as pool:
+        results = pool.map(_count_substrings_chunk, worker_args)
+
+    for pL, pR, pPS, pSN in results:
+        for k, v in pL.items():
+            L[k] = L.get(k, 0) + v  # type: ignore[assignment]
+        for k, v in pR.items():
+            R[k] = R.get(k, 0) + v  # type: ignore[assignment]
+        for k, v in pPS.items():
+            prev_sub[k] = prev_sub.get(k, 0) + v  # type: ignore[assignment]
+        for k, v in pSN.items():
+            sub_next[k] = sub_next.get(k, 0) + v  # type: ignore[assignment]
+
+    L_out = dict(prune_counter(L, min_frequency))
+    R_out = dict(prune_counter(R, min_frequency))
+    prev_sub_out = dict(prune_counter(prev_sub, min_frequency))
+    sub_next_out = dict(prune_counter(sub_next, min_frequency))
+    return L_out, R_out, prev_sub_out, sub_next_out
 
 
 def calculate_cohesion(word: str, L: dict[str, int], R: dict[str, int]) -> tuple[float, float]:

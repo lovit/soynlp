@@ -2,6 +2,7 @@ from collections import defaultdict
 
 import pytest
 
+from soynlp.word import WordExtractor
 from soynlp.word.word import (
     AccessorVariety,
     BranchingEntropy,
@@ -209,3 +210,34 @@ def test_cohesion_score_batch():
 )
 def test_get_entropy(counts, expected):
     assert abs(get_entropy(counts) - expected) < 0.0001
+
+
+# --- WordExtractor multiprocessing tests ---
+
+_WORD_SENTS = [
+    "아이오아이가 평가단에게 높은 점수를 받았습니다",
+    "아이오아이는 아이돌 그룹입니다",
+    "자연어처리는 어렵고 재미있는 분야입니다",
+    "자연어처리를 열심히 공부합니다",
+    "명사추출은 중요한 자연어처리 작업입니다",
+] * 200
+
+
+def test_word_extractor_multi_L_equals_single():
+    """n_workers=4 결과의 L 카운터가 단일 프로세스와 동일하다."""
+    ext_single = WordExtractor(verbose=False)
+    ext_single.extract(_WORD_SENTS, min_frequency=1, n_workers=1)
+
+    ext_multi = WordExtractor(verbose=False)
+    ext_multi.extract(_WORD_SENTS, min_frequency=1, n_workers=4)
+
+    assert ext_single.L == ext_multi.L
+    assert ext_single.R == ext_multi.R
+
+
+def test_word_extractor_auto_workers():
+    """n_workers=-1이면 CPU 코어 수를 자동 사용한다."""
+    ext = WordExtractor(verbose=False)
+    result = ext.extract(_WORD_SENTS, min_frequency=1, n_workers=-1)
+    assert "cohesion" in result
+    assert len(result["cohesion"]) > 0
