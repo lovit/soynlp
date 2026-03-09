@@ -22,6 +22,7 @@ class ExtractNounTaskArgs(TaskArgs):
     in_key: str = "corpus"
     text_key: str = "text"
     out_key: str = "nouns"
+    n_workers: int = 1
 
 
 class ExtractNounTask(Task[ExtractNounTaskArgs]):
@@ -49,6 +50,7 @@ class ExtractNounTask(Task[ExtractNounTaskArgs]):
             extract_compounds=self._args.extract_compounds,
             exclude_syllables=self._args.exclude_syllables,
             exclude_numbers=self._args.exclude_numbers,
+            n_workers=self._args.n_workers,
         )
 
         parameters[self._args.out_key] = nouns
