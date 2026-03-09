@@ -1,5 +1,5 @@
 from . import tagset
-from .dictionary import Dictionary
+from .dictionary import Dictionary, DictionaryProtocol
 from .evaluator import BaseEvaluator, LREvaluator, SimpleEojeolEvaluator
 from .lrtagger import LRMaxScoreTagger
 from .maxscore import MaxScoreTagger
@@ -9,6 +9,7 @@ from .template import LR, BaseTemplateMatcher, EojeolTemplateMatcher, LRTemplate
 
 __all__ = [
     "Dictionary",
+    "DictionaryProtocol",
     "BaseEvaluator",
     "SimpleEojeolEvaluator",
     "LREvaluator",

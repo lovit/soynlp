@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from .dictionary import Dictionary
+from .dictionary import DictionaryProtocol
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,7 +17,7 @@ class LR:
 
 
 class BaseTemplateMatcher:
-    dictionary: Dictionary
+    dictionary: DictionaryProtocol
 
     def generate(self, token: str) -> list[list[LR]]:
         raise NotImplementedError
@@ -26,7 +26,7 @@ class BaseTemplateMatcher:
 class EojeolTemplateMatcher(BaseTemplateMatcher):
     def __init__(
         self,
-        dictionary,
+        dictionary: DictionaryProtocol,
         single_tags: list[str] | None = None,
         lr_templates: list[tuple[str, str]] | None = None,
     ) -> None:
@@ -85,7 +85,7 @@ class EojeolTemplateMatcher(BaseTemplateMatcher):
 class LRTemplateMatcher(BaseTemplateMatcher):
     def __init__(
         self,
-        dictionary,
+        dictionary: DictionaryProtocol,
         ltags: set[str] | None = None,
         templates: dict[str, tuple[str, ...]] | None = None,
     ) -> None:
