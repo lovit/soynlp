@@ -86,10 +86,20 @@ class WordExtractor:
         verbose: bool = True,
         R_suffix: str = "▁",
     ) -> None:
+        """WordExtractor를 초기화한다.
+
+        Args:
+            max_l_length: 좌측 부분 문자열의 최대 길이.
+            max_r_length: 우측 부분 문자열의 최대 길이.
+            verbose: True이면 tqdm으로 진행 상황을 출력한다.
+            R_suffix: R(우측) 기반 단어에 붙이는 접미사. 기본값은 ``"▁"`` (U+2581).
+                AV/BE 계산 결과에서 좌측(L) 기반 단어와 우측(R) 기반 단어를 구별하기 위해 사용한다.
+                예: L 기반 ``"아이"``와 R 기반 ``"아이"``가 공존할 경우 후자는 ``"아이▁"``로 저장된다.
+        """
         self.max_l_length = max_l_length
         self.max_r_length = max_r_length
         self.verbose = verbose
-        self.R_suffix = R_suffix
+        self.R_suffix = R_suffix  # R 기반 단어를 L 기반 단어와 구별하는 마커 접미사 (U+2581 ▁)
 
         self.L: dict[str, int] = {}
         self.R: dict[str, int] = {}
