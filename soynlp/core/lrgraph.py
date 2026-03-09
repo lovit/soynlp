@@ -25,7 +25,7 @@ class LRGraph:
         self.max_l_length = max_l_length
         self.max_r_length = max_r_length
         self._lr, self._rl = self._to_bidirectional_graph(lrgraph)
-        self._lr_origin = {L: {R: freq for R, freq in R_freq.items()} for L, R_freq in self._lr.items()}
+        self._lr_origin = copy.deepcopy(self._lr)
 
     def _to_bidirectional_graph(
         self, lrgraph: dict[str, dict[str, int]]
@@ -66,9 +66,7 @@ class LRGraph:
     def reset_lrgraph(self) -> None:
         if not self._lr_origin:
             return
-        self._lr, self._rl = self._to_bidirectional_graph(
-            {L: {R: freq for R, freq in R_freq.items()} for L, R_freq in self._lr_origin.items()}
-        )
+        self._lr, self._rl = self._to_bidirectional_graph(copy.deepcopy(self._lr_origin))
 
     def add_lr_pair(self, L: str, R: str, frequency: int = 1) -> None:
         if (len(L) > self.max_l_length) or (len(R) > self.max_r_length):
