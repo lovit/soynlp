@@ -122,6 +122,6 @@ class TestCorpusToLrgraph:
 
     def test_invalid_params(self):
         with pytest.raises(ValueError):
-            corpus_to_lrgraph([], l_max_length=0)
+            corpus_to_lrgraph([], max_l_length=0)
         with pytest.raises(ValueError):
-            corpus_to_lrgraph([], r_max_length=-1)
+            corpus_to_lrgraph([], max_r_length=-1)

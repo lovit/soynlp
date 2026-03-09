@@ -505,7 +505,7 @@ def train_lrgraph(
             lrgraph = eojeol_counter.to_lrgraph(max_l_length, max_r_length)
             logger.info(f"finished building LRGraph from {len(eojeol_counter)} eojeols")
             return lrgraph
-        lrgraph = corpus_to_lrgraph(texts_list, l_max_length=max_l_length, r_max_length=max_r_length, n_workers=n_workers)
+        lrgraph = corpus_to_lrgraph(texts_list, max_l_length=max_l_length, max_r_length=max_r_length, n_workers=n_workers)
         logger.info(f"finished building LRGraph with n_workers={n_workers}")
         return lrgraph
 

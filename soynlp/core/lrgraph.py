@@ -172,19 +172,19 @@ def _build_partial_counter(args: tuple[list[str], int, int]) -> dict[str, dict[s
     """Module-level worker function: builds a partial LR counter from a chunk of texts.
 
     Args:
-        args: tuple of (texts_chunk, l_max_length, r_max_length)
+        args: tuple of (texts_chunk, max_l_length, max_r_length)
 
     Returns:
         dict of {L: {R: frequency}}
     """
-    texts_chunk, l_max_length, r_max_length = args
+    texts_chunk, max_l_length, max_r_length = args
     counter: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     for sent in texts_chunk:
         for word in sent.split():
             word = word.strip()
-            for e in range(1, min(len(word), l_max_length) + 1):
+            for e in range(1, min(len(word), max_l_length) + 1):
                 L, R = word[:e], word[e:]
-                if len(R) > r_max_length:
+                if len(R) > max_r_length:
                     continue
                 counter[L][R] += 1
     return {L: dict(R_freq) for L, R_freq in counter.items()}
@@ -202,13 +202,13 @@ def _merge_counters(counters: list[dict[str, dict[str, int]]]) -> dict[str, dict
     return merged
 
 
-def corpus_to_lrgraph(texts: list[str], l_max_length: int = 10, r_max_length: int = 9, n_workers: int = 1) -> LRGraph:
+def corpus_to_lrgraph(texts: list[str], max_l_length: int = 10, max_r_length: int = 9, n_workers: int = 1) -> LRGraph:
     """Build an LRGraph from a list of texts.
 
     Args:
         texts: list of sentences
-        l_max_length: maximum length of L parts
-        r_max_length: maximum length of R parts
+        max_l_length: maximum length of L parts
+        max_r_length: maximum length of R parts
         n_workers: number of worker processes. Use -1 to use all CPU cores.
 
     Returns:
@@ -218,7 +218,7 @@ def corpus_to_lrgraph(texts: list[str], l_max_length: int = 10, r_max_length: in
         n_workers = os.cpu_count() or 1
 
     if n_workers <= 1:
-        return LRGraph.from_sents(texts, max_l_length=l_max_length, max_r_length=r_max_length)
+        return LRGraph.from_sents(texts, max_l_length=max_l_length, max_r_length=max_r_length)
 
     # Ensure texts is a list for chunking
     if not isinstance(texts, list):
@@ -231,10 +231,10 @@ def corpus_to_lrgraph(texts: list[str], l_max_length: int = 10, r_max_length: in
     # Build partial counters in parallel
     from multiprocessing import Pool
 
-    worker_args = [(chunk, l_max_length, r_max_length) for chunk in chunks]
+    worker_args = [(chunk, max_l_length, max_r_length) for chunk in chunks]
     with Pool(processes=n_workers) as pool:
         partial_counters = pool.map(_build_partial_counter, worker_args)
 
     # Merge all partial counters and build LRGraph
     merged = _merge_counters(partial_counters)
-    return LRGraph(merged, max_l_length=l_max_length, max_r_length=r_max_length)
+    return LRGraph(merged, max_l_length=max_l_length, max_r_length=max_r_length)
