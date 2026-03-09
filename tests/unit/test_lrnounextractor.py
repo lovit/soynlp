@@ -2,6 +2,7 @@ import pytest
 
 from soynlp.core.lrgraph import LRGraph
 from soynlp.noun.lr import (
+    _inject_known_nouns,
     check_r_features,
     postprocessing,
     predict_single_noun,
@@ -132,8 +133,6 @@ class TestPostprocessingNJ:
 
     def test_postprocessing_nj_default_removes(self):
         """기본값(postprocessing_nj=True)이면 N+조사 패턴이 제거될 수 있다."""
-        # 상식이 vs 상식: '이'가 josaset에 없으면 제거되지 않지만, suffixset에 있으면 제거 안됨
-        # 단순히 postprocessing 함수가 호출될 때 예외 없이 동작하는지 검증
         nouns: dict[str, tuple[int, float]] = {"상식": (100, 1.0), "상식이": (10, 0.8)}
         eojeols = ["상식은"] * 100 + ["상식의"] * 50 + ["상식이다"] * 10
         lrgraph = self._make_lrgraph(eojeols)
@@ -151,5 +150,43 @@ class TestPostprocessingNJ:
         result_with_nj = postprocessing(nouns.copy(), lrgraph, features, 0.3, False, postprocessing_nj=True)
         result_without_nj = postprocessing(nouns.copy(), lrgraph, features, 0.3, False, postprocessing_nj=False)
 
-        # postprocessing_nj=False면 check_N_is_NJ가 실행되지 않아 같거나 더 많은 명사를 보존
         assert len(result_without_nj) >= len(result_with_nj)
+
+
+class TestInjectKnownNouns:
+    def _make_lrgraph(self, eojeols: list[str]) -> LRGraph:
+        lrgraph = LRGraph({})
+        for eojeol in eojeols:
+            lrgraph.add_eojeol(eojeol)
+        return lrgraph
+
+    def test_known_noun_added(self):
+        """known_nouns에 있는 단어가 기존 결과에 없으면 추가된다."""
+        nouns: dict[str, tuple[int, float]] = {"학생": (100, 0.9)}
+        eojeols = ["트와이스는"] * 50 + ["트와이스의"] * 30
+        lrgraph = self._make_lrgraph(eojeols)
+        result = _inject_known_nouns(nouns, {"트와이스"}, lrgraph, min_noun_frequency=1)
+        assert "트와이스" in result
+        assert result["트와이스"][1] == 1.0
+
+    def test_existing_noun_not_overwritten(self):
+        """이미 추출된 명사는 덮어쓰지 않는다."""
+        nouns: dict[str, tuple[int, float]] = {"학생": (100, 0.9)}
+        lrgraph = self._make_lrgraph([])
+        result = _inject_known_nouns(nouns, {"학생"}, lrgraph, min_noun_frequency=1)
+        assert result["학생"] == (100, 0.9)
+
+    def test_oov_known_noun_added_with_zero_freq(self):
+        """LRGraph에 없는 OOV 단어도 frequency=0으로 추가된다."""
+        nouns: dict[str, tuple[int, float]] = {}
+        lrgraph = self._make_lrgraph([])
+        result = _inject_known_nouns(nouns, {"OOV단어"}, lrgraph, min_noun_frequency=1)
+        assert "OOV단어" in result
+        assert result["OOV단어"] == (0, 1.0)
+
+    def test_known_nouns_none_skipped(self):
+        """known_nouns가 None이면 extract()에서 호출되지 않는다 (직접 검증 불필요)."""
+        nouns: dict[str, tuple[int, float]] = {"학생": (100, 0.9)}
+        lrgraph = self._make_lrgraph([])
+        result = _inject_known_nouns(nouns, set(), lrgraph, min_noun_frequency=1)
+        assert result == nouns

@@ -146,6 +146,7 @@ class LRNounExtractor:
         exclude_numbers: bool = True,
         custom_exclude_function: Callable[[str], bool] | None = None,
         postprocessing_nj: bool = True,
+        known_nouns: set[str] | None = None,
         n_workers: int = 1,
     ) -> dict[str, NounScore]:
         """Extract nouns from `train_data` or trained L-R graph
@@ -200,6 +201,13 @@ class LRNounExtractor:
                 removes `Noun+조사` patterns when the base noun has higher frequency.
                 Set to False to keep `Noun+조사` candidates (e.g., when you need to
                 preserve words like '천불이' alongside '천불').
+            known_nouns (set of str or None) :
+                Pre-built noun dictionary to inject into the results after extraction.
+                Words in `known_nouns` that are not already extracted are forcibly added
+                with score=1.0. Their frequency is derived from the L-R graph.
+
+                    >>> nouns = noun_extractor.extract(
+                    >>>     train_data, known_nouns={"아이오아이", "트와이스"})
 
         Returns:
             nouns ({str: NounScore}) : {word: NounScore}
@@ -265,6 +273,9 @@ class LRNounExtractor:
         features_to_be_detached = {r for r in self.pos}
         features_to_be_detached.update(self.common)
         nouns = postprocessing(nouns, lrgraph, features_to_be_detached, min_noun_score, self.verbose, postprocessing_nj)
+
+        if known_nouns:
+            nouns = _inject_known_nouns(nouns, known_nouns, lrgraph, min_noun_frequency)
 
         lrgraph.reset_lrgraph()
         self.nouns = {noun: NounScore(frequency, score) for noun, (frequency, score) in nouns.items()}
@@ -832,6 +843,30 @@ def parse_compound(tokens: list[Token], pos_features: set[str]) -> tuple[str, ..
         return tuple(t.word for t in tokens)
 
     return None
+
+
+def _inject_known_nouns(
+    nouns: dict[str, tuple[int, float]],
+    known_nouns: set[str],
+    lrgraph: LRGraph,
+    min_noun_frequency: int,
+) -> dict[str, tuple[int, float]]:
+    """기구축된 사전(known_nouns)에 있는 단어를 명사 결과에 추가한다.
+
+    이미 추출된 명사는 덮어쓰지 않는다.
+    LRGraph에 등장하고 min_noun_frequency 이상인 단어만 추가하며, score는 1.0으로 설정.
+    LRGraph에 없는 단어(OOV)는 frequency=0으로 추가한다.
+    """
+    nouns = dict(nouns)
+    n_before = len(nouns)
+    for noun in known_nouns:
+        if noun in nouns:
+            continue
+        r_features = lrgraph.get_r(noun, -1)
+        freq = sum(c for _, c in r_features)
+        nouns[noun] = (freq, 1.0)
+    logger.info(f"known_nouns: {len(known_nouns)}개 중 {len(nouns) - n_before}개 추가")
+    return nouns
 
 
 def postprocessing(
