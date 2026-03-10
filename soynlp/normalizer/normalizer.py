@@ -218,7 +218,7 @@ class PassCharacterNormalizer(Normalizer):
         number: bool = True,
         symbol: bool = True,
         custom: str | None = None,
-    ):
+    ) -> None:
         pattern = ""
         if alphabet:
             pattern += "a-zA-Z"
@@ -239,13 +239,16 @@ class PassCharacterNormalizer(Normalizer):
 class HangleEmojiNormalizer(Normalizer):
     """Decompose hangle emoji patterns like 'ㅋㅋㅋ쿠ㅜㅜ' into 'ㅋㅋㅋㅋㅜㅜㅜ'"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.pattern = re.compile(r"[ㄱ-ㅎ]+[가-힣]{1}[ㅏ-ㅣ]+")
         self._hangle = re.compile(r"[가-힣]")
 
     def normalize(self, s: str) -> str:
-        def decompose(target):
-            i = list(self._hangle.finditer(target))[0].span()[0]
+        def decompose(target: str) -> str:
+            m = next(self._hangle.finditer(target), None)
+            if m is None:
+                return target
+            i = m.span()[0]
             hangle = unicodedata.normalize("NFKD", target[i])
             jaum, moum = target[i - 1], target[i + 1]
             jaum_ = unicodedata.normalize("NFKD", jaum)
@@ -317,7 +320,7 @@ class RepeatCharacterNormalizer(Normalizer):
         max_repeat (int)
     """
 
-    def __init__(self, max_repeat: int = 2):
+    def __init__(self, max_repeat: int = 2) -> None:
         pattern = "(\\S)\\1{" + str(max_repeat) + ",}"
         self.pattern = re.compile(pattern)
         self.replace_str = "\\1" * max_repeat
@@ -329,7 +332,7 @@ class RepeatCharacterNormalizer(Normalizer):
 class RemoveLongspaceNormalizer(Normalizer):
     """2개 이상의 공백(탭·개행 포함)을 단일 공백으로 줄인다."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.pattern = re.compile(r"\s+")
 
     def normalize(self, s: str) -> str:
