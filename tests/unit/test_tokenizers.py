@@ -1,6 +1,6 @@
 import pytest
 
-from soynlp.tokenizer import LTokenizer, MaxScoreTokenizer, RegexTokenizer
+from soynlp.tokenizer import LTokenizer, MaxScoreTokenizer, NounMatchTokenizer, RegexTokenizer
 from soynlp.tokenizer.tokenizer_builder import EojeolPatternTrainer
 
 
@@ -56,6 +56,35 @@ def test_l_tokenizer(scores, sentence, tolerance, remove_r, expected):
     tokenizer = LTokenizer(scores)
     words = tokenizer.tokenize(sentence, tolerance=tolerance, remove_r=remove_r)
     assert words == expected
+
+
+def test_l_tokenizer_multi_space_offset():
+    scores = {"파스타": 0.7, "좋아": 0.3}
+    tokenizer = LTokenizer(scores)
+    tokens = tokenizer.tokenize("파스타가  좋아요", return_words=False)
+    words = [t.word for t in tokens if t.length > 0]
+    begins = {t.word: t.begin for t in tokens if t.length > 0}
+    assert "파스타" in words
+    assert begins["파스타"] == 0
+    assert begins.get("좋아요") == 6 or begins.get("좋아") == 6
+
+
+def test_maxscore_tokenizer_multi_space_offset():
+    scores = {"파스타": 0.7, "좋아": 0.3}
+    tokenizer = MaxScoreTokenizer(scores)
+    tokens = tokenizer.tokenize("파스타가  좋아요", return_words=False)
+    begins = {t.word: t.begin for t in tokens}
+    assert begins.get("파스타") == 0
+    assert begins.get("좋아") == 6
+
+
+def test_noun_match_tokenizer_multi_space_offset():
+    nouns = {"파스타", "좋아"}
+    tokenizer = NounMatchTokenizer(nouns)
+    tokens = tokenizer.tokenize("파스타가  좋아요", return_words=False)
+    begins = {t.word: t.begin for t in tokens}
+    assert begins.get("파스타") == 0
+    assert begins.get("좋아") == 6
 
 
 def test_maxscore_tokenizer():
