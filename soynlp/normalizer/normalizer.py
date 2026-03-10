@@ -3,6 +3,7 @@ import os
 import re
 import unicodedata
 import warnings
+from abc import ABC, abstractmethod
 from collections.abc import Callable
 from glob import glob
 
@@ -145,12 +146,14 @@ def normalize_sent_for_lrgraph(sent: str) -> str:
     return " ".join(sent_)
 
 
-class Normalizer:
+class Normalizer(ABC):
+    """단일 정규화 규칙을 구현하는 추상 기반 클래스."""
+
     def __call__(self, s: str) -> str:
         return self.normalize(s)
 
-    def normalize(self, s: str) -> str:
-        raise NotImplementedError("Implement `normalize` function")
+    @abstractmethod
+    def normalize(self, s: str) -> str: ...
 
 
 class PassCharacterNormalizer(Normalizer):
@@ -308,14 +311,24 @@ class PaddingSpacetoWordsNormalizer(Normalizer):
         return "".join(s_)
 
 
-class TextNormalizer(Normalizer):
-    def __init__(self, normalizer_list):
+class TextNormalizer:
+    """여러 Normalizer를 순차 적용하는 컴포지트 클래스.
+
+    단일 정규화 규칙을 구현하는 ``Normalizer``와 달리, ``TextNormalizer``는
+    여러 normalizer를 조합하여 파이프라인을 구성한다. ``Normalizer``를 상속하지
+    않으며, ``normalize(s) -> str`` 인터페이스를 duck-typing으로 충족한다.
+    """
+
+    def __init__(self, normalizer_list: list[Callable[[str], str]]) -> None:
         if not isinstance(normalizer_list, list):
             raise ValueError("Available only `list` as `normalizer_list`")
         for i, module in enumerate(normalizer_list):
             if not callable(module):
                 raise ValueError(f"{i}th module is not callable")
         self.modules = normalizer_list
+
+    def __call__(self, s: str) -> str:
+        return self.normalize(s)
 
     def normalize(self, s: str) -> str:
         for module in self.modules:
