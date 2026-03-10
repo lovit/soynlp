@@ -61,7 +61,7 @@ def lemma_candidate_chat(
 
     if not r and character_is_emoticon(l_last[2]):
         l_ = l[:-1] + compose(l_last[0], l_last[1], " ")
-        logger.debug("마지막 종성이 이모티콘으로 의심되는 경우: %s + ()", l_)
+        logger.debug(f"마지막 종성이 이모티콘으로 의심되는 경우: {l_} + ()")
         candidates.update(lemma_candidate(l_, r, predefined, debug))
 
     return candidates
@@ -77,7 +77,7 @@ def lemma_candidate(
         candidates.add((stem, ending))
 
     def debug_message(message: str, left: str, right: str) -> None:
-        logger.debug("%s: %s + %s", message, left, right)
+        logger.debug(f"{message}: {left} + {right}")
 
     candidates: set[tuple[str, str]] = {(l, r)}
     word = l + r
@@ -223,7 +223,7 @@ def lemma_candidate(
     if predefined and (l, r) in predefined:
         for stem_ending in predefined[(l, r)]:
             candidates.add(stem_ending)
-            logger.debug("Predefined: %s", stem_ending)
+            logger.debug(f"Predefined: {stem_ending}")
 
     # check whether lemma is conjugatable
     candidates_ = set()
