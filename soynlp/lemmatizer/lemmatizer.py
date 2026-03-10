@@ -117,6 +117,15 @@ def lemma_candidate(
         if debug:
             debug_message("ㅂ 불규칙 활용", l_stem, r_canon)
 
+    # ㅂ 불규칙 워/와 생략 복원: 간지러 → 간지럽 + 어
+    # 대화체에서 간지럽 + 어 → 간지러워 → 워 생략 → 간지러
+    if l_last[2] == " " and not r:
+        l_stem = l_front + compose(l_last[0], l_last[1], "ㅂ")
+        add_lemma(l_stem, "어")
+        add_lemma(l_stem, "아")
+        if debug:
+            debug_message("ㅂ 불규칙 워/와 생략 복원", l_stem, "어/아")
+
     # 어미의 첫글자가 종성일 경우 (-ㄴ, -ㄹ, -ㅁ-, -ㅂ, -ㅆ)
     if l_last[2] in ("ㄴ", "ㄹ", "ㅁ", "ㅂ", "ㅆ"):
         for jongsung in " ㄹㅂㅎ":
