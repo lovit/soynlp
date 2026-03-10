@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass
+from typing import Literal, overload
 
 # MaxScoreTokenizer 내부 루프 무한반복 방지 상한값
 _MAX_TOKENIZE_ITERATIONS = 100
@@ -25,7 +26,7 @@ class Token:
     length: int
     eojeol_id: int
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Token({self.word}, score={self.score}, position=({self.begin}, {self.end}), eojeol_id={self.eojeol_id})"
 
 
@@ -58,13 +59,13 @@ class RegexTokenizer:
            Token(report, score=1, position=(34, 40), eojeol_id=3)]
     """
 
-    def __init__(self, pipelines=None):
+    def __init__(self, pipelines: list[re.Pattern[str]] | None = None) -> None:
         if pipelines is None:
             pipelines = self._default_pipelines()
         self.pipelines = pipelines
         self.doublewhite_pattern = re.compile(r"\s+")
 
-    def _default_pipelines(self):
+    def _default_pipelines(self) -> list[re.Pattern[str]]:
         return [
             re.compile(r"[-+]?\d+(?:\.\d+)*", re.UNICODE),  # number (int, decimal, version: 3.1.1)
             re.compile(r"[가-힣]+", re.UNICODE),  # Korean
@@ -73,10 +74,22 @@ class RegexTokenizer:
             re.compile(r"[a-zA-ZÀ-ÿ]+(?:[`']s)?", re.UNICODE),  # Alphabet (optional 's possessive)
         ]
 
-    def __call__(self, sentence, return_words=True):
+    @overload
+    def __call__(self, sentence: str, return_words: Literal[True] = ...) -> list[str]: ...
+
+    @overload
+    def __call__(self, sentence: str, return_words: Literal[False]) -> list[Token]: ...
+
+    def __call__(self, sentence: str, return_words: bool = True) -> list[str] | list[Token]:
         return self.tokenize(sentence, return_words)
 
-    def tokenize(self, sentence, return_words=True):
+    @overload
+    def tokenize(self, sentence: str, return_words: Literal[True] = ...) -> list[str]: ...
+
+    @overload
+    def tokenize(self, sentence: str, return_words: Literal[False]) -> list[Token]: ...
+
+    def tokenize(self, sentence: str, return_words: bool = True) -> list[str] | list[Token]:
         """Split sentence based on type of characters and regex pattern.
 
         Args:
@@ -166,14 +179,38 @@ class LTokenizer:
             $ ['파스타', '가', '좋아', '요', '파스타', '가좋아요']
     """
 
-    def __init__(self, scores, unknown_score=0.0):
+    def __init__(self, scores: dict[str, float], unknown_score: float = 0.0) -> None:
         self.scores = scores
         self.unknown_score = unknown_score
 
-    def __call__(self, sentence, tolerance=0.0, return_words=True, remove_r=False):
+    @overload
+    def __call__(
+        self, sentence: str, tolerance: float = ..., return_words: Literal[True] = ..., remove_r: bool = ...
+    ) -> list[str]: ...
+
+    @overload
+    def __call__(
+        self, sentence: str, tolerance: float = ..., return_words: Literal[False] = ..., remove_r: bool = ...
+    ) -> list[Token]: ...
+
+    def __call__(
+        self, sentence: str, tolerance: float = 0.0, return_words: bool = True, remove_r: bool = False
+    ) -> list[str] | list[Token]:
         return self.tokenize(sentence, tolerance, return_words, remove_r)
 
-    def tokenize(self, sentence, tolerance=0.0, return_words=True, remove_r=False):
+    @overload
+    def tokenize(
+        self, sentence: str, tolerance: float = ..., return_words: Literal[True] = ..., remove_r: bool = ...
+    ) -> list[str]: ...
+
+    @overload
+    def tokenize(
+        self, sentence: str, tolerance: float = ..., return_words: Literal[False] = ..., remove_r: bool = ...
+    ) -> list[Token]: ...
+
+    def tokenize(
+        self, sentence: str, tolerance: float = 0.0, return_words: bool = True, remove_r: bool = False
+    ) -> list[str] | list[Token]:
         """
         Args:
             sentence (str) : input string
@@ -270,15 +307,27 @@ class MaxScoreTokenizer:
             >>> tokenizer.tokenize('예시문장입니다')
     """
 
-    def __init__(self, scores, max_length=10, unknown_score=0.0):
+    def __init__(self, scores: dict[str, float], max_length: int = 10, unknown_score: float = 0.0) -> None:
         self.scores = scores
         self.max_len = max_length
         self.unknown_score = unknown_score
 
-    def __call__(self, sentence, return_words=True):
+    @overload
+    def __call__(self, sentence: str, return_words: Literal[True] = ...) -> list[str]: ...
+
+    @overload
+    def __call__(self, sentence: str, return_words: Literal[False]) -> list[Token]: ...
+
+    def __call__(self, sentence: str, return_words: bool = True) -> list[str] | list[Token]:
         return self.tokenize(sentence, return_words)
 
-    def tokenize(self, sentence, return_words=True):
+    @overload
+    def tokenize(self, sentence: str, return_words: Literal[True] = ...) -> list[str]: ...
+
+    @overload
+    def tokenize(self, sentence: str, return_words: Literal[False]) -> list[Token]: ...
+
+    def tokenize(self, sentence: str, return_words: bool = True) -> list[str] | list[Token]:
         """
         Args:
             sentence (str) : input string
@@ -296,7 +345,7 @@ class MaxScoreTokenizer:
             tokens = [token.word for token in tokens]
         return tokens
 
-    def _tokenize_eojeol(self, s, offset, eojeol_id):
+    def _tokenize_eojeol(self, s: str, offset: int, eojeol_id: int) -> list[Token]:
         length = len(s)
         if length <= 2:
             token = Token(s, offset, offset + length, self.scores.get(s, self.unknown_score), length, eojeol_id)
@@ -311,7 +360,7 @@ class MaxScoreTokenizer:
             adds += self._add_first_token(s, tokens, offset, eojeol_id)
         return sorted(tokens + adds, key=lambda x: x.begin)
 
-    def _prepare_word_candidates(self, s, length, offset=0, eojeol_id=0):
+    def _prepare_word_candidates(self, s: str, length: int, offset: int = 0, eojeol_id: int = 0) -> list[Token]:
         max_r = min(length, self.max_len)
         scored = []
         for begin in range(0, length - 1):
@@ -328,7 +377,7 @@ class MaxScoreTokenizer:
             return [Token(s, offset, offset + len(s), self.unknown_score, len(s), eojeol_id)]
         return sorted(scored, key=lambda x: (-x.score, -x.length, x.begin))
 
-    def _select_best_words(self, scored):
+    def _select_best_words(self, scored: list[Token]) -> list[Token]:
         result = []
         num_iter = 0
         while scored:
@@ -349,7 +398,7 @@ class MaxScoreTokenizer:
                 break
         return sorted(result, key=lambda x: x.begin)
 
-    def _add_inter_tokens(self, s, tokens, offset=0, eojeol_id=0):
+    def _add_inter_tokens(self, s: str, tokens: list[Token], offset: int = 0, eojeol_id: int = 0) -> list[Token]:
         adds = []
         for i, token in enumerate(tokens[:-1]):
             if token.end == tokens[i + 1].begin:
@@ -360,13 +409,13 @@ class MaxScoreTokenizer:
             adds.append(Token(sub, offset + begin, offset + end, self.unknown_score, end - begin, eojeol_id))
         return adds
 
-    def _add_first_token(self, s, tokens, offset=0, eojeol_id=0):
+    def _add_first_token(self, s: str, tokens: list[Token], offset: int = 0, eojeol_id: int = 0) -> list[Token]:
         begin = tokens[0].begin
         sub = s[0 : begin - offset]
         score = self.scores.get(sub, self.unknown_score)
         return [Token(sub, offset, begin, score, begin - offset, eojeol_id)]
 
-    def _add_last_token(self, s, tokens, offset=0, eojeol_id=0):
+    def _add_last_token(self, s: str, tokens: list[Token], offset: int = 0, eojeol_id: int = 0) -> list[Token]:
         end = tokens[-1].end
         sub = s[end - offset :]
         if not sub:
@@ -413,15 +462,33 @@ class NounMatchTokenizer(MaxScoreTokenizer):
             $ ['아이오아이', '오이오이', '아이']
     """
 
-    def __init__(self, noun_scores):
+    def __init__(self, noun_scores: dict[str, float] | list[str] | set[str] | tuple[str, ...]) -> None:
         if isinstance(noun_scores, (list, set, tuple)):
             noun_scores = {noun: 1.0 for noun in noun_scores}
         super().__init__(noun_scores)
 
-    def __call__(self, sentence, return_words=True, concat_compound=True):
+    @overload
+    def __call__(self, sentence: str, return_words: Literal[True] = ..., concat_compound: bool = ...) -> list[str]: ...
+
+    @overload
+    def __call__(self, sentence: str, return_words: Literal[False], concat_compound: bool = ...) -> list[Token]: ...
+
+    def __call__(self, sentence: str, return_words: bool = True, concat_compound: bool = True) -> list[str] | list[Token]:
         return self.tokenize(sentence, return_words, concat_compound)
 
-    def tokenize(self, sentence, return_words=True, concat_compound=True, must_be_L=False):
+    @overload
+    def tokenize(
+        self, sentence: str, return_words: Literal[True] = ..., concat_compound: bool = ..., must_be_L: bool = ...
+    ) -> list[str]: ...
+
+    @overload
+    def tokenize(
+        self, sentence: str, return_words: Literal[False], concat_compound: bool = ..., must_be_L: bool = ...
+    ) -> list[Token]: ...
+
+    def tokenize(
+        self, sentence: str, return_words: bool = True, concat_compound: bool = True, must_be_L: bool = False
+    ) -> list[str] | list[Token]:
         """
         Args:
             sentence (str) : input string

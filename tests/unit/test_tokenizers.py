@@ -4,7 +4,6 @@ from soynlp.tokenizer import LTokenizer, MaxScoreTokenizer, NounMatchTokenizer, 
 from soynlp.tokenizer.tokenizer_builder import EojeolPatternTrainer
 
 
-<<<<<<< HEAD
 def test_regex_tokenizer_empty_string():
     tokenizer = RegexTokenizer()
     assert tokenizer.tokenize("") == []
