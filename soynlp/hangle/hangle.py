@@ -1,4 +1,5 @@
 import re
+from functools import lru_cache
 
 import numpy as np
 
@@ -167,6 +168,7 @@ def compose(chosung: str, jungsung: str, jongsung: str) -> str:
     )
 
 
+@lru_cache(maxsize=12288)
 def decompose(c: str) -> tuple[str, str, str] | None:
     if not character_is_korean(c):
         return None
