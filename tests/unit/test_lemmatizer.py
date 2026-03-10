@@ -81,3 +81,44 @@ class TestLemmatizer:
         lem = Lemmatizer(stems=stems, endings=endings)
         result = lem.lemmatize("먹었다", check_only_stem=True)
         assert any(s == "먹" for s, _ in result)
+
+    def test_candidates(self):
+        stems = {"먹", "가"}
+        endings = {"다", "어"}
+        lem = Lemmatizer(stems=stems, endings=endings)
+        result = lem.candidates("먹다")
+        assert isinstance(result, set)
+        assert ("먹", "다") in result
+
+    def test_predefined_merging(self):
+        stems = {"붇", "불"}
+        endings = {"어"}
+        custom = {("살", "아"): (("삶", "아"),)}
+        lem = Lemmatizer(stems=stems, endings=endings, predefined=custom)
+        # custom predefined가 _initialize() 기본값과 합쳐져야 함
+        assert ("살", "아") in lem._predefined
+        assert ("불", "어") in lem._predefined  # 기본값 유지
+
+    def test_predefined_affects_candidates(self):
+        stems = {"붇"}
+        endings = {"어"}
+        lem = Lemmatizer(stems=stems, endings=endings)
+        result = lem.lemmatize("불어")
+        # 붇다 ㄷ불규칙: 불어 → 붇 + 어
+        assert ("붇", "어") in result
+
+
+class TestLemmaCandidatePredefined:
+    def test_predefined_key_is_tuple(self):
+        predefined: dict[tuple[str, str], tuple[tuple[str, str], ...]] = {
+            ("살", "아"): (("삶", "아"),),
+        }
+        result = lemma_candidate("살", "아", predefined=predefined)
+        # predefined 후보가 conjugation 검증을 통과하면 포함됨
+        assert isinstance(result, set)
+        assert all(isinstance(item, tuple) and len(item) == 2 for item in result)
+
+    def test_predefined_type_consistency(self):
+        # predefined 없이도 정상 동작
+        result = lemma_candidate("먹", "었다")
+        assert all(isinstance(item, tuple) for item in result)
