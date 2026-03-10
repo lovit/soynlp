@@ -31,6 +31,18 @@ class TestConjugate:
         result = conjugate("끄", "어")
         assert "꺼" in result
 
+    def test_leu_eu_drop(self):
+        # 르 ㅡ탈락 활용 예외: 치르다, 따르다, 들르다, 다다르다, 우러르다
+        # (일반 르 불규칙: 모르 + 아 -> 몰라 와 구분)
+        assert "치러" in conjugate("치르", "어")
+        assert "따라" in conjugate("따르", "아")
+        assert "들러" in conjugate("들르", "어")
+        assert "다다러" in conjugate("다다르", "어")
+        assert "우러러" in conjugate("우러르", "어")
+        # 일반 르 불규칙은 그대로 유지
+        assert "몰라" in conjugate("모르", "아")
+        assert "굴러" in conjugate("구르", "어")
+
 
 class TestConjugateChat:
     def test_with_ending(self):

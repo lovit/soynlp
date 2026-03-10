@@ -161,7 +161,9 @@ def conjugate(stem: str, ending: str, enforce_moum_harmoney: bool = False, debug
         elif l_last[0] != "ㄹ":
             surface = stem[:-1] + compose(l_last[0], r_first[1], r_first[2]) + ending[1:]
         else:
-            surface = None
+            # 르 ㅡ탈락: 치르다, 따르다, 들르다, 다다르다, 우러르다 등
+            # 르의 ㅡ가 탈락하고 ㄹ이 다음 음절 초성이 됨 (치르 + 어 → 치러)
+            surface = stem[:-1] + compose("ㄹ", r_first[1], r_first[2]) + ending[1:]
         if surface is not None:
             candidates.add(surface)
         if surface is not None:
