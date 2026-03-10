@@ -107,11 +107,25 @@ class TestLevenshtein:
     def test_insert(self):
         assert levenshtein("abc", "ab") == 1
 
+    def test_delete(self):
+        # s1이 더 짧으면 내부적으로 뒤집어서 처리됨
+        assert levenshtein("ab", "abc") == 1
+
+    def test_substitute(self):
+        assert levenshtein("abc", "axc") == 1
+
     def test_empty(self):
         assert levenshtein("abc", "") == 3
+        assert levenshtein("", "abc") == 3
+
+    def test_completely_different(self):
+        assert levenshtein("abc", "xyz") == 3
 
     def test_custom_cost(self):
         assert levenshtein("a", "b", cost={("a", "b"): 0.5, ("b", "a"): 0.5}) == 0.5
+
+    def test_symmetry(self):
+        assert levenshtein("kitten", "sitting") == levenshtein("sitting", "kitten")
 
 
 class TestJamoLevenshtein:
@@ -119,19 +133,49 @@ class TestJamoLevenshtein:
         assert jamo_levenshtein("한글", "한글") == 0
 
     def test_similar(self):
+        # 한글 vs 한금: 받침만 다름 → 자모 거리 < 1
         dist = jamo_levenshtein("한글", "한금")
         assert 0 < dist < 1
 
     def test_empty(self):
         assert jamo_levenshtein("한", "") == 1
+        assert jamo_levenshtein("", "한") == 1
+
+    def test_non_korean_chars(self):
+        # 비한글 문자는 1 단위로 처리됨
+        assert jamo_levenshtein("abc", "abc") == 0
+        assert jamo_levenshtein("abc", "abx") == 1
+
+    def test_less_than_levenshtein(self):
+        # 자모 거리 < 일반 거리 (한글이 비슷한 경우)
+        normal = levenshtein("한글", "한금")
+        jamo = jamo_levenshtein("한글", "한금")
+        assert jamo < normal
 
 
 class TestCosineDistance:
     def test_same(self):
         assert cosine_distance("aaa", "aaa") == pytest.approx(0.0)
 
-    def test_empty(self):
+    def test_empty_s1(self):
         assert cosine_distance("", "abc") == 2
+
+    def test_empty_s2(self):
+        assert cosine_distance("abc", "") == 2
+
+    def test_orthogonal(self):
+        # "aaa" vs "bbb": 공통 문자 없음 → cosine=0, distance=1
+        assert cosine_distance("aaa", "bbb") == pytest.approx(1.0)
+
+    def test_partial_overlap(self):
+        d = cosine_distance("abc", "abx")
+        assert 0 < d < 1
+
+    def test_range(self):
+        # 거리는 항상 [0, 2] 범위
+        for s1, s2 in [("abc", "abc"), ("abc", "def"), ("abc", "abx")]:
+            d = cosine_distance(s1, s2)
+            assert 0.0 <= d <= 2.0
 
 
 class TestJaccardDistance:
@@ -141,8 +185,22 @@ class TestJaccardDistance:
     def test_disjoint(self):
         assert jaccard_distance("abc", "def") == pytest.approx(1.0)
 
-    def test_empty(self):
+    def test_empty_s1(self):
         assert jaccard_distance("", "abc") == 1
+
+    def test_empty_s2(self):
+        assert jaccard_distance("abc", "") == 1
+
+    def test_partial_overlap(self):
+        # "ab" vs "bc": 교집합 {"b"}, 합집합 {"a","b","c"} → 1 - 1/3 = 2/3
+        d = jaccard_distance("ab", "bc")
+        assert d == pytest.approx(2 / 3)
+
+    def test_custom_unitfy(self):
+        # 단어 단위 분리
+
+        d = jaccard_distance("hello world", "hello earth", unitfy=lambda s: set(s.split()))
+        assert 0 < d < 1
 
 
 class TestTextToJamo:
