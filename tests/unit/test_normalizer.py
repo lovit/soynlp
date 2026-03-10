@@ -10,9 +10,11 @@ from soynlp.normalizer.normalizer import (
     TextNormalizer,
     emoticon_normalize,
     normalize,
+    normalize_sent_for_lrgraph,
     only_hangle,
     only_hangle_number,
     only_text,
+    remain_hangle_on_last,
     remove_doublespace,
     repeat_normalize,
     text_normalizer,
@@ -204,3 +206,29 @@ def test_deprecated_only_text():
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("always")
         assert only_text("안녕 hello @@ 123") == "안녕 hello 123"
+
+
+def test_remain_hangle_on_last():
+    # 한글이 포함된 어절: 마지막 한글 이후 문자 제거
+    assert remain_hangle_on_last("안녕123") == "안녕"
+    assert remain_hangle_on_last("abc안녕123") == "abc안녕"
+    # 한글로 끝나는 경우: 그대로 반환
+    assert remain_hangle_on_last("안녕") == "안녕"
+    # 한글이 없는 경우: 빈 문자열 반환
+    assert remain_hangle_on_last("abc123") == ""
+    assert remain_hangle_on_last("") == ""
+    # 자모(ㄱ-ㅎ, ㅏ-ㅣ)도 한글로 처리
+    assert remain_hangle_on_last("ㅋㅋ123") == "ㅋㅋ"
+
+
+def test_normalize_sent_for_lrgraph():
+    # 기본: 심볼 및 비허용 문자 제거, 각 어절에서 마지막 한글 이후 제거
+    assert normalize_sent_for_lrgraph("안녕하세요. 반갑습니다!") == "안녕하세요 반갑습니다"
+    # 괄호류(심볼)는 공백으로 치환
+    assert normalize_sent_for_lrgraph("(주)삼성 [공지]제목") == "주 삼성 공지 제목"
+    # 한글이 없는 어절은 필터링
+    assert normalize_sent_for_lrgraph("hello world 안녕") == "안녕"
+    # 빈 입력
+    assert normalize_sent_for_lrgraph("") == ""
+    # 전체가 한글 없는 문장
+    assert normalize_sent_for_lrgraph("abc 123") == ""
