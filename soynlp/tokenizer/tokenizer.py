@@ -66,7 +66,7 @@ class RegexTokenizer:
 
     def _default_pipelines(self):
         return [
-            re.compile(r"[-+]?\d*[\.]?[\d]+|[-+]?\d+", re.UNICODE),  # number
+            re.compile(r"[-+]?\d+(?:\.\d+)*", re.UNICODE),  # number (int, decimal, version: 3.1.1)
             re.compile(r"[가-힣]+", re.UNICODE),  # Korean
             re.compile(r"[ㄱ-ㅎ]+", re.UNICODE),  # jaum
             re.compile(r"[ㅏ-ㅣ]+", re.UNICODE),  # moum

@@ -10,6 +10,15 @@ def test_regex_tokenizer_empty_string():
     assert tokenizer.tokenize("   ") == []
 
 
+def test_regex_tokenizer_version_number():
+    tokenizer = RegexTokenizer()
+    # 버전 번호(3.1.1)가 하나의 토큰으로 분리되어야 한다 (issue #7)
+    assert tokenizer.tokenize("다음에는3.1.1장입니다") == ["다음에는", "3.1.1", "장입니다"]
+    assert tokenizer.tokenize("v1.2.3.4릴리스") == ["v", "1.2.3.4", "릴리스"]
+    assert tokenizer.tokenize("3.14") == ["3.14"]
+    assert tokenizer.tokenize("42") == ["42"]
+
+
 def test_regex_tokenizer():
     sentence = "abc123가나다 alphabet!!3.14한글 hank`s report"
     expected_words = ["abc", "123", "가나다", "alphabet", "!!", "3.14", "한글", "hank`s", "report"]
