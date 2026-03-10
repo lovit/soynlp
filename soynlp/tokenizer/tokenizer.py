@@ -143,6 +143,8 @@ class RegexTokenizer:
                 s_ += char
             s = s_
         words = self.doublewhite_pattern.sub(" ", s).strip().split()
+        if not words:
+            return []
         r = len(words[0])
         tokens = [Token(words[0], 0 + offset, r + offset, 1, r, eojeol_id)]
         begin = tokens[0].end
