@@ -125,7 +125,7 @@ class LRNounExtractor:
         logger.info(f"#pos={len(self.pos)}, #neg={len(self.neg)}, #common={len(self.common)}")
 
         self.lrgraph: LRGraph | None = None
-        self.compounds_components: dict | None = None
+        self.compounds_components: dict[str, tuple[str, ...]] | None = None
         self.compound_decomposer: MaxScoreTokenizer | None = None
         self.nouns: dict[str, NounScore] | None = None
 
