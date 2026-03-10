@@ -58,7 +58,7 @@ class EojeolPatternTrainer:
         max_right_length: int = 6,
         min_frequency: int = 10,
         verbose: bool = True,
-    ):
+    ) -> None:
         self.max_left_length = max_left_length
         self.max_right_length = max_right_length
         self.min_frequency = min_frequency
@@ -74,7 +74,7 @@ class EojeolPatternTrainer:
         wordset_l: set[str] | None = None,
         wordset_r: set[str] | None = None,
         n_workers: int = 1,
-    ):
+    ) -> None:
         if (not wordset_l) or (not wordset_r):
             wordset_l, wordset_r = self._scan_vocabulary(sents, n_workers=n_workers)
         self.lrgraph, self.rlgraph = self._build_graph(sents, wordset_l, wordset_r, n_workers=n_workers)
@@ -201,7 +201,7 @@ class EojeolPatternTrainer:
         logger.info("building lr-graph completed.")
         return lrgraph, rlgraph
 
-    def save(self, fname: str):
+    def save(self, fname: str) -> None:
         with open(fname, "w", encoding="utf-8") as f:
             verbose_flag = 1 if self.verbose else 0
             f.write(f"{self.max_left_length} {self.max_right_length} {self.min_frequency} {verbose_flag}\n")
@@ -216,7 +216,7 @@ class EojeolPatternTrainer:
                 for l, freq in sorted(ldict.items(), key=lambda x: x[1], reverse=True):
                     f.write(f"  - {l}: {freq}\n")
 
-    def load(self, fname: str):
+    def load(self, fname: str) -> None:
         with open(fname, encoding="utf-8") as f:
             param = next(f).strip()
             args = param.split()
