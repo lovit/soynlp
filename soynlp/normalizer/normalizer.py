@@ -12,11 +12,8 @@ logger = logging.getLogger(__name__)
 
 _doublespace_pattern = re.compile(r"\s+")
 _repeatchars_pattern = re.compile(r"(\w)\1{2,}")
-_number_pattern = re.compile(r"[0-9]")
-_punctuation_pattern = re.compile(r"[,.?!]")
 _symbol_pattern = re.compile(r"[()\[\]{}`]")
 _hangle_pattern = re.compile(r"[ㄱ-ㅎㅏ-ㅣ가-힣]")
-_alphabet_pattern = re.compile(r"[a-zA-Z]")
 
 _hangle_filter = re.compile(r"[^ㄱ-ㅎㅏ-ㅣ가-힣]")
 _hangle_number_filter = re.compile(r"[^ㄱ-ㅎㅏ-ㅣ가-힣0-9]")
@@ -31,24 +28,27 @@ def normalize(
     symbol: bool = False,
     remove_repeat: int = 0,
 ) -> str:
-    """.. deprecated:: Use ``TextNormalizer.build_normalizer()`` instead."""
+    """.. deprecated:: Use ``TextNormalizer.build_normalizer()`` instead.
+
+    Note:
+        ``punctuation`` 파라미터는 ``PassCharacterNormalizer``에 직접 대응하는 파라미터가
+        없으므로 ``symbol``로 통합된다. ``PassCharacterNormalizer``로 마이그레이션 시
+        ``symbol=True``를 사용하라.
+    """
     warnings.warn(
         "`normalize` is deprecated. Use `TextNormalizer.build_normalizer()` instead.",
         DeprecationWarning,
         stacklevel=2,
     )
-    doc = _text_filter.sub(" ", doc)
-    if not alphabet:
-        doc = _alphabet_pattern.sub(" ", doc)
-    if not number:
-        doc = _number_pattern.sub(" ", doc)
-    if not punctuation:
-        doc = _punctuation_pattern.sub(" ", doc)
-    if not symbol:
-        doc = _symbol_pattern.sub(" ", doc)
-    if remove_repeat > 0:
-        doc = _repeatchars_pattern.sub("\\1" * remove_repeat, doc)
-    return _doublespace_pattern.sub(" ", doc).strip()
+    return TextNormalizer.build_normalizer(
+        alphabet=alphabet,
+        hangle=True,
+        number=number,
+        symbol=punctuation or symbol,
+        remove_repeatchar=remove_repeat,
+        decompose_hangle_emoji=False,
+        remove_longspace=True,
+    )(doc)
 
 
 def remove_doublespace(sent: str) -> str:
