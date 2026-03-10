@@ -117,36 +117,14 @@ class RegexTokenizer:
             tokens = [token.word for token in tokens]
         return tokens
 
-    def _tokenize(self, s, offset=0, eojeol_id=0):
+    def _tokenize(self, s: str, offset: int = 0, eojeol_id: int = 0) -> list[Token]:
         for pattern in self.pipelines:
-            founds = pattern.findall(s)
-            if not founds:
-                continue
-            found = founds.pop(0)
-            len_found = len(found)
-
-            s_ = ""
-            begin = 0
-            for i, char in enumerate(s):
-                if begin > i:
-                    continue
-                if s[i : i + len_found] == found:
-                    s_ += f" {s[i : i + len_found]} "
-                    begin = i + len_found
-                    if not founds:
-                        s_ += s[begin:]
-                        break
-                    else:
-                        found = founds.pop(0)
-                        len_found = len(found)
-                    continue
-                s_ += char
-            s = s_
+            s = pattern.sub(lambda m: f" {m.group()} ", s)
         words = self.doublewhite_pattern.sub(" ", s).strip().split()
         if not words:
             return []
         r = len(words[0])
-        tokens = [Token(words[0], 0 + offset, r + offset, 1, r, eojeol_id)]
+        tokens = [Token(words[0], offset, offset + r, 1, r, eojeol_id)]
         begin = tokens[0].end
         for word in words[1:]:
             r = len(word)
