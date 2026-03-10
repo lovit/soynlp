@@ -371,6 +371,8 @@ def get_entropy(collection_of_numbers: list[int] | list[float]) -> float:
     if not collection_of_numbers:
         return 0.0
     total = sum(collection_of_numbers)
+    if total == 0:
+        return 0.0
     entropy = 0
     for number in collection_of_numbers:
         prob = float(number) / total
