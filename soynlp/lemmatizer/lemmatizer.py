@@ -12,7 +12,7 @@ class Lemmatizer:
         self,
         stems: set[str],
         endings: set[str],
-        predefined: dict | None = None,
+        predefined: dict[tuple[str, str], tuple[tuple[str, str], ...]] | None = None,
     ) -> None:
         self._stems = stems
         self._endings = endings
@@ -21,9 +21,9 @@ class Lemmatizer:
             self._predefined.update(predefined)
 
     def _initialize(self) -> None:
-        self._predefined: dict = {
-            "불어": ("붇다", "불다"),
-            "그래": ("그렇다",),
+        self._predefined: dict[tuple[str, str], tuple[tuple[str, str], ...]] = {
+            ("불", "어"): (("붇", "어"),),  # 붇다 ㄷ 불규칙: 불 + 어 → 붇 + 어
+            ("그", "래"): (("그렇", "아"),),  # 그렇다 ㅎ 불규칙: 그 + 래 split 시 보완
         }
 
     def lemmatize(self, word: str, check_only_stem: bool = False) -> set[tuple[str, str]]:
@@ -50,7 +50,7 @@ class Lemmatizer:
 def lemma_candidate_chat(
     l: str,
     r: str,
-    predefined: dict[tuple[str, str], tuple[str, ...]] | None = None,
+    predefined: dict[tuple[str, str], tuple[tuple[str, str], ...]] | None = None,
     debug: bool = False,
 ) -> set[tuple[str, str]]:
     def character_is_emoticon(c: str) -> bool:
@@ -70,7 +70,7 @@ def lemma_candidate_chat(
 def lemma_candidate(
     l: str,
     r: str,
-    predefined: dict | None = None,
+    predefined: dict[tuple[str, str], tuple[tuple[str, str], ...]] | None = None,
     debug: bool = False,
 ) -> set[tuple[str, str]]:
     def add_lemma(stem: str, ending: str) -> None:
@@ -212,9 +212,9 @@ def lemma_candidate(
 
     # Pre-defined set
     if predefined and (l, r) in predefined:
-        for stem in predefined[(l, r)]:
-            candidates.add(stem)
-            logger.debug("Predefined: %s", stem)
+        for stem_ending in predefined[(l, r)]:
+            candidates.add(stem_ending)
+            logger.debug("Predefined: %s", stem_ending)
 
     # check whether lemma is conjugatable
     candidates_ = set()
