@@ -87,7 +87,7 @@ class BigramExtractor:
 
     @property
     def is_trained(self) -> bool:
-        return (self.bigrams is not None) and (len(self.bigrams) > 0)
+        return bool(self.bigrams)
 
     def extract(
         self,
