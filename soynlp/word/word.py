@@ -406,7 +406,7 @@ def calculate_branching_entropy_accessor_variety_batch(
     av_r: dict[str, int] = {}
 
     offset = 0
-    max_l_length = max(l_groupby_len)
+    max_l_length = max(l_groupby_len, default=0)
     for l_len, l_count in sorted(l_groupby_len.items()):
         if l_len == 1:
             continue
@@ -439,7 +439,7 @@ def calculate_branching_entropy_accessor_variety_batch(
         offset += len(l_count)
 
     offset = 0
-    max_r_length = max(r_groupby_len)
+    max_r_length = max(r_groupby_len, default=0)
     for r_len, r_count in sorted(r_groupby_len.items()):
         if r_len == 1:
             continue
