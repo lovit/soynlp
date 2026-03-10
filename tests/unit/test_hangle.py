@@ -176,14 +176,63 @@ class TestTextToJamo:
 
 
 class TestConvolutionHangleEncoder:
+    def setup_method(self):
+        self.encoder = ConvolutionHangleEncoder()
+
     def test_encode_decode_roundtrip(self):
-        encoder = ConvolutionHangleEncoder()
         text = "한글 테스트"
-        onehot = encoder.sent_to_onehot(text)
-        decoded = encoder.onehot_to_sent(onehot)
+        onehot = self.encoder.sent_to_onehot(text)
+        decoded = self.encoder.onehot_to_sent(onehot)
         assert decoded == text
 
     def test_encode_shape(self):
-        encoder = ConvolutionHangleEncoder()
-        x = encoder.encode("한글")
+        x = self.encoder.encode("한글")
         assert x.shape == (2, 80)
+
+    def test_encode_is_binary(self):
+        # 각 행은 one-hot이므로 0 또는 1만 포함
+        x = self.encoder.encode("안녕")
+        assert set(x.flatten().tolist()).issubset({0.0, 1.0})
+
+    def test_space_encoding(self):
+        # 한글 사이의 공백은 space 인덱스(78)로 인코딩되어야 함
+        onehot = self.encoder.sent_to_onehot("가 나")
+        # "가 나" → ['가', ' ', '나']
+        assert onehot[1] == (self.encoder.space,)
+
+    def test_number_encoding(self):
+        # 숫자 '0'~'9'가 number_begin(68) 이상 인덱스로 인코딩됨
+        for i, digit in enumerate("0123456789"):
+            onehot = self.encoder.sent_to_onehot(digit)
+            assert onehot[0] == (self.encoder.number_begin + i,)
+
+    def test_korean_character_decomposition(self):
+        # '한' → (초성, 중성, 종성) 3-tuple
+        onehot = self.encoder.sent_to_onehot("한")
+        assert len(onehot) == 1
+        assert len(onehot[0]) == 3
+        cho, jung, jong = onehot[0]
+        assert 0 <= cho < self.encoder.jung_begin
+        assert self.encoder.jung_begin <= jung < self.encoder.jong_begin
+        assert self.encoder.jong_begin <= jong < self.encoder.number_begin
+
+    def test_non_korean_normalized(self):
+        # 한글·숫자·공백 이외 문자는 공백으로 치환됨 (normalize 후 strip)
+        onehot = self.encoder.sent_to_onehot("abc")
+        # "abc" → " " (공백으로 치환 후 strip → "")이 되므로 빈 리스트
+        assert onehot == []
+
+    def test_encode_length_matches_chars(self):
+        text = "한글 테스트"
+        x = self.encoder.encode(text)
+        onehot = self.encoder.sent_to_onehot(text)
+        assert x.shape[0] == len(onehot)
+        assert x.shape[1] == self.encoder.dim
+
+    def test_dim_is_80(self):
+        assert self.encoder.dim == 80
+
+    def test_encode_decode_roundtrip_with_space(self):
+        text = "나는 학생"
+        decoded = self.encoder.onehot_to_sent(self.encoder.sent_to_onehot(text))
+        assert decoded == text
