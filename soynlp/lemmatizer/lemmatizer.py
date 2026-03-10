@@ -135,7 +135,7 @@ def lemma_candidate(
             r_canon = l_last[2] + r
             add_lemma(l_stem, r_canon)
             if debug:
-                debug_message("어미의 첫글자가 종성일 경우 (%s)" % jongsung, l_stem, r_canon)
+                debug_message(f"어미의 첫글자가 종성일 경우 ({jongsung})", l_stem, r_canon)
 
     # ㅅ 불규칙 활용: 부 + 어 -> 붓 + 어
     if (l_last[2] == " " and l[-1] != "벗") and (r_first[0] == "ㅇ"):

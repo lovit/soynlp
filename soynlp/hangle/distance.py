@@ -13,7 +13,7 @@ def levenshtein(s1: Sequence[str], s2: Sequence[str], cost: dict[tuple[str, str]
     if len(s1) < len(s2):
         return levenshtein(s2, s1, cost)
 
-    if len(s2) == 0:
+    if not s2:
         return len(s1)
 
     def get_cost(c1: str, c2: str, cost: dict[tuple[str, str], float]) -> float:
@@ -36,7 +36,7 @@ def jamo_levenshtein(s1: str, s2: str) -> float:
     if len(s1) < len(s2):
         return jamo_levenshtein(s2, s1)
 
-    if len(s2) == 0:
+    if not s2:
         return len(s1)
 
     def get_jamo_cost(c1: str, c2: str) -> float:
