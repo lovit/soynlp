@@ -131,7 +131,7 @@ class RegexTokenizer:
                 if begin > i:
                     continue
                 if s[i : i + len_found] == found:
-                    s_ += " %s " % s[i : i + len_found]
+                    s_ += f" {s[i : i + len_found]} "
                     begin = i + len_found
                     if not founds:
                         s_ += s[begin:]
