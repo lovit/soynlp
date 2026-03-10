@@ -1,6 +1,7 @@
 from soynlp.core.lrgraph import LRGraph
 
 from .math import svd
+from .pmi import pmi
 from .utils import (
     CorpusLoader,
     EojeolCounter,
@@ -23,4 +24,6 @@ __all__ = [
     "LRGraph",
     # math
     "svd",
+    # pmi
+    "pmi",
 ]
