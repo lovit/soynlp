@@ -1,4 +1,4 @@
-from soynlp.lemmatizer import Lemmatizer, _conjugate_stem, conjugate, conjugate_chat, lemma_candidate
+from soynlp.lemmatizer import Lemmatizer, _conjugate_stem, conjugate, conjugate_chat, lemma_candidate, lemma_candidate_chat
 
 
 class TestConjugate:
@@ -106,6 +106,49 @@ class TestLemmatizer:
         result = lem.lemmatize("불어")
         # 붇다 ㄷ불규칙: 불어 → 붇 + 어
         assert ("붇", "어") in result
+
+
+class TestLemmaCandidateChat:
+    def test_with_r_same_as_base(self):
+        # r이 있으면 emoticon 분기를 타지 않아 기본 lemma_candidate와 동일
+        result_chat = lemma_candidate_chat("먹", "어")
+        result_base = lemma_candidate("먹", "어")
+        assert result_chat == result_base
+
+    def test_no_r_with_emoticon_jongsung_adds_candidates(self):
+        # r이 없고 종성이 이모티콘 문자(ㅂ)이면 emoticon 분기 실행 → 추가 후보 발생
+        # 밥: decompose='ㅂ','ㅏ','ㅂ' → jongsung=ㅂ (in emoticon set)
+        result_chat = lemma_candidate_chat("밥", "")
+        result_base = lemma_candidate("밥", "")
+        assert result_chat.issuperset(result_base)
+        assert len(result_chat) > len(result_base)
+
+    def test_no_r_without_emoticon_jongsung_same_as_base(self):
+        # r이 없어도 종성이 이모티콘 아니면 기본과 동일
+        # 먹: decompose='ㅁ','ㅓ','ㄱ' → jongsung=ㄱ (NOT in emoticon set)
+        result_chat = lemma_candidate_chat("먹", "")
+        result_base = lemma_candidate("먹", "")
+        assert result_chat == result_base
+
+    def test_emoticon_extra_candidates_are_tuples(self):
+        result_chat = lemma_candidate_chat("밥", "")
+        assert all(isinstance(item, tuple) and len(item) == 2 for item in result_chat)
+
+
+class TestLemmatizerCandidatesNoFilter:
+    def test_candidates_not_filtered_by_stems(self):
+        # candidates()는 stems/endings와 무관하게 모든 후보 반환
+        lem_empty = Lemmatizer(stems=set(), endings=set())
+        lem_full = Lemmatizer(stems={"먹"}, endings={"었다"})
+        assert lem_empty.candidates("먹었다") == lem_full.candidates("먹었다")
+
+    def test_candidates_superset_of_lemmatize(self):
+        # lemmatize()가 반환하는 후보는 candidates()의 부분집합
+        stems = {"먹", "가"}
+        endings = {"다", "었다"}
+        lem = Lemmatizer(stems=stems, endings=endings)
+        word = "먹었다"
+        assert lem.lemmatize(word).issubset(lem.candidates(word))
 
 
 class TestLemmaCandidatePredefined:
