@@ -48,7 +48,7 @@ class PredicatorExtractor:
         extract_stem: bool = False,
         verbose: bool = True,
         ensure_normalized: bool = False,
-    ):
+    ) -> None:
         if not josas:
             josas = self._load_default_josa()
         if (adjectives is None) or (verbs is None):
@@ -149,7 +149,7 @@ class PredicatorExtractor:
         min_stem_score: float = 0.7,
         min_stem_frequency: int = 100,
         n_workers: int = 1,
-    ):
+    ) -> tuple[dict, dict]:
         self.train(
             inputs,
             min_eojeol_frequency,
@@ -180,7 +180,7 @@ class PredicatorExtractor:
         min_stem_score: float = 0.7,
         min_stem_frequency: int = 100,
         n_workers: int = 1,
-    ):
+    ) -> None:
         if isinstance(inputs, LRGraph):
             self._train_with_eojeol_counter(inputs.to_EojeolCounter(), min_eojeol_frequency)  # type: ignore[union-attr]
         elif isinstance(inputs, EojeolCounter):
@@ -210,7 +210,7 @@ class PredicatorExtractor:
 
     def _train_with_sentences(
         self, sentences, min_eojeol_frequency: int = 2, filtering_checkpoint: int = 100000, n_workers: int = 1
-    ):
+    ) -> None:
         logger.info("counting eojeols ...")
 
         preprocess = (lambda x: x) if self.ensure_normalized else normalize_sent_for_lrgraph
@@ -224,7 +224,7 @@ class PredicatorExtractor:
         )
         self._train_with_eojeol_counter(eojeol_counter)
 
-    def _train_with_eojeol_counter(self, eojeol_counter: EojeolCounter, min_eojeol_frequency: int = 2):
+    def _train_with_eojeol_counter(self, eojeol_counter: EojeolCounter, min_eojeol_frequency: int = 2) -> None:
         eojeol_counter._counter = {
             eojeol: count for eojeol, count in eojeol_counter._counter.items() if count >= min_eojeol_frequency
         }
@@ -238,14 +238,14 @@ class PredicatorExtractor:
 
         logger.info("#eojeols=%d, mem=%.3f Gb", self._num_of_eojeols, get_process_memory())
 
-    def extract(self, candidates=None, min_predicator_frequency: int = 1):
+    def extract(self, candidates=None, min_predicator_frequency: int = 1) -> tuple[dict, dict]:
         """Extract predicators. candidates is EojeolCounter or dict format."""
         self._num_of_covered_eojeols = 0
         predicators = self._extract_predicator(candidates, min_predicator_frequency)
         adjectives, verbs = self._separate_adjective_verb(predicators)
         return adjectives, verbs
 
-    def _prepare_predicator_lrgraph(self):
+    def _prepare_predicator_lrgraph(self) -> LRGraph:
         def contains_noun(eojeol: str) -> bool:
             n = len(eojeol)
             for e in range(2, n + 1):
@@ -259,11 +259,11 @@ class PredicatorExtractor:
 
     def _extract_eomi(
         self,
-        lrgraph,
+        lrgraph: LRGraph,
         min_num_of_features: int = 5,
         min_eomi_score: float = 0.3,
         min_eomi_frequency: int = 1,
-    ):
+    ) -> None:
         eomi_extractor = EomiExtractor(
             lrgraph=lrgraph,
             stems=self._stems,
@@ -287,13 +287,13 @@ class PredicatorExtractor:
 
     def _extract_stem(
         self,
-        lrgraph,
+        lrgraph: LRGraph,
         min_num_of_unique_R_char: int = 10,
         min_entropy_of_R_char: float = 0.5,
         min_entropy_of_R: float = 1.5,
         min_stem_score: float = 0.7,
         min_stem_frequency: int = 100,
-    ):
+    ) -> None:
         stem_extractor = StemExtractor(
             lrgraph=lrgraph,
             stems=self._stems,
@@ -315,7 +315,7 @@ class PredicatorExtractor:
 
         logger.info("stems: %d -> %d", n_before, n_after)
 
-    def _extract_predicator(self, eojeol_counter=None, min_frequency: int = 1) -> dict:
+    def _extract_predicator(self, eojeol_counter=None, min_frequency: int = 1) -> dict[str, Predicator]:
         def all_characters_are_complete_korean(s: str) -> bool:
             return all(character_is_complete_korean(c) for c in s)
 
@@ -332,7 +332,7 @@ class PredicatorExtractor:
 
         return lemmas
 
-    def _as_lemma_candidates(self, eojeol_counter=None) -> dict:
+    def _as_lemma_candidates(self, eojeol_counter=None) -> dict[str, Predicator]:
         def is_noun_josa(eojeol: str) -> bool:
             for i in range(1, len(eojeol)):
                 if (eojeol[:i] in self._nouns) and (eojeol[i:] in self._josas):
@@ -378,8 +378,8 @@ class PredicatorExtractor:
 
         return lemmas
 
-    def _remove_wrong_eomis(self, lemmas: dict, eomi_to_word_count: dict) -> dict:
-        def noun_proportion(word_count: list) -> tuple[float, float]:
+    def _remove_wrong_eomis(self, lemmas: dict[str, Predicator], eomi_to_word_count: dict[str, list]) -> dict[str, Predicator]:
+        def noun_proportion(word_count: list[tuple[str, int]]) -> tuple[float, float]:
             sum_ = sum(1 for w, v in word_count if len(w) == 2)
             prop = sum(1 for w, v in word_count if (w in self._nouns) and (len(w) == 2))
             prop_len2 = 0.0
@@ -426,7 +426,9 @@ class PredicatorExtractor:
 
         return lemmas
 
-    def _separate_adjective_verb(self, predicators: dict) -> tuple[dict, dict]:
+    def _separate_adjective_verb(
+        self, predicators: dict[str, Predicator]
+    ) -> tuple[dict[str, Predicator], dict[str, Predicator]]:
         adjectives: dict = {}
         verbs: dict = {}
 

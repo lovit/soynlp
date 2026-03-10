@@ -1,7 +1,7 @@
 import copy
 import os
 from collections import defaultdict
-from collections.abc import Iterable, Sized
+from collections.abc import Iterable, Iterator, Sized
 
 
 class LRGraph:
@@ -178,7 +178,7 @@ class LRGraph:
         """Return the original R-frequency dict for `word` (before any compound extraction edits)."""
         return dict(self._lr_origin.get(word, {}))
 
-    def iter_original_lr(self):
+    def iter_original_lr(self) -> Iterator[tuple[str, dict[str, int]]]:
         """Yield (L, R_freq_dict) pairs from the original (frozen) L-R graph."""
         yield from self._lr_origin.items()
 
