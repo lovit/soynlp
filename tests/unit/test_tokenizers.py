@@ -4,6 +4,7 @@ from soynlp.tokenizer import LTokenizer, MaxScoreTokenizer, NounMatchTokenizer, 
 from soynlp.tokenizer.tokenizer_builder import EojeolPatternTrainer
 
 
+<<<<<<< HEAD
 def test_regex_tokenizer_empty_string():
     tokenizer = RegexTokenizer()
     assert tokenizer.tokenize("") == []
@@ -17,6 +18,14 @@ def test_regex_tokenizer_version_number():
     assert tokenizer.tokenize("v1.2.3.4릴리스") == ["v", "1.2.3.4", "릴리스"]
     assert tokenizer.tokenize("3.14") == ["3.14"]
     assert tokenizer.tokenize("42") == ["42"]
+
+
+def test_regex_tokenizer_multi_space_offset():
+    # 연속 공백이 있을 때 Token의 position이 정확해야 한다 (issue #280)
+    tokenizer = RegexTokenizer()
+    tokens = tokenizer.tokenize("hello  world", return_words=False)
+    assert tokens[0].word == "hello" and tokens[0].begin == 0 and tokens[0].end == 5
+    assert tokens[1].word == "world" and tokens[1].begin == 7 and tokens[1].end == 12
 
 
 def test_regex_tokenizer():

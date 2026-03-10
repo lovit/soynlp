@@ -108,11 +108,9 @@ class RegexTokenizer:
                Token(hank`s, score=1, position=(27, 33), eojeol_id=2),
                Token(report, score=1, position=(34, 40), eojeol_id=3)]
         """
-        offset = 0
         tokens = []
-        for eojeol_id, token in enumerate(sentence.split()):
-            tokens += self._tokenize(token, offset, eojeol_id)
-            offset += len(token) + 1
+        for eojeol_id, m in enumerate(re.finditer(r"\S+", sentence)):
+            tokens += self._tokenize(m.group(), m.start(), eojeol_id)
         if return_words:
             tokens = [token.word for token in tokens]
         return tokens
