@@ -135,6 +135,11 @@ class TestLemmatizer:
 
 
 class TestLemmaCandidateChat:
+    def test_empty_l_returns_empty_set(self):
+        # l이 빈 문자열이면 IndexError 없이 빈 집합 반환
+        assert lemma_candidate_chat("", "") == set()
+        assert lemma_candidate_chat("", "어") == set()
+
     def test_with_r_same_as_base(self):
         # r이 있으면 emoticon 분기를 타지 않아 기본 lemma_candidate와 동일
         result_chat = lemma_candidate_chat("먹", "어")

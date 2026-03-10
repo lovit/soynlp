@@ -57,6 +57,8 @@ def lemma_candidate_chat(
         return c in set("ㄷㅂㅅㅇㅋㅎ")
 
     candidates = lemma_candidate(l, r, predefined, debug)
+    if not l:
+        return candidates
     l_last = decompose(l[-1])
 
     if not r and character_is_emoticon(l_last[2]):
@@ -79,6 +81,8 @@ def lemma_candidate(
     def debug_message(message: str, left: str, right: str) -> None:
         logger.debug(f"{message}: {left} + {right}")
 
+    if not l:
+        return set()
     candidates: set[tuple[str, str]] = {(l, r)}
     word = l + r
 
