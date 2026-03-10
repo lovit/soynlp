@@ -4,6 +4,12 @@ from soynlp.tokenizer import LTokenizer, MaxScoreTokenizer, NounMatchTokenizer, 
 from soynlp.tokenizer.tokenizer_builder import EojeolPatternTrainer
 
 
+def test_regex_tokenizer_empty_string():
+    tokenizer = RegexTokenizer()
+    assert tokenizer.tokenize("") == []
+    assert tokenizer.tokenize("   ") == []
+
+
 def test_regex_tokenizer():
     sentence = "abc123가나다 alphabet!!3.14한글 hank`s report"
     expected_words = ["abc", "123", "가나다", "alphabet", "!!", "3.14", "한글", "hank`s", "report"]
