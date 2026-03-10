@@ -228,9 +228,10 @@ class LTokenizer:
                 best = max(candidates, key=lambda x: (x[0], len(x[1])))
             return best
 
-        offset = 0
         tokens = []
-        for eojeol_id, s in enumerate(sentence.split()):
+        for eojeol_id, m in enumerate(re.finditer(r"\S+", sentence)):
+            s = m.group()
+            offset = m.start()
             score, l, r = token_to_lr(s)  # noqa: E741
             len_l, len_r = len(l), len(r)
             tokens.append(
@@ -239,7 +240,6 @@ class LTokenizer:
                     Token(r, offset + len_l, offset + len_l + len_r, 0, len_r, eojeol_id),
                 ]
             )
-            offset += len_l + len_r + 1
 
         if remove_r:
             tokens = [l.word for l, r in tokens]  # noqa: E741
@@ -311,11 +311,9 @@ class MaxScoreTokenizer:
         Returns:
             tokens (list of str or list of Token)
         """
-        offset = 0
         tokens = []
-        for eojeol_id, s in enumerate(sentence.split()):
-            tokens += self._tokenize_eojeol(s, offset, eojeol_id)
-            offset += len(s) + 1
+        for eojeol_id, m in enumerate(re.finditer(r"\S+", sentence)):
+            tokens += self._tokenize_eojeol(m.group(), m.start(), eojeol_id)
         if return_words:
             tokens = [token.word for token in tokens]
         return tokens
@@ -473,9 +471,9 @@ class NounMatchTokenizer(MaxScoreTokenizer):
                 concats.append(Token(eojeol[begin - offset : end - offset], begin, end, score, end - begin, eojeol_id))
             return concats
 
-        offset = 0
         tokens = []
-        for eojeol_id, s in enumerate(sentence.split()):
+        for eojeol_id, m in enumerate(re.finditer(r"\S+", sentence)):
+            s, offset = m.group(), m.start()
             nouns = self._tokenize_eojeol(s, offset, eojeol_id)
             nouns = [noun for noun in nouns if noun.score > 0]
             if concat_compound:
@@ -486,7 +484,6 @@ class NounMatchTokenizer(MaxScoreTokenizer):
                 else:
                     nouns = nouns[:1]
             tokens += nouns
-            offset += len(s) + 1
         if return_words:
             tokens = [token.word for token in tokens]
         return tokens
