@@ -110,6 +110,10 @@ def conjugate(stem: str, ending: str, enforce_moum_harmoney: bool = False, debug
             surface = l + r
             candidates.add(surface)
             logger.debug("ㅂ 불규칙: %s", surface)
+            # 워/와 생략 대화체 추가 (간지러워 → 간지러)
+            if not ending[1:]:
+                candidates.add(l)
+                logger.debug("ㅂ 불규칙 워/와 생략: %s", l)
         elif r_first[0] == "ㅇ":
             surface = l + ending
             candidates.add(surface)

@@ -11,6 +11,14 @@ class TestConjugate:
         result = conjugate("돕", "아")
         assert "도와" in result
 
+    def test_irregular_bieup_wo_omission(self):
+        # -럽다/-롭다 대화체: 워/와 생략
+        # 간지럽 + 어 → 간지러워, 간지러 (워 생략)
+        assert "간지러워" in conjugate("간지럽", "어")
+        assert "간지러" in conjugate("간지럽", "어")
+        # 기존 워 포함 형식은 그대로 유지
+        assert "더러워" in conjugate("더럽", "어")
+
     def test_irregular_digeut(self):
         # 걷 + 어 -> 걸어 (ㄷ 불규칙)
         result = conjugate("걷", "어")
@@ -74,6 +82,12 @@ class TestLemmatizer:
         lem = Lemmatizer(stems=stems, endings=endings)
         result = lem.lemmatize("먹다")
         assert ("먹", "다") in result
+
+    def test_lemmatize_bieup_wo_omission(self):
+        # -럽다/-롭다 대화체 워 생략: 간지러 → 간지럽
+        lem = Lemmatizer(stems={"간지럽", "자연스럽"}, endings={"어", "아"})
+        assert ("간지럽", "어") in lem.lemmatize("간지러")
+        assert ("자연스럽", "어") in lem.lemmatize("자연스러")
 
     def test_lemmatize_check_only_stem(self):
         stems = {"먹"}
