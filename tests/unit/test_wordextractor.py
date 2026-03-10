@@ -212,6 +212,15 @@ def test_get_entropy(counts, expected):
     assert abs(get_entropy(counts) - expected) < 0.0001
 
 
+def test_get_entropy_all_zeros():
+    # 전부 0인 리스트 → ZeroDivisionError 없이 0.0 반환
+    assert get_entropy([0, 0, 0]) == 0.0
+
+
+def test_get_entropy_empty():
+    assert get_entropy([]) == 0.0
+
+
 # --- WordExtractor multiprocessing tests ---
 
 _WORD_SENTS = [
