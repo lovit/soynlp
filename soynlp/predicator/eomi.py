@@ -17,7 +17,7 @@ class EomiExtractor:
         min_num_of_features: int = 5,
         verbose: bool = True,
         logpath: str | None = None,
-    ):
+    ) -> None:
         self.lrgraph = lrgraph
         self._stems = stems
         self._nouns = nouns
@@ -128,7 +128,7 @@ class EomiExtractor:
                 return True
         return False
 
-    def _refine_features(self, features: list, r: str) -> list:
+    def _refine_features(self, features: list[tuple[str, int]], r: str) -> list[tuple[str, int]]:
         return [(l, count) for l, count in features if (l in self._stem_surfaces) and (not self._exist_longer_pos(l, r))]
 
     def _candidates_from_stem_surfaces(self, condition: str | None = None) -> dict[str, int]:

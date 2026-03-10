@@ -1,5 +1,6 @@
 import logging
 import math
+from typing import cast
 
 from soynlp.lemmatizer import conjugate, lemma_candidate
 
@@ -16,7 +17,7 @@ class StemExtractor:
         min_entropy_of_R_char: float = 0.5,
         min_entropy_of_R: float = 1.5,
         verbose: bool = True,
-    ):
+    ) -> None:
         self.lrgraph = lrgraph
         self.stems = stems
         self.eomis = eomis
@@ -62,7 +63,7 @@ class StemExtractor:
         L_ignore: set[str] | None = None,
         min_stem_score: float = 0.7,
         min_stem_frequency: int = 100,
-    ) -> dict:
+    ) -> dict[str, tuple[float, float]]:
         if L_ignore is None:
             L_ignore = set()
 
@@ -95,7 +96,7 @@ class StemExtractor:
         candidates: dict[str, int],
         min_stem_score: float,
         min_frequency: int,
-    ) -> dict[str, tuple[float, int] | None]:
+    ) -> dict[str, tuple[float, int]]:
         extracted: dict[str, tuple[float, int] | None] = {l: None for l in self.L}
 
         for l in sorted(candidates, key=lambda x: -len(x)):
@@ -109,7 +110,7 @@ class StemExtractor:
 
             extracted[l] = (score, freq)
 
-        return {l: score for l, score in extracted.items() if l not in self.L}
+        return cast(dict[str, tuple[float, int]], {l: score for l, score in extracted.items() if l not in self.L})
 
     def predict(self, l: str, min_stem_score: float = 0.7, min_frequency: int = 1, debug: bool = False) -> tuple[float, int]:
         features = self.lrgraph.get_r(l, -1)
@@ -191,7 +192,7 @@ class StemExtractor:
                 return True
         return False
 
-    def _post_processing(self, extracted: dict) -> tuple[dict, set[str]]:
+    def _post_processing(self, extracted: dict[str, tuple[float, int]]) -> tuple[dict[str, tuple[float, int]], set[str]]:
         def is_stem_and_eomi(l: str) -> bool:
             n = len(l)
             for i in range(1, n):
@@ -215,11 +216,11 @@ class StemExtractor:
         extracted = {l: score for l, score in extracted.items() if l not in removals}
         return extracted, removals
 
-    def _to_stem(self, surfaces: dict) -> dict:
-        def merge_score(freq0: int, score0: float, freq1: int, score1: float) -> tuple[int, float]:
+    def _to_stem(self, surfaces: dict[str, tuple[float, int]]) -> dict[str, tuple[float, float]]:
+        def merge_score(freq0: float, score0: float, freq1: float, score1: float) -> tuple[float, float]:
             return (freq0 + freq1, (score0 * freq0 + score1 * freq1) / (freq0 + freq1))
 
-        stems: dict[str, tuple[int, float]] = {}
+        stems: dict[str, tuple[float, float]] = {}
         for l, (freq0, score0) in surfaces.items():
             for r, count in self.lrgraph.get_r(l, -1):
                 try:
