@@ -1,6 +1,7 @@
 from .normalizer import (
     EmojiNormalizer,
     HangleEmojiNormalizer,
+    JamoNormalizer,
     PaddingSpacetoWordsNormalizer,
     PassCharacterNormalizer,
     RemoveLongspaceNormalizer,
@@ -28,6 +29,7 @@ __all__ = [
     "only_text",
     "remain_hangle_on_last",
     "normalize_sent_for_lrgraph",
+    "JamoNormalizer",
     "PassCharacterNormalizer",
     "HangleEmojiNormalizer",
     "EmojiNormalizer",

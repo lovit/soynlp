@@ -3,6 +3,7 @@ import warnings
 from soynlp.normalizer.normalizer import (
     EmojiNormalizer,
     HangleEmojiNormalizer,
+    JamoNormalizer,
     PaddingSpacetoWordsNormalizer,
     PassCharacterNormalizer,
     RemoveLongspaceNormalizer,
@@ -232,3 +233,36 @@ def test_normalize_sent_for_lrgraph():
     assert normalize_sent_for_lrgraph("") == ""
     # 전체가 한글 없는 문장
     assert normalize_sent_for_lrgraph("abc 123") == ""
+
+
+class TestJamoNormalizer:
+    def setup_method(self):
+        self.n = JamoNormalizer()
+
+    def test_basic_jamo_sequence(self):
+        # ㅆㅡㄹㅐㄱㅣ → 쓰래기
+        assert self.n.normalize("ㅆㅡㄹㅐㄱㅣ") == "쓰래기"
+
+    def test_jamo_with_jongsung(self):
+        # ㅆㅣㅂㅏㄹ → 씨발
+        assert self.n.normalize("ㅆㅣㅂㅏㄹ") == "씨발"
+
+    def test_full_word_decomposed(self):
+        # ㅇㅏㄴㄴㅕㅇㅎㅏㅅㅔㅇㅛ → 안녕하세요
+        assert self.n.normalize("ㅇㅏㄴㄴㅕㅇㅎㅏㅅㅔㅇㅛ") == "안녕하세요"
+
+    def test_standalone_consonants_unchanged(self):
+        # 모음이 없는 자음은 그대로
+        assert self.n.normalize("ㅋㅋㅋ") == "ㅋㅋㅋ"
+
+    def test_non_korean_unchanged(self):
+        # 비한글 문자는 그대로
+        assert self.n.normalize("hello 안녕") == "hello 안녕"
+
+    def test_complete_syllables_unchanged(self):
+        # 완성형 한글은 그대로
+        assert self.n.normalize("안녕하세요") == "안녕하세요"
+
+    def test_callable(self):
+        # __call__ 동작
+        assert self.n("ㅆㅡㄹㅐㄱㅣ") == "쓰래기"

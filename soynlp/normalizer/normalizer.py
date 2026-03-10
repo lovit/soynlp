@@ -9,6 +9,8 @@ from glob import glob
 
 from tqdm import tqdm
 
+from soynlp.hangle import chosung_list, compose, jongsung_list, jungsung_list
+
 logger = logging.getLogger(__name__)
 
 _doublespace_pattern = re.compile(r"\s+")
@@ -154,6 +156,48 @@ class Normalizer(ABC):
 
     @abstractmethod
     def normalize(self, s: str) -> str: ...
+
+
+class JamoNormalizer(Normalizer):
+    """연속된 자모 문자 시퀀스를 음절로 재조합하는 정규화기.
+
+    인터넷 대화체에서 욕설 등을 자소 분리로 표기하는 경우를 처리한다.
+    예: ㅆㅡㄹㅐㄱㅣ → 쓰래기, ㅆㅣㅂㅏㄹ → 씨발
+
+    완성형 한글이나 자모가 아닌 문자는 그대로 유지한다.
+    """
+
+    def __init__(self) -> None:
+        self._cho_set: frozenset[str] = frozenset(chosung_list)
+        self._jung_set: frozenset[str] = frozenset(jungsung_list)
+        self._jong_set: frozenset[str] = frozenset(jongsung_list) - {" "}
+
+    def normalize(self, s: str) -> str:
+        result = []
+        i = 0
+        n = len(s)
+        while i < n:
+            c = s[i]
+            if c in self._cho_set:
+                if i + 1 < n and s[i + 1] in self._jung_set:
+                    cho, jung = c, s[i + 1]
+                    i += 2
+                    jong = " "
+                    if i < n and s[i] in self._jong_set:
+                        if i + 1 >= n or s[i + 1] not in self._jung_set:
+                            jong = s[i]
+                            i += 1
+                    result.append(compose(cho, jung, jong))
+                else:
+                    result.append(c)
+                    i += 1
+            elif c in self._jung_set:
+                result.append(compose("ㅇ", c, " "))
+                i += 1
+            else:
+                result.append(c)
+                i += 1
+        return "".join(result)
 
 
 class PassCharacterNormalizer(Normalizer):
