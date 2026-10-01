@@ -3,8 +3,10 @@
 from typing import Any, cast
 
 from soynlp._legacy.noun import LRNounExtractor as LegacyNounExtractor
+from soynlp._legacy.noun import LRNounExtractor_v2 as LegacyNounExtractorV2
 
 from .lr import LRNounExtractor as CorpusNounExtractor
+from .lr import NounScore
 
 
 class LRNounExtractor(CorpusNounExtractor):
@@ -60,3 +62,10 @@ class LRNounExtractor(CorpusNounExtractor):
         if self._legacy_mode:
             return self._legacy_extractor().predict(*args, **kwargs)
         return super().predict(*args, **kwargs)
+
+
+class LRNounExtractor_v2(LegacyNounExtractorV2):
+    """Keep the exported NounScore identity as well as the master v2 algorithm."""
+
+    def extract(self, *args, **kwargs) -> dict[str, NounScore]:
+        return {word: NounScore(*score) for word, score in super().extract(*args, **kwargs).items()}

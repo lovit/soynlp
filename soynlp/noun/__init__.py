@@ -1,6 +1,6 @@
-from soynlp._legacy.noun import LRNounExtractor_v2, NewsNounExtractor
+from soynlp._legacy.noun import NewsNounExtractor
 
-from .compat import LRNounExtractor
+from .compat import LRNounExtractor, LRNounExtractor_v2
 from .josa import extract_domain_pos_features
 from .lr import NounScore
 
