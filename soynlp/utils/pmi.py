@@ -54,7 +54,13 @@ def pmi(
         py (numpy.ndarray)
     """
 
-    assert 0 < beta <= 1
+    if not 0 < beta <= 1 or alpha < 0:
+        raise ValueError("Require 0 < beta <= 1 and alpha >= 0")
+    if np.any(X.data < 0):
+        raise ValueError("PMI input must contain nonnegative counts")
+    assert X.shape is not None
+    if X.sum() == 0:
+        return csr_matrix(X.shape), np.zeros((1, X.shape[0])), np.zeros((1, X.shape[1]))
 
     px = np.asarray((X.sum(axis=1) / X.sum()).reshape(-1))
     pxy = X / X.sum()
@@ -68,7 +74,7 @@ def pmi(
 
     px_diag = _as_diag(px, 0)
     py_diag = _as_diag(py_arr, alpha)
-    exp_pmi = px_diag.dot(pxy).dot(py_diag)
+    exp_pmi = (px_diag @ csr_matrix(pxy) @ py_diag).tocsr()
 
     min_exp_pmi = 1 if min_pmi == 0 else np.exp(min_pmi)
     pmi_mat = _logarithm_and_ppmi(exp_pmi, min_exp_pmi)
