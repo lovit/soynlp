@@ -3,13 +3,13 @@ import os
 import re
 from collections import OrderedDict
 from collections.abc import Callable, Iterable
-from typing import NamedTuple
 from pprint import pformat
+from typing import NamedTuple
 
 from tqdm import tqdm
 
-from soynlp.tokenizer import MaxScoreTokenizer, NounMatchTokenizer, Token
 from soynlp.core import LRGraph
+from soynlp.tokenizer import MaxScoreTokenizer, NounMatchTokenizer, Token
 from soynlp.utils import CorpusLoader, EojeolCounter
 
 from .postprocessing import check_N_is_NJ, detaching_features, expand_suffix_nouns, ignore_features
@@ -753,7 +753,9 @@ def extract_compounds_func(
     candidates = {l: count for l, count in candidates.items() if count >= min_noun_frequency}  # noqa: E741
     n = len(candidates)
 
-    word_scores = {noun: float(len(noun)) for noun, score in noun_scores.items() if score[1] > min_noun_score and len(noun) > 1}
+    word_scores = {
+        noun: float(len(noun)) for noun, score in noun_scores.items() if score[1] > min_noun_score and len(noun) > 1
+    }
     compound_decomposer = MaxScoreTokenizer(scores=word_scores)
 
     compounds_scores = {}

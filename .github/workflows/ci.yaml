@@ -1,4 +1,4 @@
-name: pre-commit
+name: Python quality and packaging
 
 on:
   pull_request:
@@ -6,25 +6,25 @@ on:
     branches: [master, refactor-2026]
 
 jobs:
-  pre-commit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
-        with:
-          python-version: "3.12"
-      - uses: pre-commit/action@v3.0.0
-  pytest:
-    runs-on: ubuntu-latest
+  regression:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-      - name: Install dependencies
-        run: uv sync
-      - name: Test with pytest
-        run: uv run pytest
+      - uses: astral-sh/setup-uv@v5
+      - name: Install locked Python 3.12 dependencies
+        run: uv sync --python 3.12 --locked
+      - name: Check code quality
+        run: |
+          uv run --python 3.12 ruff check .
+          uv run --python 3.12 ruff format --check .
+          uv run --python 3.12 pyright
+      - name: Run regression tests
+        run: uv run --python 3.12 pytest
+      - name: Build wheel and source distribution
+        run: uv build
+      - name: Verify installed distributions
+        run: uv run --python 3.12 python scripts/verify_distribution.py

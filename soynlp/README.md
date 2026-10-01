@@ -28,9 +28,9 @@ soynlp는 비지도 학습 기반 한국어 자연어 처리 패키지입니다.
 ```python
 from soynlp.hangle import decompose, compose, character_is_korean
 
-cho, jung, jong = decompose('한')  # ('ㅎ', 'ㅏ', 'ㄴ')
-char = compose('ㅎ', 'ㅏ', 'ㄴ')   # '한'
-character_is_korean('한')           # True
+cho, jung, jong = decompose("한")  # ('ㅎ', 'ㅏ', 'ㄴ')
+char = compose("ㅎ", "ㅏ", "ㄴ")  # '한'
+character_is_korean("한")  # True
 ```
 
 **주요 API**
@@ -60,7 +60,7 @@ nouns = extractor.extract(sentences)
 # {'아이오아이': NounScore(frequency=127, score=0.98), ...}
 
 tokenizer = extractor.get_noun_tokenizer()
-tokens = tokenizer.tokenize('아이오아이는 아이돌 그룹입니다')
+tokens = tokenizer.tokenize("아이오아이는 아이돌 그룹입니다")
 ```
 
 **주요 API**
@@ -84,9 +84,10 @@ extractor.train(sentences)
 words = extractor.extract(min_frequency=5)
 
 from soynlp.word import BigramExtractor
+
 bigram = BigramExtractor()
 bigram.train(sentences)
-scores = bigram.extract(score_type='pmi')
+scores = bigram.extract(score_type="pmi")
 ```
 
 **주요 API**
@@ -136,7 +137,7 @@ POS 사전을 이용해 각 어절을 L(어근) + R(어미/조사)로 분해하�
 from soynlp.postagger import LRMaxScoreTagger, Dictionary
 
 tagger = LRMaxScoreTagger(sents=sentences, dictionary_word_mincount=3)
-tagged = tagger.pos('자연어 처리를 공부합니다')
+tagged = tagger.pos("자연어 처리를 공부합니다")
 # [('자연어', 'Noun'), ('처리를', ...), ...]
 ```
 
@@ -160,8 +161,8 @@ tagged = tagger.pos('자연어 처리를 공부합니다')
 from soynlp.predicator import PredicatorExtractor
 
 extractor = PredicatorExtractor(
-    nouns={'명사': 100},
-    adjective_stems={'예쁘': 50},
+    nouns={"명사": 100},
+    adjective_stems={"예쁘": 50},
 )
 verbs, adjectives = extractor.extract(sentences)
 # {'하다': Predicator(frequency=500, lemma={'하'}), ...}
@@ -187,12 +188,9 @@ verbs, adjectives = extractor.extract(sentences)
 ```python
 from soynlp.lemmatizer import Lemmatizer
 
-lemmatizer = Lemmatizer(
-    stems={'예쁘다', '먹다'},
-    endings={'어', '었다', '는', '고'}
-)
-results = lemmatizer.lemmatize('예뻤다')  # {('예쁘다', '었다')}
-candidates = lemmatizer.candidates('먹었다')
+lemmatizer = Lemmatizer(stems={"예쁘다", "먹다"}, endings={"어", "었다", "는", "고"})
+results = lemmatizer.lemmatize("예뻤다")  # {('예쁘다', '었다')}
+candidates = lemmatizer.candidates("먹었다")
 ```
 
 **주요 API**
@@ -214,15 +212,15 @@ from soynlp.tokenizer import RegexTokenizer, LTokenizer, MaxScoreTokenizer
 
 # 정규식 기반
 tokenizer = RegexTokenizer()
-tokens = tokenizer.tokenize('한글입니다123abc')
+tokens = tokenizer.tokenize("한글입니다123abc")
 
 # L 기반 (명사 사전 필요)
-ltokenizer = LTokenizer(scores={'아이오아이': 0.98, '아이돌': 0.85})
-tokens = ltokenizer.tokenize('아이오아이는 아이돌입니다')
+ltokenizer = LTokenizer(scores={"아이오아이": 0.98, "아이돌": 0.85})
+tokens = ltokenizer.tokenize("아이오아이는 아이돌입니다")
 
 # 최대 점수 기반
-ms_tokenizer = MaxScoreTokenizer(scores={'자연어': 0.9, '처리': 0.8})
-tokens = ms_tokenizer.tokenize('자연어처리')
+ms_tokenizer = MaxScoreTokenizer(scores={"자연어": 0.9, "처리": 0.8})
+tokens = ms_tokenizer.tokenize("자연어처리")
 ```
 
 **주요 API**
@@ -245,13 +243,14 @@ tokens = ms_tokenizer.tokenize('자연어처리')
 ```python
 from soynlp.normalizer import normalize, repeat_normalize, emoticon_normalize
 
-normalize('ㅋㅋㅋㅋㅋㅋ진짜!!!')           # 'ㅋㅋ진짜!'
-repeat_normalize('와아아아아', n_repeats=2)  # '와아아'
-emoticon_normalize('ㅠㅠㅠㅠ', n_repeats=2) # 'ㅠㅠ'
+normalize("ㅋㅋㅋㅋㅋㅋ진짜!!!")  # 'ㅋㅋ진짜!'
+repeat_normalize("와아아아아", n_repeats=2)  # '와아아'
+emoticon_normalize("ㅠㅠㅠㅠ", n_repeats=2)  # 'ㅠㅠ'
 
 from soynlp.normalizer import only_hangle, remove_doublespace
-only_hangle('한글 abc 123')  # '한글  '
-remove_doublespace('한글  공백')  # '한글 공백'
+
+only_hangle("한글 abc 123")  # '한글  '
+remove_doublespace("한글  공백")  # '한글 공백'
 ```
 
 **주요 API**
@@ -278,9 +277,7 @@ from soynlp.vectorizer import BaseVectorizer, sent_to_word_contexts_matrix
 vectorizer = BaseVectorizer(min_tf=2, max_df=0.9)
 X = vectorizer.fit_transform(documents)  # scipy.sparse.csr_matrix
 
-matrix, idx2vocab = sent_to_word_contexts_matrix(
-    sentences, windows=3, min_tf=5
-)
+matrix, idx2vocab = sent_to_word_contexts_matrix(sentences, windows=3, min_tf=5)
 ```
 
 **주요 API**
@@ -299,9 +296,9 @@ matrix, idx2vocab = sent_to_word_contexts_matrix(
 ```python
 from soynlp.core import LRGraph, corpus_to_lrgraph
 
-lrgraph = LRGraph.from_sents(['자연어 처리는 어렵습니다'])
-lrgraph.get_r('자연어', topk=5)  # [('처리는', 1), ...]
-lrgraph.get_l('처리는', topk=5)  # [('자연어', 1), ...]
+lrgraph = LRGraph.from_sents(["자연어 처리는 어렵습니다"])
+lrgraph.get_r("자연어", topk=5)  # [('처리는', 1), ...]
+lrgraph.get_l("처리는", topk=5)  # [('자연어', 1), ...]
 
 lrgraph2 = corpus_to_lrgraph(sentences)
 ```
@@ -343,7 +340,7 @@ pipeline:
 ```python
 from soynlp.pipeline import Pipeline
 
-Pipeline.run('pipeline.yaml')
+Pipeline.run("pipeline.yaml")
 ```
 
 ```bash

@@ -1,5 +1,6 @@
 import json
 from collections import namedtuple
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -63,10 +64,10 @@ def test_streaming_documents_metadata_and_failed_write(tmp_path):
     write_documents(iter(records), path)
     assert list(read_documents(path, format="jsonl")) == records
     with pytest.raises(TypeError, match="save_artifact"):
-        write_documents({"한국어": 3}, tmp_path / "scores.jsonl")
+        write_documents(cast(Any, {"한국어": 3}), tmp_path / "scores.jsonl")
     bad = tmp_path / "bad.jsonl"
     with pytest.raises(TypeError):
-        write_documents(iter([records[0], "bad record"]), bad)
+        write_documents(cast(Any, iter([records[0], "bad record"])), bad)
     assert not bad.exists()
 
 

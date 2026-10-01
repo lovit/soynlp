@@ -118,7 +118,9 @@ class LRNounExtractor_v2:
 
     def train(self, inputs, min_eojeol_frequency=1):
         if isinstance(inputs, CorpusLRGraph):
-            inputs = LRGraph(dict(inputs.iter_original_lr()), l_max_length=inputs.max_l_length, r_max_length=inputs.max_r_length)
+            inputs = LRGraph(
+                dict(inputs.iter_original_lr()), l_max_length=inputs.max_l_length, r_max_length=inputs.max_r_length
+            )
         if isinstance(inputs, LRGraph):
             self._train_with_lrgraph(inputs)
         elif isinstance(inputs, (EojeolCounter, CorpusEojeolCounter)):

@@ -110,9 +110,7 @@ class WordExtractor:
             if num_for_pruning > 0 and num_sent % num_for_pruning == 0:
                 prune_extreme_case()
             if self.verbose > 0 and num_sent % self.verbose == 0:
-                _log(
-                    "\rtraining ... (%d in %d sents) use memory %.3f Gb" % (num_sent, len(sents), get_process_memory())
-                )
+                _log("\rtraining ... (%d in %d sents) use memory %.3f Gb" % (num_sent, len(sents), get_process_memory()))
         prune_extreme_case()
         prune_extreme_case_a()
         if self.verbose > 0:
