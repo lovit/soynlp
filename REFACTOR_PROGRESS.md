@@ -23,3 +23,4 @@ NER·MaxScoreTagger 새 알고리즘과 TF-IDF 추가는 범위 밖이다.
 | --- | --- | --- |
 | feature/project-guidance | Codex 지침과 기존 진단 보고서, 구현 기록 정리 | 지침·현재 base 확인 |
 | feature/runtime-repair | LR-Graph 변환과 사전 어댑터 및 순서 의존 명사 판정 복구 | 전체 423개 통과 후 영향 예제 재검증 통과; 실행 회귀 8개와 병렬 회귀 8개 통과 |
+| feature/public-api-compat | 기존 명사·단어·bigram 알고리즘과 토큰 반환 옵션, 모델 파일 및 공개 import 복원 | 전체 431개 통과; 최종 호환 회귀 8개 통과; 복원 파일 Ruff 검사 통과 |

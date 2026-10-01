@@ -3,13 +3,14 @@ import os
 import re
 from collections import OrderedDict
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from typing import NamedTuple
 from pprint import pformat
 
 from tqdm import tqdm
 
 from soynlp.tokenizer import MaxScoreTokenizer, NounMatchTokenizer, Token
-from soynlp.utils import CorpusLoader, EojeolCounter, LRGraph
+from soynlp.core import LRGraph
+from soynlp.utils import CorpusLoader, EojeolCounter
 
 from .postprocessing import check_N_is_NJ, detaching_features, expand_suffix_nouns, ignore_features
 
@@ -18,8 +19,7 @@ logger = logging.getLogger(__name__)
 installpath = os.path.abspath(os.path.dirname(__file__))
 
 
-@dataclass(slots=True)
-class NounScore:
+class NounScore(NamedTuple):
     frequency: int
     score: float
 
@@ -270,7 +270,7 @@ class LRNounExtractor:
             >>> noun_extractor.decompose_compound('아이폰아이스크림아이비리그봤다')
             $ None
         """
-        if self.compound_decomposer is None:
+        if self.compound_decomposer is None or self.nouns is None:
             raise ValueError("Compound decomposer is not available. Call `extract(extract_compounds=True)` first.")
         tokens = self.compound_decomposer.tokenize(compound)
         for token in tokens:
@@ -753,7 +753,7 @@ def extract_compounds_func(
     candidates = {l: count for l, count in candidates.items() if count >= min_noun_frequency}  # noqa: E741
     n = len(candidates)
 
-    word_scores = {noun: len(noun) for noun, score in noun_scores.items() if score[1] > min_noun_score and len(noun) > 1}
+    word_scores = {noun: float(len(noun)) for noun, score in noun_scores.items() if score[1] > min_noun_score and len(noun) > 1}
     compound_decomposer = MaxScoreTokenizer(scores=word_scores)
 
     compounds_scores = {}

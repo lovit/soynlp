@@ -15,12 +15,13 @@ TERM DEFINITION:
 
 import logging
 from collections import defaultdict
-from dataclasses import dataclass
+from typing import NamedTuple
 
 from soynlp.hangle import character_is_complete_korean
 from soynlp.lemmatizer import _conjugate_stem, conjugate, lemma_candidate
 from soynlp.normalizer import normalize_sent_for_lrgraph
-from soynlp.utils import EojeolCounter, LRGraph, get_process_memory
+from soynlp.core import LRGraph
+from soynlp.utils import EojeolCounter, get_process_memory
 from soynlp.utils.utils import installpath
 
 from .adjective_vs_verb import conjugate_as_imperative, conjugate_as_pleasure, conjugate_as_present, rule_classify
@@ -30,8 +31,7 @@ from .stem import StemExtractor
 logger = logging.getLogger(__name__)
 
 
-@dataclass(slots=True)
-class Predicator:
+class Predicator(NamedTuple):
     frequency: int
     lemma: list[tuple[str, str]] | set[tuple[str, str]]
 

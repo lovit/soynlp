@@ -1,4 +1,4 @@
-from soynlp.core.lrgraph import LRGraph
+from soynlp._legacy.utils.utils import DoublespaceLineCorpus, LRGraph, sort_by_alphabet
 
 from .math import svd
 from .pmi import pmi
@@ -20,6 +20,8 @@ __all__ = [
     "check_corpus",
     "most_similar",
     "CorpusLoader",
+    "DoublespaceLineCorpus",
+    "sort_by_alphabet",
     "EojeolCounter",
     "LRGraph",
     # math

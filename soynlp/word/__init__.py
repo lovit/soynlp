@@ -1,5 +1,7 @@
+from soynlp._legacy.word import Bigram
+
+from .compat import WordExtractor
 from .ngram import BigramExtractor
 from .pmi import pmi
-from .word import WordExtractor
 
-__all__ = ["BigramExtractor", "pmi", "WordExtractor"]
+__all__ = ["Bigram", "BigramExtractor", "pmi", "WordExtractor"]
