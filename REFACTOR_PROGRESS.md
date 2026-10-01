@@ -32,3 +32,4 @@ NER·MaxScoreTagger 새 알고리즘과 TF-IDF 추가는 범위 밖이다.
 | feature/quality-packaging | Ruff·Pyright 버전과 원래 검사 정책 고정, uv.lock 추적 및 Linux·macOS CI와 격리 설치 검증 구현 | 전체 498개 통과; 최종 실행 회귀 8개 통과; Ruff·format·Pyright 통과; wheel·sdist 격리 설치 통과 |
 | feature/compat-positional | 기존 tokenizer Boolean 위치 인자·default_score 및 명사 추출기 생성자 위치 인자와 초기 단어 모델 상태 보완 | 공개 API·토큰화·문장 CLI·파이프라인 57개 회귀 통과; Pyright 통과 |
 | feature/cli-resource-reuse | 패턴 모델·HITS·병렬 학습과 코퍼스 단어 점수 재사용, 용언 seed 사전·형용사/동사 반환 순서 및 기존 태스크 Artifact 지원 | 코퍼스·실행 회귀 31개와 CLI·파이프라인 56개 통과; Ruff·Pyright 통과 |
+| feature/noun-score-compat | 기존 v2 명사 추출 결과를 공개 NounScore 인스턴스로 반환하여 tuple 동작과 isinstance 호환 동시 유지 | master 결과·모델 및 공개 API 회귀 10개 통과; Pyright 통과 |

@@ -47,6 +47,7 @@ def test_master_noun_v2_algorithm(master):
     extractor = LRNounExtractor_v2(verbose=False)
     nouns = extractor.train_extract(master["sents"], min_noun_frequency=2)
     assert {w: list(s) for w, s in nouns.items()} == master["nouns_v2"]
+    assert all(isinstance(score, NounScore) for score in nouns.values())
 
 
 def test_legacy_noun_v1_training_and_news(master):
