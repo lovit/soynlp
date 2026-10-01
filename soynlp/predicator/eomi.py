@@ -156,7 +156,7 @@ class EomiExtractor:
             if score >= min_eomi_score:
                 for l, count in self.lrgraph.get_l(r, -1):
                     if (l in self._stem_surfaces) or self._is_a_noun_verb(l):
-                        self.lrgraph.discount_eojeol(l + r, count)
+                        self.lrgraph.remove_eojeol(l + r, count)
 
         self.lrgraph.reset_lrgraph()
 

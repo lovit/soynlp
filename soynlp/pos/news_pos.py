@@ -1,9 +1,4 @@
-"""News domain POS extractor.
-
-Note: The original code uses LRNounExtractor_v2 which is not yet available.
-Currently uses LRNounExtractor as a fallback. Some features (extract_pos_feature,
-extract_compound, etc.) may not be available.
-"""
+"""News domain POS extraction using the shared noun and predicator extractors."""
 
 import logging
 
@@ -132,6 +127,9 @@ class NewsPOSExtractor:
             sents,
             min_noun_score=min_noun_score,
             min_noun_frequency=min_noun_frequency,
+            min_num_of_features=min_num_of_features,
+            min_eojeol_frequency=min_eojeol_frequency,
+            min_eojeol_is_noun_frequency=max_frequency_when_noun_is_eojeol,
         )
         return nouns
 
@@ -151,7 +149,7 @@ class NewsPOSExtractor:
             verbose=self._verbose,
         )
 
-        adjectives, verbs = self.predicator_extractor.train_extract(
+        verbs, adjectives = self.predicator_extractor.train_extract(
             sents,
             min_eojeol_frequency,
             100000,
@@ -437,7 +435,7 @@ class NewsPOSExtractor:
         compounds: dict[str, int] = {}
         removals: set[str] = set()
         for word, count in eojeols.items():
-            tokens = tokenizer.tokenize(word, flatten=False)[0]  # type: ignore[call-arg]
+            tokens = tokenizer.tokenize(word, return_words=False)
             noun = parse_compound(tokens)
             if noun is not None:
                 compounds[noun] = compounds.get(noun, 0) + count

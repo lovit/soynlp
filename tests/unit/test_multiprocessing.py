@@ -43,7 +43,7 @@ def test_noun_extractor_multi():
     extractor_multi = LRNounExtractor(verbose=False)
     nouns_multi = extractor_multi.extract(SAMPLE_SENTS, n_workers=4)
 
-    assert set(nouns_single.keys()) == set(nouns_multi.keys())
+    assert nouns_single == nouns_multi
 
 
 def test_noun_extractor_auto_workers():
@@ -61,7 +61,7 @@ def test_noun_extractor_multi_with_min_eojeol_frequency():
     extractor_multi = LRNounExtractor(verbose=False)
     nouns_multi = extractor_multi.extract(SAMPLE_SENTS, min_eojeol_frequency=2, n_workers=4)
 
-    assert set(nouns_single.keys()) == set(nouns_multi.keys())
+    assert nouns_single == nouns_multi
 
 
 def test_longer_first_prediction_parallel_runs():

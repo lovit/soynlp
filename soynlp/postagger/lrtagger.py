@@ -7,6 +7,7 @@ from math import log
 from soynlp.tokenizer import MaxScoreTokenizer
 
 from .dictionary import Dictionary
+from .lr_dictionary import LRDictionary
 
 logger = logging.getLogger(__name__)
 
@@ -97,8 +98,9 @@ class LRMaxScoreTagger:
         base_tokenizer: object = None,
         preference: dict | None = None,
         verbose: bool = False,
+        dictionary: Dictionary | None = None,
     ):
-        self.dictionary = Dictionary(domain_dictionary_folders, use_base_dictionary, dictionary_word_mincount, verbose=verbose)  # type: ignore[arg-type]
+        self.dictionary = LRDictionary(domain_dictionary_folders, use_base_dictionary, dictionary_word_mincount, dictionary)
         self.evaluator = evaluator if evaluator else LREvaluator()
         self.preference = preference if preference else {}
         self.lrgraph = lrgraph if lrgraph else {}
@@ -324,13 +326,22 @@ class LRMaxScoreTagger:
         return self._base_tokenizing_subword(subword, 0)
 
     def _base_tokenizing_subword(self, t: str, b: int) -> list:
+        if isinstance(self.base_tokenizer, MaxScoreTokenizer):
+            tokens = self.base_tokenizer.tokenize(t, return_words=False)
+            subwords = []
+            for token in tokens:
+                pos, prop, count = self._infer_subword_information(token.word)
+                subwords.append([(token.word, pos), ("", None), b + token.begin, b + token.end, token.length, prop, count])
+            return subwords
+        tokenize = getattr(self.base_tokenizer, "tokenize", self.base_tokenizer)
+        words = tokenize(t)
         subwords = []
-        _subwords = self.base_tokenizer.tokenize(t, flatten=False)  # type: ignore[call-arg]
-        if not _subwords:
-            return []
-        for w in _subwords[0]:
-            pos, prop, count = self._infer_subword_information(w[0])
-            subwords.append([(w[0], pos), ("", None), b + w[1], b + w[2], w[2] - w[1], prop, count, 0.0])
+        offset = 0
+        for word in words:
+            start = t.index(word, offset)
+            offset = start + len(word)
+            pos, prop, count = self._infer_subword_information(word)
+            subwords.append([(word, pos), ("", None), b + start, b + offset, len(word), prop, count])
         return subwords
 
     def add_words_into_dictionary(self, words: set[str] | list[str] | str, tag: str) -> None:
