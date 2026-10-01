@@ -30,3 +30,4 @@ NER·MaxScoreTagger 새 알고리즘과 TF-IDF 추가는 범위 밖이다.
 | feature/cli-matrix | BoW·문맥 행렬과 어휘 재사용, PMI·SVD·유사도 CLI 및 고립 어휘 행렬 크기 수정 | 행렬·벡터화·PMI 회귀 21개 통과; 변경 코드 Ruff·Pyright 통과 |
 | feature/pipeline-services | CLI 대응 태스크·Artifact·행렬 저장 및 이름·인자·의존 키 검증, 기존 pipeline 사용법 보존 | 파이프라인·문장 CLI 회귀 77개 통과; 변경 코드 Ruff·Pyright 통과 |
 | feature/quality-packaging | Ruff·Pyright 버전과 원래 검사 정책 고정, uv.lock 추적 및 Linux·macOS CI와 격리 설치 검증 구현 | 전체 498개 통과; 최종 실행 회귀 8개 통과; Ruff·format·Pyright 통과; wheel·sdist 격리 설치 통과 |
+| feature/compat-positional | 기존 tokenizer Boolean 위치 인자·default_score 및 명사 추출기 생성자 위치 인자와 초기 단어 모델 상태 보완 | 공개 API·토큰화·문장 CLI·파이프라인 57개 회귀 통과; Pyright 통과 |

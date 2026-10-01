@@ -23,8 +23,8 @@ class WordExtractor(CorpusWordExtractor):
             super().__init__(verbose=kwargs.get("verbose", True))
         else:
             super().__init__(*args, **kwargs)
-        if kwargs.get("verbose") is False:
-            self._legacy_options["verbose_points"] = 0
+        if self._legacy is not None:
+            self.L, self.R = self._legacy.L, self._legacy.R
 
     def _legacy_extractor(self):
         if self._legacy is None:
