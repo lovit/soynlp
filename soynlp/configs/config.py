@@ -16,10 +16,16 @@ class Config:
 
 
 def from_yaml(path: str) -> Config:
-    with open(path) as file:
-        data = yaml.safe_load(file)
+    try:
+        with open(path, encoding="utf-8") as file:
+            data = yaml.safe_load(file)
+    except yaml.YAMLError as error:
+        raise ValueError(f"Invalid YAML: {error}") from error
     return from_dict(data)  # type: ignore
 
 
 def from_dict(data: dict) -> Config:
-    return dacite.from_dict(data_class=Config, data=data)  # type: ignore
+    try:
+        return dacite.from_dict(data_class=Config, data=data, config=dacite.Config(strict=True))
+    except dacite.DaciteError as error:
+        raise ValueError(f"Invalid pipeline configuration: {error}") from error

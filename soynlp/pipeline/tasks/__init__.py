@@ -17,6 +17,7 @@ from soynlp.pipeline.tasks.tokenize import TokenizeTask  # noqa F401
 from soynlp.pipeline.tasks.write_json import WriteJsonTask  # noqa F401
 from soynlp.pipeline.tasks.write_text import WriteTextTask  # noqa F401
 
+from .services import SERVICE_TASKS
 
 __all__ = (
     "Task",
@@ -55,3 +56,6 @@ TASK_REGISTRY: dict[str, type[Task]] = {
     "WriteJson": WriteJsonTask,
     "WriteText": WriteTextTask,
 }
+
+
+TASK_REGISTRY.update(SERVICE_TASKS)

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from soynlp import hangle, lemmatizer, normalizer, predicator, tokenizer
-from soynlp.artifacts import json_value, load_artifact
+from soynlp.artifacts import Artifact, json_value, load_artifact
 from soynlp.postagger import Dictionary, KoreanPOSTagger, LRMaxScoreTagger
 
 TEXT_METHODS = {
@@ -19,6 +19,18 @@ TEXT_METHODS = {
 }
 
 
+NORMALIZER_FACTORIES = {
+    "text": normalizer.TextNormalizer.build_normalizer,
+    "jamo": normalizer.JamoNormalizer,
+    "hangle-emoji": normalizer.HangleEmojiNormalizer,
+    "emoji": normalizer.EmojiNormalizer,
+    "repeat": normalizer.RepeatCharacterNormalizer,
+    "spaces": normalizer.RemoveLongspaceNormalizer,
+    "characters": normalizer.PassCharacterNormalizer,
+    "padding": normalizer.PaddingSpacetoWordsNormalizer,
+}
+
+
 def construct(factory: Callable, parameters: dict[str, Any], **required: Any) -> Any:
     try:
         inspect.signature(factory).bind(**(required | parameters))
@@ -27,8 +39,17 @@ def construct(factory: Callable, parameters: dict[str, Any], **required: Any) ->
     return factory(**(required | parameters))
 
 
-def resource_dictionary(path: str) -> Dictionary:
-    artifact = load_artifact(path, expected_kind="dictionary")
+def resolve_artifact(value: str | Artifact, expected_kind: str | None = None) -> Artifact:
+    if isinstance(value, Artifact):
+        value.as_dict()
+        if expected_kind is not None and value.kind != expected_kind:
+            raise ValueError(f"Expected artifact kind {expected_kind!r}, got {value.kind!r}")
+        return value
+    return load_artifact(value, expected_kind=expected_kind)
+
+
+def resource_dictionary(path: str | Artifact) -> Dictionary:
+    artifact = resolve_artifact(path, expected_kind="dictionary")
     if not isinstance(artifact.data, dict) or not all(
         isinstance(words, list) and all(isinstance(word, str) for word in words) for words in artifact.data.values()
     ):
@@ -36,10 +57,10 @@ def resource_dictionary(path: str) -> Dictionary:
     return Dictionary({tag: set(words) for tag, words in artifact.data.items()})
 
 
-def resource_scores(path: str | None, score_field: str = "score") -> dict[str, float]:
+def resource_scores(path: str | Artifact | None, score_field: str = "score") -> dict[str, float]:
     if path is None:
         return {}
-    artifact = load_artifact(path)
+    artifact = resolve_artifact(path)
     data = artifact.data
     if artifact.kind not in {"scores", "nouns", "words", "dictionary"} or not isinstance(data, dict):
         raise ValueError("Tokenizer resource must contain scores, nouns, words or a dictionary")
@@ -55,13 +76,48 @@ def resource_scores(path: str | None, score_field: str = "score") -> dict[str, f
     return scores
 
 
+def validate_text_parameters(command: str, method: str | None, parameters: dict[str, Any]) -> None:
+    if command not in TEXT_METHODS or method is not None and method not in TEXT_METHODS[command]:
+        raise ValueError(f"Unknown text operation/method: {command!r}/{method!r}")
+    method = method or TEXT_METHODS[command][0]
+    factories = {
+        "normalize": NORMALIZER_FACTORIES,
+        "tag": {"korean": KoreanPOSTagger, "lr-max-score": LRMaxScoreTagger},
+        "tokenize": {
+            "regex": tokenizer.RegexTokenizer,
+            "l": tokenizer.LTokenizer,
+            "max-score": tokenizer.MaxScoreTokenizer,
+            "noun-match": tokenizer.NounMatchTokenizer,
+            "max-lr-score": tokenizer.MaxLRScoreTokenizer,
+            "noun-l-match": tokenizer.NounLMatchTokenizer,
+            "legacy-normalize": tokenizer.normalize,
+        },
+    }
+    if command in factories:
+        required = (
+            {"noun_scores": {}}
+            if method == "noun-match"
+            else {"nouns": {}}
+            if method == "noun-l-match"
+            else {"sentence": ""}
+            if method == "legacy-normalize"
+            else {}
+        )
+        try:
+            inspect.signature(factories[command][method]).bind(**(required | parameters))
+        except TypeError as error:
+            raise ValueError(f"Invalid {command} parameters: {error}") from error
+    elif command == "hangle" and parameters:
+        raise ValueError("Hangle methods have no additional parameters")
+
+
 def text_processor(
     command: str,
     method: str | None = None,
     *,
     parameters: dict[str, Any] | None = None,
-    resource: str | None = None,
-    dictionary: str | None = None,
+    resource: str | Artifact | None = None,
+    dictionary: str | Artifact | None = None,
     offsets: bool = False,
     score_field: str = "score",
     eomi: str | None = None,
@@ -75,16 +131,7 @@ def text_processor(
         raise ValueError(f"Unknown {command} method: {method!r}")
     options = dict(parameters or {})
     if command == "normalize":
-        factories = {
-            "text": normalizer.TextNormalizer.build_normalizer,
-            "jamo": normalizer.JamoNormalizer,
-            "hangle-emoji": normalizer.HangleEmojiNormalizer,
-            "emoji": normalizer.EmojiNormalizer,
-            "repeat": normalizer.RepeatCharacterNormalizer,
-            "spaces": normalizer.RemoveLongspaceNormalizer,
-            "characters": normalizer.PassCharacterNormalizer,
-            "padding": normalizer.PaddingSpacetoWordsNormalizer,
-        }
+        factories = NORMALIZER_FACTORIES
         return construct(factories[method], options)
     if command == "tokenize":
         scores = resource_scores(resource, score_field)
@@ -113,7 +160,7 @@ def text_processor(
         if resource:
             if method != "lr-max-score":
                 raise ValueError("An LR-Graph resource requires lr-max-score")
-            options["lrgraph"] = load_artifact(resource, expected_kind="lrgraph").data
+            options["lrgraph"] = resolve_artifact(resource, expected_kind="lrgraph").data
         instance = construct(KoreanPOSTagger if method == "korean" else LRMaxScoreTagger, options)
         return instance.tag if method == "korean" else instance.pos
     if command == "lemmatize":
