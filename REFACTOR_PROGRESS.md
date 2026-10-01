@@ -25,3 +25,4 @@ NER·MaxScoreTagger 새 알고리즘과 TF-IDF 추가는 범위 밖이다.
 | feature/runtime-repair | LR-Graph 변환과 사전 어댑터 및 순서 의존 명사 판정 복구 | 전체 423개 통과 후 영향 예제 재검증 통과; 실행 회귀 8개와 병렬 회귀 8개 통과 |
 | feature/public-api-compat | 기존 명사·단어·bigram 알고리즘과 토큰 반환 옵션, 모델 파일 및 공개 import 복원 | 전체 431개 통과; 최종 호환 회귀 8개 통과; 복원 파일 Ruff 검사 통과 |
 | feature/artifact-io | 공통 JSON Artifact, 스트리밍 TXT·JSONL 문서 및 NPZ 행렬과 검증 가능한 메타데이터 저장 | 저장·호환 회귀 18개 통과; 새 저장 모듈 Ruff·Pyright 통과 |
+| feature/cli-text | 정규화·토큰화·태깅·표제어·활용·한글 CLI와 공통 문장 처리 서비스 구현 | 기존 CLI와 새 기능 32개 테스트 통과; 새 코드 Ruff·Pyright 통과 |
