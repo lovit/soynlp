@@ -158,7 +158,12 @@ def build_parser() -> argparse.ArgumentParser:
         else:
             command.add_argument("--parameters", type=json_parameters, default={})
     pipeline = commands.add_parser("pipeline", help="Run a YAML pipeline")
-    pipeline.add_argument("-c", "--config_file", "--config-file", required=True)
+    pipeline.add_argument("-c", "--config_file", "--config-file")
+    pipelines = pipeline.add_subparsers(dest="action")
+    for action in ("run", "validate"):
+        command = pipelines.add_parser(action)
+        command.add_argument("-c", "--config_file", "--config-file", required=True)
+    pipelines.add_parser("tasks")
     return parser
 
 
@@ -274,7 +279,26 @@ def execute_matrix(args) -> None:
 
 def execute(args) -> None:
     if args.command == "pipeline":
-        Pipeline.run(args.config_file)
+        if args.action == "tasks":
+            from soynlp.pipeline.tasks import TASK_REGISTRY
+
+            print(
+                json.dumps(
+                    {
+                        name: [field.name for field in task.args().__dataclass_fields__.values()]
+                        for name, task in sorted(TASK_REGISTRY.items())
+                    },
+                    ensure_ascii=False,
+                )
+            )
+        elif args.action == "validate":
+            from soynlp.configs.config import from_yaml
+
+            print(json.dumps(Pipeline.validate(from_yaml(args.config_file)), ensure_ascii=False))
+        else:
+            if args.config_file is None:
+                raise ValueError("Pipeline run requires -c/--config-file")
+            Pipeline.run(args.config_file)
         return
     if args.command in {"vectorize", "matrix"}:
         execute_matrix(args)

@@ -7,7 +7,7 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
-from soynlp.artifacts import Artifact, json_value, load_artifact
+from soynlp.artifacts import Artifact, json_value
 from soynlp.core import LRGraph
 from soynlp.noun import LRNounExtractor, LRNounExtractor_v2, NewsNounExtractor, extract_domain_pos_features
 from soynlp.pos import ChatPOSExtractor, NewsPOSExtractor
@@ -17,7 +17,7 @@ from soynlp.tokenizer import EojeolPatternTrainer
 from soynlp.utils import EojeolCounter
 from soynlp.word import BigramExtractor, WordExtractor
 
-from .text import construct, resource_dictionary
+from .text import construct, resolve_artifact, resource_dictionary
 
 EXTRACT_METHODS = {
     "nouns": ("lr", "lr-v1", "lr-v2", "news"),
@@ -144,7 +144,9 @@ def extract_corpus(
             data = invoke(instance.extract, **extract)
     elif kind == "predicators":
         nouns = (
-            load_artifact(resource, expected_kind="nouns").data if resource else LRNounExtractor(verbose=False).extract(corpus)
+            resolve_artifact(resource, expected_kind="nouns").data
+            if resource
+            else LRNounExtractor(verbose=False).extract(corpus)
         )
         instance = construct(PredicatorExtractor, init, nouns=set(nouns))
         invoke(instance.train, corpus, **train)
@@ -173,7 +175,7 @@ def extract_corpus(
                 raise ValueError("Feature extraction has no constructor options")
             if resource is None:
                 raise ValueError("Feature extraction requires a noun score resource")
-            nouns = load_artifact(resource, expected_kind="nouns").data
+            nouns = resolve_artifact(resource, expected_kind="nouns").data
             predictions = {word: (value["score"], value["frequency"]) for word, value in nouns.items()}
             scores = invoke(extract_domain_pos_features, predictions, graph, words.get("Josa", set()), **extract)
             data = {word: {"score": value[0], "frequency": value[1]} for word, value in scores.items() if value is not None}
@@ -205,7 +207,7 @@ def train_patterns(corpus: Any, parameters: dict[str, Any] | None = None) -> Art
 
 def build_dictionary(*, resource: str | None = None, corpus: Any = None, tag: str = "Noun") -> Artifact:
     if resource:
-        artifact = load_artifact(resource)
+        artifact = resolve_artifact(resource)
         if artifact.kind == "dictionary":
             data = resource_dictionary(resource).pos_dict
         elif artifact.kind in {"nouns", "words", "stems", "eomis", "features", "eojeols"}:
