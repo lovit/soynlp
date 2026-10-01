@@ -88,8 +88,8 @@ def extract_corpus(
     method: str | None = None,
     *,
     parameters: dict[str, Any] | None = None,
-    dictionary: str | None = None,
-    resource: str | None = None,
+    dictionary: str | Artifact | None = None,
+    resource: str | Artifact | None = None,
 ) -> Artifact:
     if kind not in EXTRACT_METHODS:
         raise ValueError(f"Unknown extraction kind: {kind!r}")
@@ -137,7 +137,8 @@ def extract_corpus(
                 raise ValueError("Combined POS extraction accepts constructor parameters")
             instance = construct(POSExtractor, init)
             nouns, predicators = instance.extract(corpus)
-            data = {"nouns": nouns, "predicators": predicators}
+            adjectives, verbs = predicators
+            data = {"nouns": nouns, "adjectives": adjectives, "verbs": verbs}
         else:
             instance = construct(NewsPOSExtractor if method == "news" else ChatPOSExtractor, init)
             invoke(instance.train, corpus, **train)
@@ -148,9 +149,15 @@ def extract_corpus(
             if resource
             else LRNounExtractor(verbose=False).extract(corpus)
         )
+        if dictionary:
+            seeds = resource_dictionary(dictionary).pos_dict
+            init = {"verbs": seeds.get("Verb", set()), "adjectives": seeds.get("Adjective", set()), **init}
+            for tag, option in [("Eomi", "eomis"), ("Josa", "josas")]:
+                if tag in seeds:
+                    init.setdefault(option, seeds[tag])
         instance = construct(PredicatorExtractor, init, nouns=set(nouns))
         invoke(instance.train, corpus, **train)
-        verbs, adjectives = invoke(instance.extract, **extract)
+        adjectives, verbs = invoke(instance.extract, **extract)
         data = {"verbs": verbs, "adjectives": adjectives}
     else:
         if train:
@@ -188,7 +195,14 @@ def count_eojeols(corpus: Any, parameters: dict[str, Any] | None = None) -> Arti
 
 
 def train_patterns(corpus: Any, parameters: dict[str, Any] | None = None) -> Artifact:
-    init, train, hits = _options(parameters)
+    options = dict(parameters or {})
+    if "hits" in options:
+        if "extract" in options:
+            raise ValueError("Use hits or extract for HITS options, not both")
+        options["extract"] = options.pop("hits")
+    init, train, hits = _options(options)
+    if train.get("n_workers", 1) != 1:
+        corpus = list(corpus)
     instance = construct(EojeolPatternTrainer, {"verbose": False, **init})
     invoke(instance.train, corpus, **train)
     data = {

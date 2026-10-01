@@ -16,7 +16,13 @@ def read_vocabulary(path: str | None) -> list[str] | None:
         return None
     target = Path(path)
     artifact = load_artifact(target.with_suffix(".json") if target.suffix == ".npz" else target)
-    vocabulary = artifact.data if artifact.kind == "vocabulary" else artifact.data.get("vocabulary")
+    vocabulary = (
+        artifact.data
+        if artifact.kind == "vocabulary"
+        else artifact.data.get("vocabulary")
+        if isinstance(artifact.data, dict)
+        else None
+    )
     if (
         not isinstance(vocabulary, list)
         or not all(isinstance(word, str) for word in vocabulary)

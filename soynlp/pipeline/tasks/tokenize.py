@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 
+from soynlp.artifacts import Artifact
 from soynlp.pipeline.tasks.task import Task, TaskArgs
+from soynlp.services.text import resource_scores
 from soynlp.tokenizer import LTokenizer, MaxScoreTokenizer, NounMatchTokenizer, RegexTokenizer
 
 
@@ -53,7 +55,9 @@ class TokenizeTask(Task[TokenizeTaskArgs]):
             return LTokenizer(scores)
         raise ValueError(f"Unknown tokenizer_type: {self._args.tokenizer_type}")
 
-    def _extract_scores(self, raw_scores: dict) -> dict:
+    def _extract_scores(self, raw_scores: dict | Artifact) -> dict:
+        if isinstance(raw_scores, Artifact):
+            return resource_scores(raw_scores, self._args.score_field)
         if not raw_scores:
             return {}
         first_value = next(iter(raw_scores.values()))
