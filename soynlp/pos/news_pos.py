@@ -7,7 +7,8 @@ from soynlp.lemmatizer import lemma_candidate
 from soynlp.noun import LRNounExtractor
 from soynlp.predicator import Predicator, PredicatorExtractor
 from soynlp.tokenizer import MaxScoreTokenizer
-from soynlp.utils import CorpusLoader, EojeolCounter, LRGraph
+from soynlp.core import LRGraph
+from soynlp.utils import CorpusLoader, EojeolCounter
 
 from .adverb import load_default_adverbs, stem_to_adverb
 
@@ -88,8 +89,8 @@ class NewsPOSExtractor:
         self.adverbs.update(stem_to_adverb(self.adjective_stems))
         self.adverbs.update(stem_to_adverb(self.verb_stems))
 
-        self.eojeols = self.noun_extractor.lrgraph.to_EojeolCounter(reset_lrgraph=True)  # type: ignore[union-attr]
-        self.eojeols = self.eojeols._counter
+        assert self.noun_extractor.lrgraph is not None
+        self.eojeols = dict(self.noun_extractor.lrgraph.to_EojeolCounter(reset_lrgraph=True).items())
 
     def extract(self) -> dict:
         nouns, adjectives, verbs, adverbs, josas, irrecognized, confused_nouns = self._count_matched_patterns()

@@ -253,6 +253,8 @@ class EojeolCounter:
             self._counter = self._counting_from_sents(sents, n_workers=n_workers)
         else:
             self._counter = {}
+        self._coverage = 0.0
+        self._set_count_sum()
 
     @property
     def count_sum(self) -> int:
@@ -342,7 +344,40 @@ class EojeolCounter:
         """Return {key: value} items"""
         return self._counter.items()
 
-    def to_lrgraph(self, max_l_length: int = 10, max_r_length: int = 9, ignore_one_syllable: bool = False) -> LRGraph:
+    @property
+    def coverage(self) -> float:
+        return self._coverage
+
+    @coverage.setter
+    def coverage(self, value: float) -> None:
+        if not 0 <= value <= 1:
+            raise ValueError("coverage should be in [0, 1]")
+        self._coverage = value
+
+    @property
+    def num_of_unique_uncovered_eojeols(self) -> int:
+        return len(self._counter)
+
+    @property
+    def num_of_uncovered_eojeols(self) -> int:
+        return self.count_sum
+
+    def get_uncovered_eojeols(self, min_count: int = 0) -> dict[str, int]:
+        return {w: count for w, count in self._counter.items() if count >= min_count}
+
+    def remove_covered_eojeols(self, eojeols) -> None:
+        self.remove_eojeols(set(eojeols))
+        self.coverage = 1 - self.count_sum / self._count_sum if self._count_sum else 0.0
+
+    def to_lrgraph(
+        self,
+        max_l_length: int = 10,
+        max_r_length: int = 9,
+        ignore_one_syllable: bool = False,
+        *,
+        l_max_length: int | None = None,
+        r_max_length: int | None = None,
+    ) -> LRGraph:
         """Transform EojeolCounter to LRGraph
 
         Args:
@@ -359,6 +394,10 @@ class EojeolCounter:
             >>> lrgraph = eojeol_counter.to_lrgraph()
             >>> lrgraph.get_r('이것')  # [('은', 1)]
         """
+        if l_max_length is not None:
+            max_l_length = l_max_length
+        if r_max_length is not None:
+            max_r_length = r_max_length
         return self._to_lrgraph(self._counter, max_l_length, max_r_length, ignore_one_syllable)
 
     def _to_lrgraph(
