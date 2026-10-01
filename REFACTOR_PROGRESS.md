@@ -26,3 +26,4 @@ NER·MaxScoreTagger 새 알고리즘과 TF-IDF 추가는 범위 밖이다.
 | feature/public-api-compat | 기존 명사·단어·bigram 알고리즘과 토큰 반환 옵션, 모델 파일 및 공개 import 복원 | 전체 431개 통과; 최종 호환 회귀 8개 통과; 복원 파일 Ruff 검사 통과 |
 | feature/artifact-io | 공통 JSON Artifact, 스트리밍 TXT·JSONL 문서 및 NPZ 행렬과 검증 가능한 메타데이터 저장 | 저장·호환 회귀 18개 통과; 새 저장 모듈 Ruff·Pyright 통과 |
 | feature/cli-text | 정규화·토큰화·태깅·표제어·활용·한글 CLI와 공통 문장 처리 서비스 구현 | 기존 CLI와 새 기능 32개 테스트 통과; 새 코드 Ruff·Pyright 통과 |
+| feature/cli-corpus | 전체 추출기, 어절 집계·변환, 패턴 학습, 사전 관리와 LR-Graph CLI 및 재사용 서비스 구현 | 전체 CLI 51개 및 최종 코퍼스 19개 회귀 통과; 새 코드 Ruff·Pyright 통과 |

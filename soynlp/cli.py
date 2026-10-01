@@ -7,9 +7,21 @@ import sys
 from typing import Any
 
 from soynlp import __version__
+from soynlp.artifacts import Artifact, atomic_output, load_artifact, save_artifact
+from soynlp.core import LRGraph
 from soynlp.documents import read_documents, write_documents
 from soynlp.pipeline import Pipeline
 from soynlp.services import TEXT_METHODS, process_documents, text_processor
+from soynlp.services.corpus import (
+    EXTRACT_METHODS,
+    ReplayCorpus,
+    build_dictionary,
+    count_eojeols,
+    extract_corpus,
+    merge_dictionaries,
+    train_patterns,
+)
+from soynlp.services.text import resource_dictionary
 
 
 def json_parameters(value: str) -> dict[str, Any]:
@@ -22,8 +34,8 @@ def json_parameters(value: str) -> dict[str, Any]:
     return result
 
 
-def add_input(parser: argparse.ArgumentParser) -> None:
-    inputs = parser.add_mutually_exclusive_group(required=True)
+def add_input(parser: argparse.ArgumentParser, required: bool = True) -> None:
+    inputs = parser.add_mutually_exclusive_group(required=required)
     inputs.add_argument("--text", help="Process one example")
     inputs.add_argument("--input", help="TXT or JSONL path; - reads stdin")
     parser.add_argument("--input-format", choices=("txt", "jsonl"), default="txt")
@@ -71,14 +83,136 @@ def build_parser() -> argparse.ArgumentParser:
             command.add_argument("--eomi", help="Ending used by normal/chat methods")
         if name == "hangle":
             command.add_argument("--other", help="Second text for distance calculations")
+    extraction = commands.add_parser("extract", help="Extract corpus resources")
+    extractors = extraction.add_subparsers(dest="kind", required=True)
+    for kind, methods in EXTRACT_METHODS.items():
+        command = extractors.add_parser(kind)
+        add_input(command)
+        add_output(command)
+        command.add_argument("--method", choices=methods, default=methods[0])
+        command.add_argument("--parameters", type=json_parameters, default={}, help="constructor/train/extract option objects")
+        command.add_argument("--dictionary")
+        command.add_argument("--resource")
+    corpus = commands.add_parser("corpus", help="Convert or count a corpus")
+    corpora = corpus.add_subparsers(dest="action", required=True)
+    for action in ("convert", "count-eojeols"):
+        command = corpora.add_parser(action)
+        add_input(command)
+        add_output(command)
+        command.add_argument("--parameters", type=json_parameters, default={})
+        if action == "convert":
+            command.add_argument("--output-format", choices=("txt", "jsonl"), default="jsonl")
+    training = commands.add_parser("train", help="Train corpus statistics")
+    trainer = training.add_subparsers(dest="action", required=True).add_parser("patterns")
+    add_input(trainer)
+    add_output(trainer)
+    trainer.add_argument("--parameters", type=json_parameters, default={})
+    dictionary = commands.add_parser("dictionary", help="Build, merge, inspect or export POS dictionaries")
+    dictionaries = dictionary.add_subparsers(dest="action", required=True)
+    builder = dictionaries.add_parser("build")
+    add_input(builder, required=False)
+    builder.add_argument("--resource")
+    builder.add_argument("--tag", default="Noun")
+    add_output(builder)
+    merger = dictionaries.add_parser("merge")
+    merger.add_argument("resources", nargs="+")
+    add_output(merger)
+    for action in ("inspect", "export"):
+        command = dictionaries.add_parser(action)
+        command.add_argument("--resource", required=True)
+        add_output(command)
+    graph = commands.add_parser("lrgraph", help="Build LR-Graphs and query neighbors")
+    graphs = graph.add_subparsers(dest="action", required=True)
+    builder = graphs.add_parser("build")
+    add_input(builder)
+    add_output(builder)
+    builder.add_argument("--parameters", type=json_parameters, default={})
+    neighbors = graphs.add_parser("neighbors")
+    neighbors.add_argument("--resource", required=True)
+    neighbors.add_argument("--word", required=True)
+    neighbors.add_argument("--direction", choices=("left", "right"), default="right")
+    neighbors.add_argument("--topk", type=int, default=10)
+    add_output(neighbors)
     pipeline = commands.add_parser("pipeline", help="Run a YAML pipeline")
     pipeline.add_argument("-c", "--config_file", "--config-file", required=True)
     return parser
 
 
+def write_resource(artifact: Artifact, args) -> None:
+    if args.output == "-":
+        print(json.dumps(artifact.as_dict(), ensure_ascii=False, allow_nan=False))
+    else:
+        save_artifact(artifact, args.output, overwrite=args.overwrite)
+
+
+def execute_corpus(args) -> None:
+    if args.command == "dictionary":
+        if args.action == "merge":
+            artifact = merge_dictionaries(args.resources)
+        elif args.action == "build":
+            if bool(args.resource) + bool(args.input is not None or args.text is not None) != 1:
+                raise ValueError("Dictionary build requires exactly one resource or text input")
+            if args.resource:
+                artifact = build_dictionary(resource=args.resource, tag=args.tag)
+            else:
+                with ReplayCorpus(input_documents(args), args.text_key) as corpus:
+                    artifact = build_dictionary(corpus=corpus, tag=args.tag)
+        else:
+            words = resource_dictionary(args.resource).pos_dict
+            if args.action == "export":
+                from contextlib import nullcontext
+
+                context = (
+                    nullcontext(sys.stdout) if args.output == "-" else atomic_output(args.output, overwrite=args.overwrite)
+                )
+                with context as stream:
+                    for tag, vocabulary in sorted(words.items()):
+                        for word in sorted(vocabulary):
+                            stream.write(f"{tag}\t{word}\n")
+                return
+            artifact = Artifact(
+                "dictionary-summary",
+                {
+                    "tags": {tag: len(vocabulary) for tag, vocabulary in words.items()},
+                    "entries": sum(map(len, words.values())),
+                },
+            )
+        write_resource(artifact, args)
+        return
+    if args.command == "lrgraph" and args.action == "neighbors":
+        resource = load_artifact(args.resource, expected_kind="lrgraph")
+        graph = LRGraph(resource.data)
+        neighbors = graph.get_r(args.word, args.topk) if args.direction == "right" else graph.get_l(args.word, args.topk)
+        write_resource(Artifact("lrgraph-neighbors", neighbors, {"word": args.word, "direction": args.direction}), args)
+        return
+    if args.command == "corpus" and args.action == "convert":
+        write_documents(
+            input_documents(args), args.output, format=args.output_format, text_key=args.text_key, overwrite=args.overwrite
+        )
+        return
+    with ReplayCorpus(input_documents(args), args.text_key) as corpus:
+        if args.command == "extract":
+            artifact = extract_corpus(
+                corpus, args.kind, args.method, parameters=args.parameters, dictionary=args.dictionary, resource=args.resource
+            )
+        elif args.command == "train":
+            artifact = train_patterns(corpus, args.parameters)
+        elif args.command == "lrgraph":
+            from soynlp.services.corpus import invoke
+
+            graph = invoke(LRGraph.from_sents, corpus, **args.parameters)
+            artifact = Artifact("lrgraph", dict(graph.iter_original_lr()), args.parameters)
+        else:
+            artifact = count_eojeols(corpus, args.parameters)
+    write_resource(artifact, args)
+
+
 def execute(args) -> None:
     if args.command == "pipeline":
         Pipeline.run(args.config_file)
+        return
+    if args.command in {"extract", "corpus", "dictionary", "train", "lrgraph"}:
+        execute_corpus(args)
         return
     processor = text_processor(
         args.command,
