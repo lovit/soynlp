@@ -1,0 +1,19 @@
+pipeline:
+  - name: ReadDocuments
+    args:
+      path: examples/data/demo.jsonl
+      format: jsonl
+  - name: TextNormalize
+    args:
+      method: text
+      result_key: normalized
+  - name: TextTokenize
+    args:
+      method: regex
+      text_key: normalized
+      result_key: tokens
+      offsets: true
+  - name: WriteDocuments
+    args:
+      path: '-'
+      format: jsonl
