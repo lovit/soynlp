@@ -1,0 +1,24 @@
+# 리팩토링 구현 기록
+
+Base: `refactor-2026` (`13028c6`). Python 3.12 + uv.
+
+## 완료 기준
+
+- master 공개 import·호출·반환값과 저장 파일 호환성 복원
+- LR-Graph·품사 추출·LR 태거 실행 결함 복구
+- 버전 있는 JSON 리소스, JSONL 문장 결과, NPZ 행렬의 저장·재사용
+- 기능별 CLI 및 대응 YAML 태스크, 설정 검증
+- 문서 예제·품질 검사·휠/소스 배포 설치 검증
+
+NER·MaxScoreTagger 새 알고리즘과 TF-IDF 추가는 범위 밖이다.
+
+## 작업 방식
+
+각 기능은 별도 worktree/feature 브랜치에서 검증하고 merge commit으로 병합한다.
+이슈·PR·원격 push 없이 로컬 코드와 기록을 제공한다. Git 이력에서 각 merge commit의 두 번째 부모가 기능 커밋이다.
+
+## 기능별 기록
+
+| 브랜치 | 작업 | 검증 |
+| --- | --- | --- |
+| feature/project-guidance | Codex 지침과 기존 진단 보고서, 구현 기록 정리 | 지침·현재 base 확인 |
