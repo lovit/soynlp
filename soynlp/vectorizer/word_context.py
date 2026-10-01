@@ -55,6 +55,8 @@ def sent_to_word_contexts_matrix(
     dynamic_weight: bool = False,
     verbose: bool = True,
     n_workers: int = 1,
+    *,
+    vocabulary: list[str] | None = None,
 ) -> tuple[csr_matrix, list[str]]:
     """Create (word, contexts) co-occurrence matrix.
 
@@ -63,6 +65,12 @@ def sent_to_word_contexts_matrix(
             co-occurrence weight = [1, (w-1)/w, (w-2)/w, ... 1/w]
         n_workers: Number of worker processes. Falls back to 1 if tokenizer is not picklable.
     """
+    if not isinstance(windows, int) or windows < 1:
+        raise ValueError("windows must be a positive integer")
+    if vocabulary is not None and (
+        len(set(vocabulary)) != len(vocabulary) or not all(isinstance(word, str) for word in vocabulary)
+    ):
+        raise ValueError("vocabulary must contain distinct strings")
     logger.info("Create (word, contexts) matrix")
 
     if n_workers != 1:
@@ -72,7 +80,11 @@ def sent_to_word_contexts_matrix(
             logger.info("sent_to_word_contexts_matrix: tokenizer가 pickle 불가 — 단일 프로세스로 실행")
             n_workers = 1
 
-    vocab2idx, idx2vocab = _scanning_vocabulary(sents, min_tf, tokenizer, n_workers)
+    if vocabulary is None:
+        vocab2idx, idx2vocab = _scanning_vocabulary(sents, min_tf, tokenizer, n_workers)
+    else:
+        idx2vocab = list(vocabulary)
+        vocab2idx = {word: i for i, word in enumerate(idx2vocab)}
 
     word2contexts = _word_context(sents, windows, tokenizer, dynamic_weight, vocab2idx, n_workers)
 
@@ -226,7 +238,7 @@ def _encode_as_matrix(
             rows.append(word_idx)
             cols.append(context_idx)
             data.append(cooccurrence)
-    x = csr_matrix((data, (rows, cols)))
+    x = csr_matrix((data, (rows, cols)), shape=(len(vocab2idx), len(vocab2idx)))
 
     logger.info("  - (word, context) matrix was constructed. shape = %s", x.shape)
 

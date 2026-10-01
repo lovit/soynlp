@@ -7,7 +7,7 @@ import sys
 from typing import Any
 
 from soynlp import __version__
-from soynlp.artifacts import Artifact, atomic_output, load_artifact, save_artifact
+from soynlp.artifacts import Artifact, atomic_output, load_artifact, save_artifact, save_matrix
 from soynlp.core import LRGraph
 from soynlp.documents import read_documents, write_documents
 from soynlp.pipeline import Pipeline
@@ -21,6 +21,7 @@ from soynlp.services.corpus import (
     merge_dictionaries,
     train_patterns,
 )
+from soynlp.services.matrix import matrix_pmi, matrix_similar, matrix_svd, read_vocabulary, vectorize
 from soynlp.services.text import resource_dictionary
 
 
@@ -133,6 +134,29 @@ def build_parser() -> argparse.ArgumentParser:
     neighbors.add_argument("--direction", choices=("left", "right"), default="right")
     neighbors.add_argument("--topk", type=int, default=10)
     add_output(neighbors)
+    vectorizer = commands.add_parser("vectorize", help="Create term frequency and context matrices")
+    vectorizers = vectorizer.add_subparsers(dest="method", required=True)
+    for method in ("bow", "contexts"):
+        command = vectorizers.add_parser(method)
+        add_input(command)
+        add_output(command)
+        command.add_argument("--vocabulary", help="Vocabulary JSON or existing matrix NPZ")
+        command.add_argument(
+            "--tokenizer-method", choices=("whitespace", "regex", "l", "max-score", "noun-match"), default="whitespace"
+        )
+        command.add_argument("--tokenizer-resource")
+        command.add_argument("--parameters", type=json_parameters, default={})
+    matrix = commands.add_parser("matrix", help="Transform saved matrices or find similar rows")
+    matrices = matrix.add_subparsers(dest="action", required=True)
+    for action in ("pmi", "svd", "similar"):
+        command = matrices.add_parser(action)
+        command.add_argument("--input", required=True, help="Matrix NPZ with matching JSON metadata")
+        add_output(command)
+        if action == "similar":
+            command.add_argument("--query", required=True)
+            command.add_argument("--topk", type=int, default=10)
+        else:
+            command.add_argument("--parameters", type=json_parameters, default={})
     pipeline = commands.add_parser("pipeline", help="Run a YAML pipeline")
     pipeline.add_argument("-c", "--config_file", "--config-file", required=True)
     return parser
@@ -207,9 +231,53 @@ def execute_corpus(args) -> None:
     write_resource(artifact, args)
 
 
+def execute_matrix(args) -> None:
+    if args.command == "matrix" and args.action == "similar":
+        write_resource(matrix_similar(args.input, args.query, args.topk), args)
+        return
+    if args.output == "-":
+        raise ValueError("Binary matrix output requires -o/--output with an .npz path")
+    if args.command == "vectorize":
+        vocabulary = read_vocabulary(args.vocabulary)
+        with ReplayCorpus(input_documents(args), args.text_key) as corpus:
+            matrix, vocabulary, rows = vectorize(
+                corpus,
+                args.method,
+                parameters=args.parameters,
+                vocabulary=vocabulary,
+                tokenizer_method=args.tokenizer_method,
+                tokenizer_resource=args.tokenizer_resource,
+            )
+        save_matrix(
+            args.output,
+            matrix,
+            vocabulary=vocabulary,
+            row_vocabulary=rows,
+            parameters={"method": args.method, "tokenizer_method": args.tokenizer_method, **args.parameters},
+            kind=args.method,
+            overwrite=args.overwrite,
+        )
+    elif args.action == "svd":
+        matrix_svd(args.input, args.output, args.parameters, overwrite=args.overwrite)
+    else:
+        matrix, metadata, parameters = matrix_pmi(args.input, args.parameters)
+        save_matrix(
+            args.output,
+            matrix,
+            vocabulary=metadata.data.get("vocabulary"),
+            row_vocabulary=metadata.data.get("row_vocabulary"),
+            parameters=parameters,
+            kind="pmi",
+            overwrite=args.overwrite,
+        )
+
+
 def execute(args) -> None:
     if args.command == "pipeline":
         Pipeline.run(args.config_file)
+        return
+    if args.command in {"vectorize", "matrix"}:
+        execute_matrix(args)
         return
     if args.command in {"extract", "corpus", "dictionary", "train", "lrgraph"}:
         execute_corpus(args)
