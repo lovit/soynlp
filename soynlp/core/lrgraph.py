@@ -132,6 +132,21 @@ class LRGraph:
             L, R = eojeol[:i], eojeol[i:]
             self.remove_lr_pair(L, R, frequency)
 
+    def to_EojeolCounter(self, reset_lrgraph: bool = False):
+        """Recover eojeol counts without summing their duplicate L/R splits.
+
+        reset_lrgraph selects the original snapshot; it does not change this graph.
+        """
+        from soynlp.utils import EojeolCounter
+
+        graph = self._lr_origin if reset_lrgraph else self._lr
+        counter = EojeolCounter()
+        for left, rights in graph.items():
+            for right, count in rights.items():
+                word = left + right
+                counter._counter[word] = max(counter._counter.get(word, 0), count)
+        return counter
+
     def get_r(self, L: str, topk: int = 10) -> list[tuple[str, int]]:
         """주어진 L에 대해 빈도 내림차순으로 (R, frequency) 쌍을 반환한다.
 

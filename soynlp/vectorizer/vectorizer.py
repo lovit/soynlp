@@ -143,7 +143,7 @@ class BaseVectorizer:
 
         logger.info("transforming docs to term frequency matrix was done")
 
-        return csr_matrix((data, (rows, cols)), shape=(i_doc + 1, self.n_vocabs))
+        return csr_matrix((data, (rows, cols)), shape=(len(docs), self.n_vocabs))
 
     def fit_to_file(self, docs: list[str], file_path: str, encoding: str = "utf-8") -> None:
         self.fit(docs)

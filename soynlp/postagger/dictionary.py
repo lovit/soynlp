@@ -54,7 +54,7 @@ class Dictionary:
         return f"Dictionary(num_tags={num_tags}, num_words={num_words}, tags={tags})"
 
     def _check_max_length(self, pos_dict: dict[str, set[str]]) -> int:
-        return max(len(word) for words in pos_dict.values() for word in words)
+        return max((len(word) for words in pos_dict.values() for word in words), default=0)
 
     def get_pos(self, word: str) -> list[str]:
         tags: list[str] = []
@@ -72,7 +72,7 @@ class Dictionary:
         if not force and tag not in self.pos_dict:
             raise ValueError("Check your tag or use add_words(tag, words, force=True)")
 
-        max_length = max(len(word) for word in words)
+        max_length = max((len(word) for word in words), default=0)
         if self.max_length < max_length:
             self.max_length = max_length
 

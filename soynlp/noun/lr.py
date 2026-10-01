@@ -18,42 +18,6 @@ logger = logging.getLogger(__name__)
 installpath = os.path.abspath(os.path.dirname(__file__))
 
 
-def _score_candidates_chunk(args: tuple) -> dict[str, tuple[int, float]]:
-    """Worker: score a chunk of candidates using a frozen LRGraph snapshot (read-only).
-
-    NOTE: Because the LRGraph is NOT modified between candidates in this parallel version,
-    scores may slightly differ from the sequential `longer_first_prediction()` result.
-    Longer confirmed nouns would normally reduce the R-feature counts of their prefixes,
-    but that sequential modification does not happen here.
-    """
-    (
-        chunk,
-        lr_snapshot,
-        pos_features,
-        neg_features,
-        common_features,
-        min_noun_score,
-        min_num_of_features,
-        min_eojeol_is_noun_frequency,
-    ) = args
-    results: dict[str, tuple[int, float]] = {}
-    for word in chunk:
-        r_dict = lr_snapshot.get(word, {})
-        word_features = sorted(r_dict.items(), key=lambda x: -x[1])
-        support, score = predict_single_noun(
-            word,
-            word_features,
-            pos_features,
-            neg_features,
-            common_features,
-            min_noun_score,
-            min_num_of_features,
-            min_eojeol_is_noun_frequency,
-        )
-        results[word] = (support, score)
-    return results
-
-
 @dataclass(slots=True)
 class NounScore:
     frequency: int
@@ -610,8 +574,8 @@ def longer_first_prediction(
     예: '아이디어'가 명사로 판정되면 '아이디'의 R에서 '어'가 제거되어
     '아이디'도 명사로 판별될 수 있다.
 
-    n_workers > 1이면 LRGraph 스냅숏을 병렬로 스코어링하므로,
-    순차 방식(n_workers=1)보다 빠르지만 단계적 제거 효과가 없어 점수가 미세하게 달라질 수 있다.
+    후보 판정은 그래프 변경 순서에 의존하므로 항상 순차 실행한다.
+    n_workers는 호출 호환성을 위해 유지하며 코퍼스 집계 단계에서 병렬화를 수행한다.
 
     Args:
         candidates: 명사 후보 단어 집합.
@@ -628,68 +592,19 @@ def longer_first_prediction(
     Returns:
         {word: (frequency, score)} 형태의 dict.
     """
-    sorted_candidates = sorted(candidates, key=lambda x: -len(x))
+    sorted_candidates = sorted(candidates, key=lambda x: (-len(x), x))
 
-    if n_workers != 1:
-        prediction_scores = _longer_first_prediction_parallel(
-            sorted_candidates,
-            lrgraph,
-            pos_features,
-            neg_features,
-            common_features,
-            min_noun_score,
-            min_num_of_features,
-            min_eojeol_is_noun_frequency,
-            n_workers,
-        )
+    if verbose:
+        iterator = tqdm(sorted_candidates, desc="[LRNounExtractor] base prediction", total=len(candidates))
     else:
-        if verbose:
-            iterator = tqdm(sorted_candidates, desc="[LRNounExtractor] base prediction", total=len(candidates))
-        else:
-            iterator = sorted_candidates
+        iterator = sorted_candidates
 
-        prediction_scores = {}
-        for word in iterator:
-            word_features = lrgraph.get_r(word, -1)
-            support, score = predict_single_noun(
-                word,
-                word_features,
-                pos_features,
-                neg_features,
-                common_features,
-                min_noun_score,
-                min_num_of_features,
-                min_eojeol_is_noun_frequency,
-            )
-            prediction_scores[word] = (support, score)
-
-            if score >= min_noun_score:
-                for r, count in word_features:
-                    lrgraph.remove_eojeol(word + r, count)
-
-    return prediction_scores
-
-
-def _longer_first_prediction_parallel(
-    sorted_candidates: list[str],
-    lrgraph: LRGraph,
-    pos_features: set[str],
-    neg_features: set[str],
-    common_features: set[str],
-    min_noun_score: float,
-    min_num_of_features: int,
-    min_eojeol_is_noun_frequency: int,
-    n_workers: int,
-) -> dict[str, tuple[int, float]]:
-    from multiprocessing import Pool, cpu_count
-
-    n = cpu_count() if n_workers == -1 else n_workers
-    lr_snapshot = dict(lrgraph._lr)
-    chunks = [sorted_candidates[i::n] for i in range(n)]
-    worker_args = [
-        (
-            chunk,
-            lr_snapshot,
+    prediction_scores = {}
+    for word in iterator:
+        word_features = lrgraph.get_r(word, -1)
+        support, score = predict_single_noun(
+            word,
+            word_features,
             pos_features,
             neg_features,
             common_features,
@@ -697,24 +612,11 @@ def _longer_first_prediction_parallel(
             min_num_of_features,
             min_eojeol_is_noun_frequency,
         )
-        for chunk in chunks
-    ]
+        prediction_scores[word] = (support, score)
 
-    with Pool(processes=n) as pool:
-        partial_results = pool.map(_score_candidates_chunk, worker_args)
-
-    prediction_scores: dict[str, tuple[int, float]] = {}
-    for partial in partial_results:
-        prediction_scores.update(partial)
-
-    # Apply sequential LRGraph modification in longer-first order
-    for word in sorted_candidates:
-        support, score = prediction_scores[word]
         if score >= min_noun_score:
-            word_features = lrgraph.get_r(word, -1)
             for r, count in word_features:
                 lrgraph.remove_eojeol(word + r, count)
-
     return prediction_scores
 
 
