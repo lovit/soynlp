@@ -11,7 +11,7 @@ class LRNounExtractor(CorpusNounExtractor):
     def __init__(self, *args, **kwargs):
         modern_keys = {"max_l_length", "max_r_length", "pos_features", "neg_features", "verbose"}
         legacy_keys = set(kwargs) - modern_keys
-        self._legacy_mode = bool(legacy_keys)
+        self._legacy_mode = bool(legacy_keys or args)
         self._legacy = None
         self._legacy_options = {key: value for key, value in kwargs.items() if key not in modern_keys or key == "verbose"}
         if self._legacy_mode:

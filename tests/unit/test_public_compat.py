@@ -90,3 +90,25 @@ def test_public_eojeol_counter_legacy_calls(master):
     counter.remove_covered_eojeols({"한국어를"})
     assert counter.coverage == 1 - counter.num_of_uncovered_eojeols / initial
     assert "한국어를" not in counter.get_uncovered_eojeols()
+
+
+def test_positional_legacy_tokenizer_options(master):
+    from soynlp.tokenizer import NounMatchTokenizer, RegexTokenizer
+
+    text = "한국어를 공부합니다"
+    scores = {"한국어": 1.0}
+    assert LTokenizer(scores).tokenize(text, 0.0, False) == LTokenizer(scores).tokenize(text, flatten=False)
+    assert MaxScoreTokenizer(scores).tokenize(text, False) == MaxScoreTokenizer(scores).tokenize(text, flatten=False)
+    assert RegexTokenizer().tokenize(text, False, False) == RegexTokenizer().tokenize(text, flatten=False)
+    assert NounMatchTokenizer(scores).tokenize(text, False, False) == NounMatchTokenizer(scores).tokenize(
+        text, flatten=False, compose_compound=False
+    )
+    assert LTokenizer(default_score=0.5).unknown_score == 0.5
+    assert MaxScoreTokenizer(default_score=0.5).unknown_score == 0.5
+
+
+def test_positional_legacy_noun_constructor(master):
+    extractor = LRNounExtractor(12, 7, None, False)
+    extractor.train(master["sents"], min_noun_frequency=2)
+    assert extractor.max_left_length == 12
+    assert all(len(score) == 3 for score in extractor.extract(min_noun_frequency=2).values())
