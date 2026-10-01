@@ -17,10 +17,10 @@ import logging
 from collections import defaultdict
 from typing import NamedTuple
 
+from soynlp.core import LRGraph
 from soynlp.hangle import character_is_complete_korean
 from soynlp.lemmatizer import _conjugate_stem, conjugate, lemma_candidate
 from soynlp.normalizer import normalize_sent_for_lrgraph
-from soynlp.core import LRGraph
 from soynlp.utils import EojeolCounter, get_process_memory
 from soynlp.utils.utils import installpath
 

@@ -1,29 +1,24 @@
 fail_fast: true
 minimum_pre_commit_version: "4.1.0"
 repos:
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.393
+  - repo: local
     hooks:
       - id: pyright
-        entry: pyright
-        language_version: python3.12
-        additional_dependencies:
-          - pytest==8.3.0
-          - dacite==1.9.1
-          - numpy==2.2.3
-          - psutil==6.1.1
-          - pyyaml==6.0.2
-          - scikit-learn==1.6.1
-          - scipy==1.15.2
-          - tqdm==4.67.1
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.4
-    hooks:
+        name: Run locked Pyright
+        entry: uv run --python 3.12 pyright
+        language: system
+        pass_filenames: false
+        types: [python]
       - id: ruff
-        name: Run ruff lint
-        args: [--fix, --exit-non-zero-on-fix]
+        name: Run locked Ruff lint
+        entry: uv run --python 3.12 ruff check
+        language: system
+        types: [python]
       - id: ruff-format
-        name: Run ruff format
+        name: Check locked Ruff format
+        entry: uv run --python 3.12 ruff format --check
+        language: system
+        types_or: [python, markdown]
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:

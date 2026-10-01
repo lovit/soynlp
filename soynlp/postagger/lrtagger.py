@@ -1,6 +1,7 @@
 import dataclasses
 import logging
 from collections import OrderedDict
+from collections.abc import Iterable
 from dataclasses import dataclass
 from math import log
 
@@ -334,7 +335,11 @@ class LRMaxScoreTagger:
                 subwords.append([(token.word, pos), ("", None), b + token.begin, b + token.end, token.length, prop, count])
             return subwords
         tokenize = getattr(self.base_tokenizer, "tokenize", self.base_tokenizer)
+        if not callable(tokenize):
+            raise TypeError("base_tokenizer must be callable or expose tokenize()")
         words = tokenize(t)
+        if not isinstance(words, Iterable):
+            raise TypeError("base_tokenizer must return iterable word strings")
         subwords = []
         offset = 0
         for word in words:

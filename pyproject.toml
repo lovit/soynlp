@@ -23,9 +23,9 @@ soynlp = "soynlp.__main__:main"
 [dependency-groups]
 dev = [
     "pytest>=8.3.0",
-    "ruff>=0.9.4",
+    "ruff==0.16.9",
     "pre-commit>=4.1.0",
-    "pyright>=1.1.393",
+    "pyright==1.1.414",
     "emoji>=2.0",
 ]
 
@@ -37,10 +37,12 @@ line-length = 127
 target-version = "py312"
 
 [tool.ruff.lint]
-extend-select = ["I"]
+# Keep the original lint policy explicit across Ruff releases.
+select = ["E4", "E7", "E9", "F", "I"]
 
 [tool.ruff.lint.per-file-ignores]
 # `l` is a domain convention for "left part" in Korean L-R decomposition
+"soynlp/_legacy/**/*.py" = ["E741"]
 "soynlp/lemmatizer/*.py" = ["E741"]
 "soynlp/postagger/*.py" = ["E741"]
 "soynlp/pos/*.py" = ["E741"]

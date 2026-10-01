@@ -2,12 +2,12 @@
 
 import logging
 
+from soynlp.core import LRGraph
 from soynlp.hangle import decompose
 from soynlp.lemmatizer import lemma_candidate
 from soynlp.noun import LRNounExtractor
 from soynlp.predicator import Predicator, PredicatorExtractor
 from soynlp.tokenizer import MaxScoreTokenizer
-from soynlp.core import LRGraph
 from soynlp.utils import CorpusLoader, EojeolCounter
 
 from .adverb import load_default_adverbs, stem_to_adverb
