@@ -150,7 +150,7 @@ class NewsPOSExtractor:
             verbose=self._verbose,
         )
 
-        verbs, adjectives = self.predicator_extractor.train_extract(
+        adjectives, verbs = self.predicator_extractor.train_extract(
             sents,
             min_eojeol_frequency,
             100000,

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import yaml
 
-from soynlp.artifacts import load_artifact, load_matrix
+from soynlp.artifacts import Artifact, load_artifact, load_matrix
 from soynlp.cli import main
 from soynlp.configs.config import from_dict
 from soynlp.pipeline import Pipeline
@@ -116,3 +116,11 @@ def test_cli_validate_tasks_and_run(tmp_path, capsys):
     assert json.loads(output.read_text())["result"] == "한국어ㅋㅋ"
     main(["pipeline", "tasks"])
     assert "ReadArtifact" in json.loads(capsys.readouterr().out)
+
+
+def test_legacy_tokenize_task_accepts_versioned_resource():
+    config = from_dict({"pipeline": [{"name": "Tokenize", "args": {"tokenizer_type": "l_tokenizer", "scores_key": "scores"}}]})
+    result = Pipeline()(
+        config, {"scores": Artifact("nouns", {"한국어": {"frequency": 3, "score": 1.0}}), "corpus": [{"text": "한국어를"}]}
+    )
+    assert result["corpus"][0]["tokens"] == ["한국어", "를"]

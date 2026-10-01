@@ -110,3 +110,54 @@ def test_replay_corpus_keeps_newlines():
     with ReplayCorpus(iter([{"text": "한국어\n공부"}])) as corpus:
         assert len(corpus) == 1
         assert list(corpus) == list(corpus) == ["한국어\n공부"]
+
+
+def test_pattern_resource_reused_by_tokenizer_and_tagger(corpus, tmp_path, capsys):
+    resource = tmp_path / "patterns.json"
+    main(
+        [
+            "train",
+            "patterns",
+            "--input",
+            corpus,
+            "--parameters",
+            '{"constructor":{"min_frequency":2},"train":{"n_workers":2},"hits":{"max_iter":2}}',
+            "-o",
+            str(resource),
+        ]
+    )
+    artifact = load_artifact(resource)
+    assert artifact.data["left_scores"] and artifact.data["right_scores"]
+    for command, method, key in [("tokenize", "max-lr-score", "tokens"), ("tag", "lr-max-score", "tags")]:
+        main([command, "--method", method, "--resource", str(resource), "--text", "한국어를 공부합니다"])
+        assert json.loads(capsys.readouterr().out)[key]
+
+
+def test_corpus_word_scores_can_be_reused(corpus, tmp_path, capsys):
+    resource = tmp_path / "words.json"
+    main(
+        [
+            "extract",
+            "words",
+            "--method",
+            "corpus",
+            "--input",
+            corpus,
+            "--parameters",
+            '{"extract":{"min_frequency":2}}',
+            "-o",
+            str(resource),
+        ]
+    )
+    main(["tokenize", "--method", "l", "--resource", str(resource), "--text", "한국어를 공부합니다"])
+    assert json.loads(capsys.readouterr().out)["tokens"]
+
+
+def test_predicator_seed_dictionary_controls_candidates(tmp_path):
+    from soynlp.services.corpus import extract_corpus
+
+    dictionary = tmp_path / "seeds.json"
+    save_artifact(Artifact("dictionary", {"Verb": ["먹"], "Adjective": [], "Eomi": ["었다", "다"]}), dictionary)
+    result = extract_corpus(["먹었다 예뻤다"] * 3, "predicators", dictionary=str(dictionary), resource=Artifact("nouns", {}))
+    assert "먹었다" in result.data["verbs"]
+    assert result.data["adjectives"] == {}

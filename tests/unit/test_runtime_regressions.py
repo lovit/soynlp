@@ -55,3 +55,11 @@ def test_empty_vectorization_and_dictionary():
     vectorizer = BaseVectorizer(verbose=False)
     assert vectorizer.fit_transform([]).shape == (0, 0)
     assert Dictionary({}).max_length == 0
+
+
+def test_news_predicator_labels_follow_public_return_order():
+    extractor = NewsPOSExtractor(verbose=False, extract_eomi=False)
+    extractor.nouns = {}
+    adjectives, verbs = extractor._train_predicator_extractor(["먹었다 예뻤다"] * 3, min_eojeol_frequency=1)
+    assert "먹었다" in verbs
+    assert "예뻤다" in adjectives

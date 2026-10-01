@@ -62,14 +62,19 @@ def resource_scores(path: str | Artifact | None, score_field: str = "score") -> 
         return {}
     artifact = resolve_artifact(path)
     data = artifact.data
-    if artifact.kind not in {"scores", "nouns", "words", "dictionary"} or not isinstance(data, dict):
+    if artifact.kind not in {"scores", "nouns", "words", "dictionary", "patterns"} or not isinstance(data, dict):
         raise ValueError("Tokenizer resource must contain scores, nouns, words or a dictionary")
+    if artifact.kind == "patterns":
+        return data.get("left_scores") or {word: 1.0 for word in data.get("left_vocabulary", [])}
     if artifact.kind == "dictionary":
         return {word: 1.0 for words in data.values() for word in words}
     scores = {}
     for word, value in data.items():
-        if isinstance(value, dict):
-            value = value.get(score_field)
+        for field in score_field.split("."):
+            if isinstance(value, dict):
+                value = value.get(field)
+        if value is None and artifact.kind == "words":
+            continue
         if not isinstance(value, (int, float)):
             raise ValueError(f"Missing numeric score field {score_field!r} for {word!r}")
         scores[word] = float(value)
@@ -83,6 +88,18 @@ def validate_text_parameters(command: str, method: str | None, parameters: dict[
     factories = {
         "normalize": NORMALIZER_FACTORIES,
         "tag": {"korean": KoreanPOSTagger, "lr-max-score": LRMaxScoreTagger},
+        "lemmatize": {
+            "filtered": lemmatizer.Lemmatizer,
+            "candidates": lemmatizer.lemma_candidate,
+            "chat": lemmatizer.lemma_candidate_chat,
+        },
+        "conjugate": {
+            "normal": lemmatizer.conjugate,
+            "chat": lemmatizer.conjugate_chat,
+            "present": predicator.conjugate_as_present,
+            "imperative": predicator.conjugate_as_imperative,
+            "pleasure": predicator.conjugate_as_pleasure,
+        },
         "tokenize": {
             "regex": tokenizer.RegexTokenizer,
             "l": tokenizer.LTokenizer,
@@ -103,6 +120,10 @@ def validate_text_parameters(command: str, method: str | None, parameters: dict[
             if method == "legacy-normalize"
             else {}
         )
+        if command == "lemmatize":
+            required = {"stems": set(), "endings": set()} if method == "filtered" else {"l": "", "r": ""}
+        elif command == "conjugate":
+            required = {"stem": "", "ending": ""} if method in {"normal", "chat"} else {"stem": ""}
         try:
             inspect.signature(factories[command][method]).bind(**(required | parameters))
         except TypeError as error:
@@ -148,6 +169,15 @@ def text_processor(
         if method in {"noun-match", "noun-l-match"} and resource is None:
             raise ValueError(f"{method} requires a noun or dictionary resource")
         factory, required = factories[method]
+        if method == "max-lr-score" and resource:
+            model = resolve_artifact(resource)
+            if model.kind == "patterns":
+                required.update(
+                    {
+                        "Dr": model.data.get("right_scores") or {word: 1.0 for word in model.data.get("right_vocabulary", [])},
+                        "lrgraph": model.data["lrgraph"],
+                    }
+                )
         instance = construct(factory, options, **required)
         if method in {"max-lr-score", "noun-l-match"}:
             if offsets:
@@ -160,7 +190,10 @@ def text_processor(
         if resource:
             if method != "lr-max-score":
                 raise ValueError("An LR-Graph resource requires lr-max-score")
-            options["lrgraph"] = resolve_artifact(resource, expected_kind="lrgraph").data
+            model = resolve_artifact(resource)
+            if model.kind not in {"lrgraph", "patterns"}:
+                raise ValueError("LR tagger resource must contain lrgraph or patterns")
+            options["lrgraph"] = model.data if model.kind == "lrgraph" else model.data["lrgraph"]
         instance = construct(KoreanPOSTagger if method == "korean" else LRMaxScoreTagger, options)
         return instance.tag if method == "korean" else instance.pos
     if command == "lemmatize":
