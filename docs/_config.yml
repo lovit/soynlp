@@ -1,0 +1,33 @@
+title: soynlp
+description: 코퍼스로 배우는 한국어 자연어 처리
+lang: ko
+url: https://lovit.github.io
+baseurl: /soynlp
+repository: lovit/soynlp
+repository_url: https://github.com/lovit/soynlp
+docs_source_ref: refactor-2026
+theme: null
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+plugins:
+  - jekyll-relative-links
+  - jekyll-github-metadata
+relative_links:
+  enabled: true
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - vendor
+  - .bundle
+  - .jekyll-cache
+  - .sass-cache
+  - _site

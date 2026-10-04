@@ -61,6 +61,8 @@ BoW는 **단어 빈도(TF)** 행렬입니다. TF-IDF, NER와 새로운 MaxScoreT
 
 ## 안내와 검증
 
+- [한글 사용자 가이드 사이트](https://lovit.github.io/soynlp/)
+- [설치·빠른 시작](docs/getting-started.md), [Python 사용법](docs/python.md), [YAML 파이프라인](docs/pipeline.md)
 - [전체 CLI와 저장 형식](docs/CLI.md)
 - [Python 호환성과 API 차이](docs/COMPATIBILITY.md)
 - [실행 가능한 Python 예제](examples/refactor_demo.py)

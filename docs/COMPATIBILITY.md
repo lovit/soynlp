@@ -1,3 +1,10 @@
+---
+title: 호환성 안내
+description: master의 공개 사용법과 현재 코퍼스 API, 반환 형식·모델 파일의 차이를 설명합니다.
+section: 기존 사용자
+permalink: /compatibility/
+---
+
 # Python API 호환성
 
 호환성 기준은 `master`의 공개 모듈 import, 학습·추출 사용법, tuple 결과와 기존 모델 파일입니다.
@@ -91,9 +98,12 @@ JSON을 읽으면 data는 JSON 객체·배열이며 원래 Python namedtuple 인
 
 실제 코퍼스 실행, master 결과·모델 비교, 워커 수에 따른 명사 결과 일치,
 Python/CLI/YAML 리소스 재사용, 빈 행렬과 어휘 순서, 설치된 배포 파일의 내장 사전을 검증합니다.
-macOS에서 로컬 검증했으며 Linux·macOS CI를 설정했습니다. 원격 실행은 이 작업에서 수행하지 않습니다.
+macOS에서 로컬 검증했으며 Linux·macOS CI를 설정했습니다.
+패키지 회귀 CI의 원격 실행 결과는 구현 기록을 참고하세요.
 
-이슈·PR·원격 push 없이 기능 브랜치와 merge commit을 로컬 `refactor-2026`에 보관합니다.
+리팩토링 기능 구현은 이슈·PR·원격 push 없이 기능 브랜치와 merge commit으로 진행했습니다.
+이번 문서 사이트는 `docs/soynlp-doc` 브랜치를 push해 GitHub Pages에서 검토합니다.
+사용자 검토 후 `refactor-2026`에 merge commit으로 병합하고 문서 소스를 복구합니다.
 CLI와 JSON 형식은 이 브랜치의 구현 후보입니다. 사용자 검토 후 공개 릴리스 버전과 이식 방식을 결정할 수 있습니다.
 Python 3.12 최소 버전 변경은 이 브랜치의 기존 요구 사항이며 master의 과거 Python 환경 전체를 지원하지 않습니다.
 NER·새 MaxScoreTagger 알고리즘·TF-IDF는 이번 작업에 포함하지 않습니다.

@@ -1,3 +1,10 @@
+---
+title: CLI 안내
+description: 전체 명령, 문장·코퍼스 입출력과 리소스 재사용 방법을 안내합니다.
+section: 사용 가이드
+permalink: /cli/
+---
+
 # 기능별 CLI
 
 `soynlp`와 `python -m soynlp`는 같은 진입점입니다.

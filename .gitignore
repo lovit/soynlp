@@ -158,3 +158,11 @@ cython_debug/
 .idea/
 .vscode/
 .DS_Store
+
+# GitHub Pages / Jekyll documentation
+docs/_site/
+docs/vendor/
+docs/.bundle/
+docs/.jekyll-cache/
+docs/.jekyll-metadata
+docs/.sass-cache/

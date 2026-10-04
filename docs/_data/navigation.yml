@@ -1,0 +1,24 @@
+- title: 소개
+  items:
+    - title: 홈
+      url: /
+      label: "01"
+    - title: 설치·빠른 시작
+      url: /getting-started/
+      label: "02"
+- title: 사용 가이드
+  items:
+    - title: Python 사용법
+      url: /python/
+      label: "03"
+    - title: CLI 안내
+      url: /cli/
+      label: "04"
+    - title: YAML 파이프라인
+      url: /pipeline/
+      label: "05"
+- title: 기존 사용자
+  items:
+    - title: 호환성 안내
+      url: /compatibility/
+      label: "06"

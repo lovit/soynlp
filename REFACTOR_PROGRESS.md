@@ -17,6 +17,11 @@ NER·MaxScoreTagger 새 알고리즘과 TF-IDF 추가는 범위 밖이다.
 각 기능은 별도 worktree/feature 브랜치에서 검증하고 merge commit으로 병합한다.
 이슈·PR·원격 push 없이 로컬 코드와 기록을 제공한다. Git 이력에서 각 merge commit의 두 번째 부모가 기능 커밋이다.
 
+문서 사이트 후속 작업은 사용자 요청에 따라 `docs/soynlp-doc` 브랜치를 push하고
+GitHub Pages 소스를 이 브랜치의 `/docs`로 임시 전환한다.
+사용자 검토가 끝난 뒤 `refactor-2026`에 `--no-ff`로 병합·push하고 Pages 소스를 복구한다.
+이번 문서 작업은 병합 전 검토 단계에서 사용자 확인을 기다린다.
+
 ## 기능별 기록
 
 | 브랜치 | 작업 | 검증 |
@@ -34,3 +39,4 @@ NER·MaxScoreTagger 새 알고리즘과 TF-IDF 추가는 범위 밖이다.
 | feature/cli-resource-reuse | 패턴 모델·HITS·병렬 학습과 코퍼스 단어 점수 재사용, 용언 seed 사전·형용사/동사 반환 순서 및 기존 태스크 Artifact 지원 | 코퍼스·실행 회귀 31개와 CLI·파이프라인 56개 통과; Ruff·Pyright 통과 |
 | feature/noun-score-compat | 기존 v2 명사 추출 결과를 공개 NounScore 인스턴스로 반환하여 tuple 동작과 isinstance 호환 동시 유지 | master 결과·모델 및 공개 API 회귀 10개 통과; Pyright 통과 |
 | feature/usage-docs | 전체 CLI·저장 형식·Python 호환성 문서와 실행 가능한 Python·YAML 예제 및 기능별 커밋 기록 정리 | 전체 505개 테스트, Ruff·format·Pyright 통과; 문서 CLI 23개·Python 및 YAML 예제 통과; wheel·sdist 격리 설치 통과 |
+| docs/soynlp-doc | 한글 GitHub Pages 사이트, 설치·Python·YAML 가이드와 공통 메뉴·목차·모바일 화면 구성; 병합 전 Pages 검토 | Jekyll 빌드, Python 예제 6개·CLI 명령 37개, 7페이지의 내부 링크·에셋·앵커 90개 및 데스크톱·모바일 12개 화면 검증 통과 |
